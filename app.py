@@ -147,6 +147,11 @@ MAPA_UGS_PADRAO = {
     "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM / Outros"
 }
 
+USUARIOS_PADRAO = [
+    {"usuario": "admin", "nome": "Administrador Geral", "senha": "ufsm2026", "perfil": "Administrador"},
+    {"usuario": "pra_gestor", "nome": "Gestor PRA", "senha": "pra123", "perfil": "Gestor"},
+]
+
 # Inicialização da Memória do Sistema
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "carga"
@@ -159,6 +164,12 @@ if "unidades_consolidadas" not in st.session_state:
 
 if "mapa_ugs" not in st.session_state:
     st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
+
+if "tabela_usuarios" not in st.session_state:
+    st.session_state.tabela_usuarios = USUARIOS_PADRAO.copy()
+
+if "usuario_logado" not in st.session_state:
+    st.session_state.usuario_logado = None
 
 if "dicionario_pis" not in st.session_state:
     st.session_state.dicionario_pis = {}
@@ -174,24 +185,33 @@ if "editando_conta" not in st.session_state:
     st.session_state.editando_conta = None
 
 # -----------------------------------------------------------------------------
-# 3. AUTENTICAÇÃO
+# 3. AUTENTICAÇÃO DINÂMICA
 # -----------------------------------------------------------------------------
-SENHA_CORRETA = "ufsm2026"
-
 def verificar_senha():
     if "autenticado" not in st.session_state:
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
         st.title("🏛️ Sistema de Gestão Orçamentária - PRA/UFSM")
-        st.subheader("Área Restrita à Alta Gestão")
-        senha_digitada = st.text_input("Digite a senha de acesso:", type="password")
-        if st.button("Entrar"):
-            if senha_digitada == SENHA_CORRETA:
+        st.subheader("Acesso ao Sistema")
+        
+        c_user, c_pass = st.columns(2)
+        usuario_input = c_user.text_input("Usuário:")
+        senha_input = c_pass.text_input("Senha:", type="password")
+        
+        if st.button("Entrar", type="primary"):
+            usuario_encontrado = None
+            for u in st.session_state.tabela_usuarios:
+                if u["usuario"].lower() == usuario_input.strip().lower() and u["senha"] == senha_input:
+                    usuario_encontrado = u
+                    break
+            
+            if usuario_encontrado:
                 st.session_state.autenticado = True
+                st.session_state.usuario_logado = usuario_encontrado
                 st.rerun()
             else:
-                st.error("Senha incorreta.")
+                st.error("Usuário ou senha incorretos.")
         return False
     return True
 
@@ -201,14 +221,20 @@ if verificar_senha():
     # 4. MENU LATERAL POR BOTÕES COM LOGO DA UFSM
     # -----------------------------------------------------------------------------
     
-    # URL da logomarca oficial da UFSM em alta definição
+    # URL da logomarca oficial da UFSM
     LOGO_UFSM_URL = "https://upload.wikimedia.org/wikipedia/commons/e/eb/Brasao-ufsm.png"
 
     # Exibe a logo no topo do menu lateral (esquerda)
     st.sidebar.image(LOGO_UFSM_URL, use_container_width=True)
     
     st.sidebar.title("🏛️ PRA / UFSM")
-    st.sidebar.caption("Gestão Orçamentária Executiva")
+    st.sidebar.caption(f"Usuário: **{st.session_state.usuario_logado['nome']}** ({st.session_state.usuario_logado['perfil']})")
+    
+    if st.sidebar.button("🚪 Sair / Logout"):
+        st.session_state.autenticado = False
+        st.session_state.usuario_logado = None
+        st.rerun()
+
     st.sidebar.markdown("---")
 
     if st.sidebar.button("📁 1. Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
@@ -227,7 +253,11 @@ if verificar_senha():
         st.session_state.pagina_atual = "dicionario"
         st.rerun()
 
-    if st.sidebar.button("📊 5. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+    if st.sidebar.button("👤 5. Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
+        st.session_state.pagina_atual = "usuarios"
+        st.rerun()
+
+    if st.sidebar.button("📊 6. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
         st.session_state.pagina_atual = "relatorio"
         st.rerun()
 
@@ -304,22 +334,18 @@ if verificar_senha():
 
                     if c_btn_del.button("🗑️", key=f"del_u_{idx}", help="Excluir Unidade"):
                         st.session_state.unidades_consolidadas.remove(unidade)
-                        # Remove dos mapeamentos
                         for ug_k, val in list(st.session_state.mapa_ugs.items()):
                             if val == unidade:
                                 st.session_state.mapa_ugs[ug_k] = "Encargos Gerais da UFSM / Outros"
                         st.rerun()
 
-                    # Caixa Inline para Alteração de Nome
                     if st.session_state.editando_unidade == unidade:
                         with st.container():
                             c_in, c_save, c_canc = st.columns([4, 1, 1])
                             novo_nome_u = c_in.text_input("Novo nome:", value=unidade, key=f"inp_u_{idx}")
                             if c_save.button("Salvar", key=f"save_u_{idx}"):
                                 if novo_nome_u and novo_nome_u != unidade:
-                                    # 1. Atualiza na lista de Unidades
                                     st.session_state.unidades_consolidadas[idx] = novo_nome_u
-                                    # 2. Atualiza em cascata o Mapeamento de UGs
                                     for ug_k, val in st.session_state.mapa_ugs.items():
                                         if val == unidade:
                                             st.session_state.mapa_ugs[ug_k] = novo_nome_u
@@ -404,22 +430,18 @@ if verificar_senha():
 
                 if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
                     st.session_state.contas_gerenciais.remove(conta)
-                    # Remove dos mapeamentos do dicionário de PIs
                     for pi_k, val in list(st.session_state.dicionario_pis.items()):
                         if val == conta:
                             st.session_state.dicionario_pis[pi_k] = "Sem Classificação"
                     st.rerun()
 
-                # Caixa Inline para Alteração de Nome
                 if st.session_state.editando_conta == conta:
                     with st.container():
                         c_in, c_save, c_canc = st.columns([4, 1, 1])
                         novo_nome_c = c_in.text_input("Novo nome:", value=conta, key=f"inp_c_{idx}")
                         if c_save.button("Salvar", key=f"save_c_{idx}"):
                             if novo_nome_c and novo_nome_c != conta:
-                                # 1. Atualiza na lista de contas
                                 st.session_state.contas_gerenciais[idx] = novo_nome_c
-                                # 2. Atualiza em cascata no Dicionário de PIs
                                 for pi_k, val in st.session_state.dicionario_pis.items():
                                     if val == conta:
                                         st.session_state.dicionario_pis[pi_k] = novo_nome_c
@@ -482,7 +504,76 @@ if verificar_senha():
                 st.session_state.dicionario_pis[pi_item] = nova_ass
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 5: RELATÓRIO EXECUTIVO
+    # PÁGINA 5: CADASTRO DE USUÁRIOS
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "usuarios":
+        st.header("👤 Gestão de Usuários e Permissões")
+        st.write("Cadastre e controle os usuários que possuem acesso ao sistema.")
+
+        col_usr_add, col_usr_list = st.columns([1, 2])
+
+        with col_usr_add:
+            st.subheader("➕ Novo Usuário")
+            novo_usr_id = st.text_input("Usuário (Login):")
+            novo_usr_nome = st.text_input("Nome Completo:")
+            novo_usr_pass = st.text_input("Senha:", type="password")
+            novo_usr_perf = st.selectbox("Perfil:", ["Administrador", "Gestor", "Consulta"])
+
+            if st.button("Cadastrar Usuário", use_container_width=True):
+                if not novo_usr_id or not novo_usr_pass or not novo_usr_nome:
+                    st.error("Preencha todos os campos obrigatórios.")
+                elif any(u["usuario"].lower() == novo_usr_id.strip().lower() for u in st.session_state.tabela_usuarios):
+                    st.error("Este nome de usuário já existe.")
+                else:
+                    st.session_state.tabela_usuarios.append({
+                        "usuario": novo_usr_id.strip(),
+                        "nome": novo_usr_nome.strip(),
+                        "senha": novo_usr_pass,
+                        "perfil": novo_usr_perf
+                    })
+                    st.success(f"Usuário '{novo_usr_id}' cadastrado com sucesso!")
+                    st.rerun()
+
+        with col_usr_list:
+            st.subheader(f"Usuários Cadastrados ({len(st.session_state.tabela_usuarios)})")
+            
+            # Converte lista de dicts para DataFrame visual
+            df_usr_view = pd.DataFrame(st.session_state.tabela_usuarios)[["usuario", "nome", "perfil"]]
+            df_usr_view.columns = ["Login", "Nome Completo", "Perfil"]
+            st.dataframe(df_usr_view, use_container_width=True)
+
+            st.markdown("---")
+            st.subheader("⚙️ Ações nos Usuários")
+            
+            usrs_existentes = [u["usuario"] for u in st.session_state.tabela_usuarios]
+            usr_selecionado = st.selectbox("Selecione um usuário para editar/excluir:", usrs_existentes)
+            
+            if usr_selecionado:
+                dados_usr = next(u for u in st.session_state.tabela_usuarios if u["usuario"] == usr_selecionado)
+                
+                c_edit_pass, c_del_usr = st.columns(2)
+                
+                with c_edit_pass:
+                    nova_s = st.text_input(f"Nova senha para '{usr_selecionado}':", type="password", key="inp_nova_s")
+                    if st.button("Alterar Senha"):
+                        if nova_s:
+                            dados_usr["senha"] = nova_s
+                            st.success("Senha alterada com sucesso!")
+                        else:
+                            st.warning("Digite a nova senha.")
+
+                with c_del_usr:
+                    st.write("Excluir conta de acesso:")
+                    if st.button(f"🗑️ Excluir '{usr_selecionado}'", type="primary"):
+                        if len(st.session_state.tabela_usuarios) <= 1:
+                            st.error("Não é possível remover o único usuário do sistema.")
+                        else:
+                            st.session_state.tabela_usuarios = [u for u in st.session_state.tabela_usuarios if u["usuario"] != usr_selecionado]
+                            st.success(f"Usuário '{usr_selecionado}' removido com sucesso!")
+                            st.rerun()
+
+    # -----------------------------------------------------------------------------
+    # PÁGINA 6: RELATÓRIO EXECUTIVO
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         st.header("📊 Relatório Executivo de Despesas Discricionárias")
@@ -505,7 +596,6 @@ if verificar_senha():
             # 2. Tratamento e Mapeamento
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
             
-            # Normalização e busca na tabela de mapeamentos
             df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
                 lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
             )
