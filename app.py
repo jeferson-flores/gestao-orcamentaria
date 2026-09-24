@@ -3,18 +3,30 @@ import pandas as pd
 import plotly.express as px
 
 # -----------------------------------------------------------------------------
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. CONFIGURAÇÃO E ESTILO
 # -----------------------------------------------------------------------------
 st.set_page_config(
-    page_title="Painel de Simulação Orçamentária - UFSM",
+    page_title="Sistema de Gestão Orçamentária - UFSM",
     page_icon="🏛️",
     layout="wide"
 )
 
+# Inicialização da Memória da Aplicação (Session State) para Cadastros
+if "contas_gerenciais" not in st.session_state:
+    # Contas iniciais de exemplo (você pode alterar/adicionar na interface)
+    st.session_state.contas_gerenciais = ["Manutenção & Concessionárias", "Assistência e Bolsas", "Obras & Infraestrutura", "Insumos de Laboratório", "Sem Classificação"]
+
+if "dicionario_pis" not in st.session_state:
+    # Mapeamento inicial vazio {PI: Conta}
+    st.session_state.dicionario_pis = {}
+
+if "dados_tg_raw" not in st.session_state:
+    st.session_state.dados_tg_raw = None
+
 # -----------------------------------------------------------------------------
-# 2. SISTEMA DE SEGURANÇA E AUTENTICAÇÃO
+# 2. SEGURANÇA E AUTENTICAÇÃO
 # -----------------------------------------------------------------------------
-SENHA_CORRETA = "ufsm2026"  # Defina sua senha aqui
+SENHA_CORRETA = "ufsm2026"
 
 def verificar_senha():
     if "autenticado" not in st.session_state:
@@ -36,11 +48,26 @@ def verificar_senha():
 
 if verificar_senha():
 
-    st.title("🏛️ Painel de Gestão e Simulação Orçamentária")
-    st.caption("Pró-Reitoria de Administração (PRA) - Universidade Federal de Santa Maria")
+    # -----------------------------------------------------------------------------
+    # 3. MENU LATERAL DE NAVEGAÇÃO
+    # -----------------------------------------------------------------------------
+    st.sidebar.title("🏛️ PRA / UFSM")
+    st.sidebar.caption("Gestão Orçamentária Executiva")
+    
+    opcao_menu = st.sidebar.radio(
+        "Navegação",
+        [
+            "📊 Relatório Principal",
+            "📖 Dicionário de PIs",
+            "🏷️ Cadastro de Contas",
+            "📁 Carga do Tesouro Gerencial"
+        ]
+    )
 
-    # Funcao para tratar valores do Tesouro Gerencial (ex: "1.500.000,00" -> 1500000.00)
-    def converter_para_numero(val):
+    # -----------------------------------------------------------------------------
+    # FUNÇÃO AUXILIAR: TRATAMENTO DE VALORES NUMÉRICOS
+    # -----------------------------------------------------------------------------
+    def converter_valor(val):
         if pd.isna(val):
             return 0.0
         if isinstance(val, (int, float)):
@@ -52,116 +79,182 @@ if verificar_senha():
             return 0.0
 
     # -----------------------------------------------------------------------------
-    # 3. CARGA E MAPEAMENTO DE DADOS (TESOURO GERENCIAL)
+    # PÁGINA 1: CARGA DE DADOS
     # -----------------------------------------------------------------------------
-    st.sidebar.header("📁 Carga de Dados (TG)")
-    arquivo = st.sidebar.file_uploader("Upload do relatório (.xlsx ou .csv)", type=["csv", "xlsx"])
+    if opcao_menu == "📁 Carga do Tesouro Gerencial":
+        st.header("📁 Carga do Relatório do Tesouro Gerencial")
+        st.write("Faça o upload do arquivo brutos (.xlsx ou .csv) extraído do Tesouro Gerencial.")
 
-    if arquivo is not None:
-        try:
-            if arquivo.name.endswith(".csv"):
-                # Tenta ler CSV com separadores comuns no Brasil
-                try:
-                    df_raw = pd.read_csv(arquivo, sep=";", encoding="latin1")
-                    if len(df_raw.columns) <= 1:
+        arquivo = st.file_uploader("Selecione a planilha do TG", type=["csv", "xlsx"])
+
+        if arquivo is not None:
+            try:
+                if arquivo.name.endswith(".csv"):
+                    try:
+                        df = pd.read_csv(arquivo, sep=";", encoding="latin1")
+                        if len(df.columns) <= 1:
+                            arquivo.seek(0)
+                            df = pd.read_csv(arquivo, sep=",")
+                    except:
                         arquivo.seek(0)
-                        df_raw = pd.read_csv(arquivo, sep=",")
-                except:
-                    arquivo.seek(0)
-                    df_raw = pd.read_csv(arquivo)
-            else:
-                df_raw = pd.read_excel(arquivo)
+                        df = pd.read_csv(arquivo)
+                else:
+                    df = pd.read_excel(arquivo)
+                
+                st.session_state.dados_tg_raw = df
+                st.success(f"Arquivo carregado com sucesso! {len(df)} linhas encontradas.")
+                st.dataframe(df.head(5), use_container_width=True)
+
+            except Exception as e:
+                st.error(f"Erro ao ler o arquivo: {e}")
+
+        elif st.session_state.dados_tg_raw is not None:
+            st.info("Já existe um arquivo carregado na memória.")
+            if st.button("Remover Arquivo Atual"):
+                st.session_state.dados_tg_raw = None
+                st.rerun()
+
+    # -----------------------------------------------------------------------------
+    # PÁGINA 2: CADASTRO DE CONTAS GERENCIAIS
+    # -----------------------------------------------------------------------------
+    elif opcao_menu == "🏷️ Cadastro de Contas":
+        st.header("🏷️ Cadastro de Contas Gerenciais")
+        st.write("Crie os nomes amigáveis e estruturados que serão apresentados à Reitoria.")
+
+        col_add, col_list = st.columns([1, 2])
+
+        with col_add:
+            st.subheader("Nova Conta")
+            nova_conta = st.text_input("Nome da Conta Gerencial:")
+            if st.button("Adicionar Conta"):
+                if nova_conta and nova_conta not in st.session_state.contas_gerenciais:
+                    st.session_state.contas_gerenciais.append(nova_conta)
+                    st.success(f"Conta '{nova_conta}' criada com sucesso!")
+                    st.rerun()
+
+        with col_list:
+            st.subheader("Contas Cadastradas")
+            for idx, conta in enumerate(st.session_state.contas_gerenciais):
+                c_nome, c_del = st.columns([3, 1])
+                c_nome.write(f"• **{conta}**")
+                if c_del.button("Excluir", key=f"del_{idx}"):
+                    st.session_state.contas_gerenciais.remove(conta)
+                    st.rerun()
+
+    # -----------------------------------------------------------------------------
+    # PÁGINA 3: DICIONÁRIO DE PIs (PLANO INTERNO)
+    # -----------------------------------------------------------------------------
+    elif opcao_menu == "📖 Dicionário de PIs":
+        st.header("📖 Dicionário e Tradução de PIs (Planos Internos)")
+        st.write("Associe cada código de PI (SIAFI) a uma Conta Gerencial compreensível.")
+
+        if st.session_state.dados_tg_raw is None:
+            st.warning("⚠️ Faça o upload do arquivo do Tesouro Gerencial na aba 'Carga do Tesouro Gerencial' para listar os PIs.")
+        else:
+            df = st.session_state.dados_tg_raw
             
-            st.sidebar.success("Arquivo carregado com sucesso!")
+            # Identificação das colunas do TG conforme especificado (L/M para PI)
+            colunas = list(df.columns)
+            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]  # Coluna L (índice 11)
+            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod # Coluna M (índice 12)
 
-            # EXPANDER PARA MAPEAMENTO FLEXÍVEL DE COLUNAS
-            with st.expander("🛠️ Mapeamento de Colunas do Tesouro Gerencial", expanded=True):
-                st.write("Confirme ou selecione quais colunas da sua planilha correspondem aos campos do sistema:")
+            # Extrai PIs únicos
+            df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
+            df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str) + " - " + df_pis[col_pi_nome].astype(str)
+            
+            lista_pis = sorted(df_pis["PI_Completo"].unique())
+
+            st.write(f"**Total de PIs identificados no arquivo:** {len(lista_pis)}")
+
+            # Formulário de Associação
+            for pi_item in lista_pis:
+                col_pi_lbl, col_sel = st.columns([2, 2])
+                col_pi_lbl.write(f"📌 **{pi_item}**")
                 
-                colunas_disponiveis = list(df_raw.columns)
+                # Valor atual mapeado
+                conta_atual = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
+                idx_def = st.session_state.contas_gerenciais.index(conta_atual) if conta_atual in st.session_state.contas_gerenciais else 0
+
+                nova_associoacao = col_sel.selectbox(
+                    "Vincular à Conta:",
+                    st.session_state.contas_gerenciais,
+                    index=idx_def,
+                    key=f"sel_{pi_item}"
+                )
                 
-                # Mapeamento automático inteligente tentando adivinhar pelos nomes comuns do TG
-                idx_acao = next((i for i, c in enumerate(colunas_disponiveis) if "ação" in c.lower() or "acao" in c.lower() or "programa" in c.lower()), 0)
-                idx_desp = next((i for i, c in enumerate(colunas_disponiveis) if "gnd" in c.lower() or "grupo" in c.lower() or "despesa" in c.lower() or "elemento" in c.lower()), 0)
-                idx_dot = next((i for i, c in enumerate(colunas_disponiveis) if "dotação" in c.lower() or "dotacao" in c.lower() or "autorizado" in c.lower() or "credito" in c.lower()), 0)
-                idx_emp = next((i for i, c in enumerate(colunas_disponiveis) if "empenhado" in c.lower() or "empenho" in c.lower()), 0)
-
-                c_m1, c_m2, c_m3, c_m4 = st.columns(4)
-                col_acao = c_m1.selectbox("Coluna da Ação / Projeto:", colunas_disponiveis, index=idx_acao)
-                col_despesa = c_m2.selectbox("Coluna do Grupo/Categoria:", colunas_disponiveis, index=idx_desp)
-                col_dotacao = c_m3.selectbox("Coluna da Dotação Atualizada:", colunas_disponiveis, index=idx_dot)
-                col_empenhado = c_m4.selectbox("Coluna do Valor Empenhado:", colunas_disponiveis, index=idx_emp)
-
-            # Padroniza o dataframe com as colunas selecionadas
-            df_base = pd.DataFrame({
-                "Acao": df_raw[col_acao].astype(str),
-                "Categoria": df_raw[col_despesa].astype(str),
-                "Dotacao_Atualizada": df_raw[col_dotacao].apply(converter_para_numero),
-                "Empenhado": df_raw[col_empenhado].apply(converter_para_numero)
-            })
-
-        except Exception as e:
-            st.error(f"Erro ao processar o arquivo: {e}")
-            st.stop()
-    else:
-        # Dados de exemplo se nenhum arquivo for carregado
-        st.sidebar.info("Nenhum arquivo enviado. Exibindo dados de exemplo.")
-        df_base = pd.DataFrame({
-            "Acao": ["20RK - Funcionamento", "20RK - Funcionamento", "2082 - Assistência Estudantil"],
-            "Categoria": ["Custeio", "Investimento", "Custeio"],
-            "Dotacao_Atualizada": [15000000.0, 3000000.0, 8000000.0],
-            "Empenhado": [14200000.0, 1800000.0, 7900000.0]
-        })
+                st.session_state.dicionario_pis[pi_item] = nova_associoacao
 
     # -----------------------------------------------------------------------------
-    # 4. SIMULADOR E REGRAS DE CÁLCULO
+    # PÁGINA 4: RELATÓRIO PRINCIPAL (ALTA GESTÃO)
     # -----------------------------------------------------------------------------
-    st.sidebar.markdown("---")
-    st.sidebar.header("🎛️ Simulador Orçamentário")
-    
-    fator_geral = st.sidebar.slider(
-        "Ajuste Linear Geral no Orçamento (%)",
-        min_value=-30.0, max_value=30.0, value=0.0, step=1.0
-    )
+    elif opcao_menu == "📊 Relatório Principal":
+        st.header("📊 Relatório de Recursos Discricionários por Conta Gerencial")
 
-    df_simulado = df_base.copy()
-    df_simulado["Dotacao_Simulada"] = df_simulado["Dotacao_Atualizada"] * (1 + (fator_geral / 100))
+        if st.session_state.dados_tg_raw is None:
+            st.info("👋 Bem-vindo! Para visualizar o relatório executivo, faça o upload da planilha na aba **'Carga do Tesouro Gerencial'** no menu à esquerda.")
+        else:
+            df = st.session_state.dados_tg_raw
+            colunas = list(df.columns)
 
-    # -----------------------------------------------------------------------------
-    # 5. DASHBOARD E INDICADORES (KPIS)
-    # -----------------------------------------------------------------------------
-    dot_orig = df_simulado["Dotacao_Atualizada"].sum()
-    dot_sim = df_simulado["Dotacao_Simulada"].sum()
-    emp_tot = df_simulado["Empenhado"].sum()
-    dif_orc = dot_sim - dot_orig
+            # Mapeamento pelas posições exatas indicadas:
+            # Coluna C (índice 2): "Resultado Lei Nome"
+            # Coluna L/M (índices 11 e 12): PI Código e Nome
+            # Coluna T (índice 19): Valores
+            col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]
+            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
+            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
+            col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]
 
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Dotação Atual Total", f"R$ {dot_orig:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    c2.metric("Dotação Simulada", f"R$ {dot_sim:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."), delta=f"R$ {dif_orc:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    c3.metric("Total Empenhado", f"R$ {emp_tot:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-    c4.metric("Execução Atual", f"{(emp_tot / dot_orig * 100) if dot_orig > 0 else 0:.1f}%")
+            # 1. Filtro: Recursos Discricionários (Coluna C com código 2)
+            df_filtrado = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
 
-    st.markdown("---")
+            # 2. Tratamento do Valor (Coluna T)
+            df_filtrado["Valor_Tratado"] = df_filtrado[col_valor].apply(converter_valor)
 
-    # -----------------------------------------------------------------------------
-    # 6. VISUALIZAÇÕES GRÁFICAS E TABELAS
-    # -----------------------------------------------------------------------------
-    col_g1, col_g2 = st.columns(2)
+            # 3. Criação da Identificação Única do PI
+            df_filtrado["PI_Completo"] = df_filtrado[col_pi_cod].astype(str) + " - " + df_filtrado[col_pi_nome].astype(str)
 
-    with col_g1:
-        st.subheader("Cenário Original vs. Simulado por Ação")
-        df_agrup = df_simulado.groupby("Acao")[["Dotacao_Atualizada", "Dotacao_Simulada"]].sum().reset_index()
-        fig_barras = px.bar(
-            df_agrup, x="Acao", y=["Dotacao_Atualizada", "Dotacao_Simulada"],
-            barmode="group", labels={"value": "R$", "variable": "Cenário", "Acao": "Ação Orçamentária"}
-        )
-        st.plotly_chart(fig_barras, use_container_width=True)
+            # 4. Aplicação do Dicionário para Tradução para Conta Gerencial
+            df_filtrado["Conta_Gerencial"] = df_filtrado["PI_Completo"].map(
+                lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
+            )
 
-    with col_g2:
-        st.subheader("Distribuição do Orçamento Simulado por Categoria")
-        df_cat = df_simulado.groupby("Categoria")["Dotacao_Simulada"].sum().reset_index()
-        fig_pizza = px.pie(df_cat, names="Categoria", values="Dotacao_Simulada", hole=0.4)
-        st.plotly_chart(fig_pizza, use_container_width=True)
+            # --- APRESENTAÇÃO DOS RESULTADOS ---
+            total_discricionario = df_filtrado["Valor_Tratado"].sum()
+            
+            m1, m2 = st.columns(2)
+            m1.metric("Total de Recursos Discricionários", f"R$ {total_discricionario:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+            m2.metric("PIs Processados", len(df_filtrado["PI_Completo"].unique()))
 
-    st.subheader("📋 Tabela Detalhada de Execução e Simulação")
-    st.dataframe(df_simulado, use_container_width=True)
+            st.markdown("---")
+
+            # Consolidação por Conta Gerencial
+            df_executivo = df_filtrado.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
+            df_executivo.columns = ["Conta Gerencial", "Valor Total (R$)"]
+            df_executivo = df_executivo.sort_values(by="Valor Total (R$)", ascending=False)
+
+            col_g, col_t = st.columns([1, 1])
+
+            with col_g:
+                st.subheader("Visão por Conta Gerencial")
+                fig = px.pie(
+                    df_executivo, 
+                    names="Conta Gerencial", 
+                    values="Valor Total (R$)", 
+                    hole=0.4,
+                    title="Distribuição das Despesas Discricionárias"
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            with col_t:
+                st.subheader("Resumo de Valores")
+                st.dataframe(
+                    df_executivo.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
+                    use_container_width=True
+                )
+
+            st.markdown("---")
+            st.subheader("🔍 Detalhamento por PI")
+            df_detalhado = df_filtrado.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
+            df_detalhado.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
+            st.dataframe(df_detalhado.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
