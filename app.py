@@ -25,8 +25,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. BANCO DE DADOS/ESTRUTURAS PADRÃO (SISTEMA DE CONTAS E UNIDADES)
+# 2. BANCO DE DADOS/ESTRUTURAS PADRÃO
 # -----------------------------------------------------------------------------
+
+# Plano de Contas Gerenciais Padrão
 PLANO_CONTAS_PADRAO = [
     "1.1. Obras, Reformas e Adequações",
     "1.2. Concessionárias (Energia, Água, Gás)",
@@ -58,15 +60,56 @@ PLANO_CONTAS_PADRAO = [
     "Sem Classificação"
 ]
 
-# Dicionário de Mapeamento de Unidades (SIAFI -> Unidade Consolidada)
-MAPA_UNIDADES = {
-    "REITORIA DA UFSM": "Reitoria e Gabinete",
-    "GABINETE DO REITOR": "Reitoria e Gabinete",
-    "AUDITORIA INTERNA": "Reitoria e Gabinete",
-    "CORREGEDORIA SETORIAL DA UFSM": "Reitoria e Gabinete",
-    "COORDENADORIA DE COMUNICACAO SOCIAL": "Reitoria e Gabinete",
-    "DIRETORIA DE RELACOES INTERNACIONAIS": "Reitoria e Gabinete",
+# Lista Oficial das Unidades Consolidadas da UFSM
+# 9 Pró-Reitorias + 14 Unidades de Ensino/Centros + Diretorias/Órgãos + Campi
+UNIDADES_UFSM_PADRAO = [
+    # 9 Pró-Reitorias
+    "PRA - Pró-Reitoria de Administração",
+    "PROPLAN - Pró-Reitoria de Planejamento",
+    "PROGRAD - Pró-Reitoria de Graduação",
+    "PRPGP - Pró-Reitoria de Pós-Graduação e Pesquisa",
+    "PRE - Pró-Reitoria de Extensão",
+    "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "PROINFRA - Pró-Reitoria de Infraestrutura",
+    "PROGEP - Pró-Reitoria de Gestão de Pessoas",
+    "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
     
+    # 14 Unidades de Ensino e Colégios Tecnológicos
+    "CAL - Centro de Artes e Letras",
+    "CCNE - Centro de Ciências Naturais e Exatas",
+    "CCR - Centro de Ciências Rurais",
+    "CCS - Centro de Ciências da Saúde",
+    "CCSH - Centro de Ciências Sociais e Humanas",
+    "CE - Centro de Educação",
+    "CEFD - Centro de Educação Física e Desportos",
+    "CT - Centro de Tecnologia",
+    "Colégio Politécnico da UFSM",
+    "CTISM - Colégio Técnico Industrial de Santa Maria",
+    "Campus Frederico Westphalen",
+    "Campus Palmeira das Missões",
+    "Campus Cachoeira do Sul",
+    "Campus Silveira Martins",
+
+    # Diretorias e Órgãos Suplementares
+    "Reitoria e Gabinete do Reitor",
+    "DGA - Diretoria de Gestão Ambiental",
+    "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "DRI - Diretoria de Relações Internacionais",
+    "Hospital Veterinário / HVU",
+    "Encargos Gerais da UFSM / Outros"
+]
+
+# Mapeamento Padrão de UGs do SIAFI (Nome/Código -> Unidade Consolidada)
+MAPA_UGS_PADRAO = {
+    # Reitoria e Órgãos Ligados
+    "REITORIA DA UFSM": "Reitoria e Gabinete do Reitor",
+    "GABINETE DO REITOR": "Reitoria e Gabinete do Reitor",
+    "AUDITORIA INTERNA": "Reitoria e Gabinete do Reitor",
+    "CORREGEDORIA SETORIAL DA UFSM": "Reitoria e Gabinete do Reitor",
+    "COORDENADORIA DE COMUNICACAO SOCIAL": "Reitoria e Gabinete do Reitor",
+    "EDITORA UFSM": "Reitoria e Gabinete do Reitor",
+
+    # PRA
     "PRO-REITORIA DE ADMINISTRACAO DA UFSM": "PRA - Pró-Reitoria de Administração",
     "ALMOXARIFADO CENTRAL DA UFSM": "PRA - Pró-Reitoria de Administração",
     "UFSM-DEPARTAMENTO DE MATERIAL E PATRIMONIO": "PRA - Pró-Reitoria de Administração",
@@ -74,54 +117,85 @@ MAPA_UNIDADES = {
     "SERVICOS DE TRANSPORTES E OFICINAS/UFSM": "PRA - Pró-Reitoria de Administração",
     "SETOR DE IMPORTACAOES DA UFSM": "PRA - Pró-Reitoria de Administração",
 
+    # PROPLAN
     "PRO-REITORIA DE PLANEJAMENTO DA UFSM": "PROPLAN - Pró-Reitoria de Planejamento",
+    "COORDENADORIA DE PLANEJAMENTO INFORMACIONAL": "PROPLAN - Pró-Reitoria de Planejamento",
+
+    # PROGRAD
     "PRO-REITORIA DE GRADUACAO DA UFSM": "PROGRAD - Pró-Reitoria de Graduação",
-    "PRO-REITORIA DE POS-GRADUACAO E PESQUISA-UFSM": "PRPGP - Pesquisa e Pós-Graduação",
+    "DEPARTAMENTO DE REGISTRO E CONTROLE ACADEMICO": "PROGRAD - Pró-Reitoria de Graduação",
+
+    # PRPGP
+    "PRO-REITORIA DE POS-GRADUACAO E PESQUISA-UFSM": "PRPGP - Pró-Reitoria de Pós-Graduação e Pesquisa",
+
+    # PRE
     "PRO-REITORIA DE EXTENSAO DA UFSM": "PRE - Pró-Reitoria de Extensão",
-    "PRO-REITORIA DE INOVACAO E EMPREENDEDORISMO": "INOVA - Inovação e Empreendedorismo",
-    "PROGEP": "PROGEP - Gestão de Pessoas",
-    "PRO REITORIA DE GESTAO DE PESSOAS": "PROGEP - Gestão de Pessoas",
-    
-    "PRO-REITORIA DE ASSUNTOS ESTUDANTIS DA UFSM": "PRAE - Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO DA UFSM": "PRAE - Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO - CAMPUS PM": "PRAE - Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO - CAMPUS FW": "PRAE - Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO - CAMPUS CACH.SUL": "PRAE - Assuntos Estudantis",
-    "SECRET. APOIO ADMIN. - PRAE": "PRAE - Assuntos Estudantis",
-    "COORDENADORIA DE ACOES EDUCACIONAIS DA UFSM": "PRAE - Assuntos Estudantis",
 
-    "PRO-REITORIA DE INFRAESTRUTURA - UFSM": "PROINFRA - Infraestrutura",
-    "PRO-REITORIA DE INFRAESTRUTURA - PROINFRA": "PROINFRA - Infraestrutura",
+    # INOVA
+    "PRO-REITORIA DE INOVACAO E EMPREENDEDORISMO": "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
+    "AGENCIA DE INOVACAO E TRANSFERENCIA DE TECNOLOGIA": "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
 
+    # PROGEP
+    "PROGEP": "PROGEP - Pró-Reitoria de Gestão de Pessoas",
+    "PRO REITORIA DE GESTAO DE PESSOAS": "PROGEP - Pró-Reitoria de Gestão de Pessoas",
+
+    # PRAE
+    "PRO-REITORIA DE ASSUNTOS ESTUDANTIS DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO - CAMPUS PM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO - CAMPUS FW": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO - CAMPUS CACH.SUL": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "SECRET. APOIO ADMIN. - PRAE": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "COORDENADORIA DE ACOES EDUCACIONAIS DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+
+    # PROINFRA
+    "PRO-REITORIA DE INFRAESTRUTURA - UFSM": "PROINFRA - Pró-Reitoria de Infraestrutura",
+    "PRO-REITORIA DE INFRAESTRUTURA - PROINFRA": "PROINFRA - Pró-Reitoria de Infraestrutura",
+
+    # Diretorias Específicas
+    "DIRETORIA DE GESTAO AMBIENTAL": "DGA - Diretoria de Gestão Ambiental",
+    "CENTRO DE PROCESSAMENTO DE DADOS DA UFSM": "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "LABORATORIO DE MANUTENCAO DE INFORMATICA UFSM": "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "DIRETORIA DE TI": "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "DIRETORIA DE RELACOES INTERNACIONAIS": "DRI - Diretoria de Relações Internacionais",
+
+    # 14 Unidades de Ensino / Centros
     "CENTRO DE ARTES E LETRAS DA UFSM": "CAL - Centro de Artes e Letras",
-    "CENTRO DE CIENCIAS NATURAIS E EXATAS DA UFSM": "CCNE - Ciências Naturais e Exatas",
+    "CENTRO DE CIENCIAS NATURAIS E EXATAS DA UFSM": "CCNE - Centro de Ciências Naturais e Exatas",
     "CENTRO DE CIENCIAS RURAIS DA UFSM": "CCR - Centro de Ciências Rurais",
     "CENTRO DE CIENCIAS DA SAUDE DA UFSM": "CCS - Centro de Ciências da Saúde",
-    "CENTRO DE CIENCIAS SOCIAIS E HUMANAS DA UFSM": "CCSH - Ciências Sociais e Humanas",
+    "CENTRO DE CIENCIAS SOCIAIS E HUMANAS DA UFSM": "CCSH - Centro de Ciências Sociais e Humanas",
     "CENTRO EDUCACAO DA UFSM": "CE - Centro de Educação",
-    "CENTRO DE EDUCACAO FISICA E DESPORTOS DA UFSM": "CEFD - Educação Física e Desportos",
+    "CENTRO DE EDUCACAO FISICA E DESPORTOS DA UFSM": "CEFD - Centro de Educação Física e Desportos",
     "CENTRO DE TECNOLOGIA DA UFSM": "CT - Centro de Tecnologia",
+    
+    "COLEGIO POLITECNICO DA UFSM": "Colégio Politécnico da UFSM",
+    "COLEGIO TECNICO INDUSTRIAL DA UFSM": "CTISM - Colégio Técnico Industrial de Santa Maria",
 
-    "COLEGIO POLITECNICO DA UFSM": "Colégio Politécnico",
-    "COLEGIO TECNICO INDUSTRIAL DA UFSM": "CTISM - Colégio Técnico Industrial",
+    # Campi Descentralizados
     "CAMPUS DA UFSM EM FREDERICO WESTPHALEN": "Campus Frederico Westphalen",
     "CAMPUS DA UFSM EM PALMEIRAS DAS MISSOES": "Campus Palmeira das Missões",
     "CAMPUS DA UFSM EM CACHOEIRA DO SUL": "Campus Cachoeira do Sul",
     "ESPACO MULTIDISC. PESQ E EXTENS SILV MARTINS": "Campus Silveira Martins",
 
-    "CENTRO DE PROCESSAMENTO DE DADOS DA UFSM": "CPD - Processamento de Dados",
-    "LABORATORIO DE MANUTENCAO DE INFORMATICA UFSM": "CPD - Processamento de Dados",
-    "DIRETORIA DE GESTAO AMBIENTAL": "DGA - Diretoria de Gestão Ambiental",
+    # Outras Unidades Especializadas
     "HOSPITAL DE CLINICAS VETERINARIAS DA UFSM": "Hospital Veterinário / HVU",
-    "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM"
+    "FAZENDA ESCOLA DA UFSM": "CCR - Centro de Ciências Rurais",
+    "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM / Outros"
 }
 
-# Inicialização da Memória do Sistema
+# Inicialização da Memória do Sistema (Session State)
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "carga"
 
 if "contas_gerenciais" not in st.session_state:
-    st.session_state.contas_gerenciais = PLANO_CONTAS_PADRAO
+    st.session_state.contas_gerenciais = PLANO_CONTAS_PADRAO.copy()
+
+if "unidades_consolidadas" not in st.session_state:
+    st.session_state.unidades_consolidadas = UNIDADES_UFSM_PADRAO.copy()
+
+if "mapa_ugs" not in st.session_state:
+    st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
 
 if "dicionario_pis" not in st.session_state:
     st.session_state.dicionario_pis = {}
@@ -164,15 +238,19 @@ if verificar_senha():
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
-    if st.sidebar.button("🏷️ 2. Plano de Contas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏛️ 2. Cadastro de Unidades & UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades" else "secondary"):
+        st.session_state.pagina_atual = "unidades"
+        st.rerun()
+
+    if st.sidebar.button("🏷️ 3. Plano de Contas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
-    if st.sidebar.button("📖 3. Dicionário de PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "dicionario" else "secondary"):
+    if st.sidebar.button("📖 4. Dicionário de PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "dicionario" else "secondary"):
         st.session_state.pagina_atual = "dicionario"
         st.rerun()
 
-    if st.sidebar.button("📊 4. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+    if st.sidebar.button("📊 5. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
         st.session_state.pagina_atual = "relatorio"
         st.rerun()
 
@@ -216,7 +294,79 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: PLANO DE CONTAS CONTÁBEIS
+    # PÁGINA 2: CADASTRO DE UNIDADES E MAPEAMENTO DE UGs (NOVA ABA)
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "unidades":
+        st.header("🏛️ Cadastro de Unidades Organizacionais & Mapeamento de UGs")
+        st.write("Cadastro institucional das **9 Pró-Reitorias**, **14 Unidades de Ensino**, Diretorias e alocação das UGs (Colunas F e G da planilha do Tesouro Gerencial).")
+
+        tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento de UGs (Colunas F/G)"])
+
+        with tab1:
+            col_u1, col_u2 = st.columns([1, 2])
+            with col_u1:
+                st.subheader("Adicionar Unidade")
+                nova_u = st.text_input("Nome da Unidade Consolidada:")
+                if st.button("Adicionar Unidade"):
+                    if nova_u and nova_u not in st.session_state.unidades_consolidadas:
+                        st.session_state.unidades_consolidadas.append(nova_u)
+                        st.success(f"Unidade '{nova_u}' cadastrada!")
+                        st.rerun()
+
+            with col_u2:
+                st.subheader(f"Unidades Cadastradas ({len(st.session_state.unidades_consolidadas)})")
+                df_u = pd.DataFrame({"Unidade Consolidada": st.session_state.unidades_consolidadas})
+                st.dataframe(df_u, use_container_width=True, height=400)
+
+        with tab2:
+            st.subheader("Alocação de Unidades Gestoras (UGs SIAFI -> Unidade Consolidada)")
+            
+            # Identificação de UGs a partir da planilha carregada ou lista padrão
+            ugs_para_mapear = set(st.session_state.mapa_ugs.keys())
+
+            if st.session_state.dados_tg_raw is not None:
+                df_raw = st.session_state.dados_tg_raw
+                cols = list(df_raw.columns)
+                # Coluna F (Índice 5 - UG Código) e Coluna G (Índice 6 - UG Nome)
+                col_ug_cod = cols[5] if len(cols) > 5 else cols[0]
+                col_ug_nom = cols[6] if len(cols) > 6 else cols[0]
+
+                ugs_planilha = df_raw[col_ug_nom].dropna().unique()
+                for ug_p in ugs_planilha:
+                    ugs_para_mapear.add(str(ug_p).strip())
+
+            st.write(f"**Total de UGs identificadas:** {len(ugs_para_mapear)}")
+
+            # Interface de associação rápida
+            col_b1, col_b2 = st.columns([2, 1])
+            with col_b1:
+                st.caption("Associe cada UG do SIAFI/Tesouro Gerencial a uma das Unidades Consolidadas da UFSM:")
+            with col_b2:
+                if st.button("Restaurar Mapeamento Padrão"):
+                    st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
+                    st.success("Mapeamento restaurado!")
+                    st.rerun()
+
+            for ug_item in sorted(list(ugs_para_mapear)):
+                c_ug, c_sel = st.columns([2, 2])
+                c_ug.write(f"🏢 **{ug_item}**")
+                
+                def_val = st.session_state.mapa_ugs.get(ug_item, "Encargos Gerais da UFSM / Outros")
+                if def_val not in st.session_state.unidades_consolidadas:
+                    st.session_state.unidades_consolidadas.append(def_val)
+
+                idx_u = st.session_state.unidades_consolidadas.index(def_val)
+
+                nova_aloc = c_sel.selectbox(
+                    "Alocar para:",
+                    st.session_state.unidades_consolidadas,
+                    index=idx_u,
+                    key=f"ug_map_{ug_item}"
+                )
+                st.session_state.mapa_ugs[ug_item] = nova_aloc
+
+    # -----------------------------------------------------------------------------
+    # PÁGINA 3: PLANO DE CONTAS CONTÁBEIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
         st.header("🏷️ Estrutura do Plano de Contas Gerenciais")
@@ -243,7 +393,7 @@ if verificar_senha():
                     st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 3: DICIONÁRIO DE PIs
+    # PÁGINA 4: DICIONÁRIO DE PIs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "dicionario":
         st.header("📖 Dicionário de Mapeamento dos PIs")
@@ -255,7 +405,6 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw
             colunas = list(df.columns)
             
-            # Posições das Colunas: L (11) e M (12)
             col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
             col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
 
@@ -265,12 +414,10 @@ if verificar_senha():
 
             st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
 
-            # Sugestão Automática de Mapeamento com base nas palavras-chave do PI Nome
             for pi_item in lista_pis:
                 col_lbl, col_sel = st.columns([2, 2])
                 col_lbl.write(f"📌 **{pi_item}**")
                 
-                # Regra simples de autoselect se não mapeado
                 conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
                 if conta_sugerida == "Sem Classificação":
                     p_up = pi_item.upper()
@@ -296,7 +443,7 @@ if verificar_senha():
                 st.session_state.dicionario_pis[pi_item] = nova_ass
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 4: RELATÓRIO EXECUTIVO (COM SELETOR DE UNIDADES)
+    # PÁGINA 5: RELATÓRIO EXECUTIVO
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         st.header("📊 Relatório Executivo de Despesas Discricionárias")
@@ -307,9 +454,8 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw
             colunas = list(df.columns)
 
-            # Mapeamento pelas posições solicitadas
             col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
-            col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G (UG Responsável Nome)
+            col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G (UG Responsável)
             col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
             col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod      # Coluna M
             col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
@@ -317,10 +463,10 @@ if verificar_senha():
             # 1. Filtro: Recursos Discricionários (Coluna C contém "2")
             df_disc = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
 
-            # 2. Tratamento e Mapeamento de Unidades
+            # 2. Tratamento e Mapeamento de Unidades Atualizado
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
             df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
-                lambda x: MAPA_UNIDADES.get(x.strip(), "Outras Unidades / Administrativo")
+                lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
             )
 
             # 3. Tradução dos PIs
