@@ -238,7 +238,7 @@ if verificar_senha():
     # -----------------------------------------------------------------------------
     if st.session_state.pagina_atual == "carga":
         st.header("📁 Carga do Relatório do Tesouro Gerencial")
-        st.write("Faça o upload da planilha liquida/executada do Tesouro Gerencial (.xlsx ou .csv).")
+        st.write("Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx ou .csv).")
 
         arquivo = st.file_uploader("Selecione o arquivo da UFSM", type=["csv", "xlsx"])
 
@@ -264,7 +264,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: CADASTRO DE UNIDADES E MAPEAMENTO DE UGs (COM BOTÃO DE ALTERAR)
+    # PÁGINA 2: CADASTRO DE UNIDADES E MAPEAMENTO DE UGs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades":
         st.header("🏛️ Cadastro de Unidades Organizacionais & Mapeamento de UGs")
@@ -367,7 +367,7 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 3: PLANO DE CONTAS CONTÁBEIS (COM BOTÃO DE ALTERAR)
+    # PÁGINA 3: PLANO DE CONTAS CONTÁBEIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
         st.header("🏷️ Estrutura do Plano de Contas Gerenciais")
@@ -441,7 +441,7 @@ if verificar_senha():
             col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
 
             df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
-            df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str) + " - " + df_pis[col_pi_nome].astype(str)
+            df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
             lista_pis = sorted(df_pis["PI_Completo"].unique())
 
             st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
@@ -497,18 +497,21 @@ if verificar_senha():
 
             # 2. Tratamento e Mapeamento
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
+            
+            # Normalização e busca na tabela de mapeamentos
             df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
                 lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
             )
 
             # 3. Tradução dos PIs
-            df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str) + " - " + df_disc[col_pi_nome].astype(str)
+            df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
             df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
 
-            unidades_disponiveis = ["--- TOTAL DA UFSM ---"] + sorted(list(df_disc["Unidade_Consolidada"].unique()))
-            unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", unidades_disponiveis)
+            # 4. CARREGAMENTO DO SELETOR COM TODAS AS UNIDADES CADASTRADAS NO SISTEMA
+            lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
+            unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", lista_unidades_select)
 
             if unidade_selecionada != "--- TOTAL DA UFSM ---":
                 df_relatorio = df_disc[df_disc["Unidade_Consolidada"] == unidade_selecionada].copy()
@@ -521,36 +524,40 @@ if verificar_senha():
             k1, k2, k3 = st.columns(3)
             k1.metric("Visão Selecionada", unidade_selecionada)
             k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-            k3.metric("Planos Internos (PIs) Ativos", qtd_pis)
+            k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
 
             st.markdown("---")
 
-            col_g, col_t = st.columns([1, 1])
+            if df_relatorio.empty or val_total == 0:
+                st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
+            else:
+                col_g, col_t = st.columns([1, 1])
 
-            df_exec = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
-            df_exec.columns = ["Conta Gerencial", "Valor Total (R$)"]
-            df_exec = df_exec.sort_values(by="Valor Total (R$)", ascending=False)
+                df_exec = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
+                df_exec.columns = ["Conta Gerencial", "Valor Total (R$)"]
+                df_exec = df_exec[df_exec["Valor Total (R$)"] > 0].sort_values(by="Valor Total (R$)", ascending=False)
 
-            with col_g:
-                st.subheader("Distribuição por Conta Gerencial")
-                fig = px.pie(
-                    df_exec, 
-                    names="Conta Gerencial", 
-                    values="Valor Total (R$)", 
-                    hole=0.4
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                with col_g:
+                    st.subheader("Distribuição por Conta Gerencial")
+                    fig = px.pie(
+                        df_exec, 
+                        names="Conta Gerencial", 
+                        values="Valor Total (R$)", 
+                        hole=0.4
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
 
-            with col_t:
-                st.subheader("Resumo de Valores por Conta")
-                st.dataframe(
-                    df_exec.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
-                    use_container_width=True,
-                    height=380
-                )
+                with col_t:
+                    st.subheader("Resumo de Valores por Conta")
+                    st.dataframe(
+                        df_exec.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
+                        use_container_width=True,
+                        height=380
+                    )
 
-            st.markdown("---")
-            st.subheader("🔍 Detalhamento por Plano Interno (PI)")
-            df_det = df_relatorio.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
-            df_det.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
-            st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
+                st.markdown("---")
+                st.subheader("🔍 Detalhamento por Plano Interno (PI)")
+                df_det = df_relatorio.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
+                df_det.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
+                df_det = df_det[df_det["Valor (R$)"] > 0].sort_values(by="Valor (R$)", ascending=False)
+                st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
