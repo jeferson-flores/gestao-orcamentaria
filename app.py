@@ -198,8 +198,15 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL POR BOTÕES
+    # 4. MENU LATERAL POR BOTÕES COM LOGO DA UFSM
     # -----------------------------------------------------------------------------
+    
+    # URL da logomarca oficial da UFSM em alta definição
+    LOGO_UFSM_URL = "https://upload.wikimedia.org/wikipedia/commons/e/eb/Brasao-ufsm.png"
+
+    # Exibe a logo no topo do menu lateral (esquerda)
+    st.sidebar.image(LOGO_UFSM_URL, use_container_width=True)
+    
     st.sidebar.title("🏛️ PRA / UFSM")
     st.sidebar.caption("Gestão Orçamentária Executiva")
     st.sidebar.markdown("---")
