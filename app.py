@@ -4,11 +4,18 @@ import plotly.express as px
 from datetime import datetime
 
 # -----------------------------------------------------------------------------
-# 1. CONFIGURAÇÃO DA PÁGINA
+# 1. INICIALIZAÇÃO DA SESSÃO (Necessário antes de set_page_config para o Favicon)
 # -----------------------------------------------------------------------------
+if "logo_personalizada" not in st.session_state:
+    st.session_state.logo_personalizada = None
+
+# Define o ícone da aba: usa a logo em bytes se existir, senão usa emoji padrão
+icone_aba = st.session_state.logo_personalizada if st.session_state.logo_personalizada is not None else "🏛️"
+
+# Configuração da página e aba do Chrome
 st.set_page_config(
-    page_title="Sistema de Gestão Orçamentária - UFSM",
-    page_icon="🏛️",
+    page_title="SiGeO - Sistema de Gestão Orçamentária",
+    page_icon=icone_aba,
     layout="wide"
 )
 
@@ -23,14 +30,15 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* Estilização para Impressão (Ctrl + P) */
+    /* Estilização para Impressão (Ctrl + P ou Botão) */
     @media print {
-        /* Oculta o menu lateral, topo do Streamlit e botões de ação */
+        /* Oculta o menu lateral, topo do Streamlit e botões de ação na impressão */
         [data-testid="stSidebar"], 
         header, 
         footer, 
         .stButton, 
-        .stSelectbox {
+        .stSelectbox,
+        .no-print {
             display: none !important;
         }
         
@@ -41,7 +49,6 @@ st.markdown("""
             width: 100% !important;
         }
         
-        /* Força que o fundo seja branco para economizar tinta */
         body {
             background-color: white !important;
             color: black !important;
@@ -223,10 +230,6 @@ if "dicionario_pis" not in st.session_state:
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
 
-# Guarda a logo personalizada inserida pelo usuário em bytes
-if "logo_personalizada" not in st.session_state:
-    st.session_state.logo_personalizada = None
-
 # Controle de edição inline
 if "editando_unidade" not in st.session_state:
     st.session_state.editando_unidade = None
@@ -242,7 +245,7 @@ def verificar_senha():
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
-        st.title("🏛️ Sistema de Gestão Orçamentária - PRA/UFSM")
+        st.title("SiGeO - Sistema de Gestão Orçamentária")
         st.subheader("Acesso ao Sistema")
         
         c_user, c_pass = st.columns(2)
@@ -275,7 +278,7 @@ if verificar_senha():
     if st.session_state.logo_personalizada is not None:
         st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
     
-    st.sidebar.title("🏛️ PRA / UFSM")
+    st.sidebar.title("SiGeO - Sistema de Gestão Orçamentária")
     st.sidebar.caption(f"Usuário: **{st.session_state.usuario_logado['nome']}** ({st.session_state.usuario_logado['perfil']})")
     
     if st.sidebar.button("🚪 Sair / Logout"):
@@ -623,11 +626,11 @@ if verificar_senha():
                             st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 6: CONFIGURAÇÕES VISUAIS (DOWNLOAD/UPLOAD DA LOGO)
+    # PÁGINA 6: CONFIGURAÇÕES VISUAIS (LOGOMARCA & FAVICON)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "config":
         st.header("⚙️ Configurações Visuais e Logomarca")
-        st.write("Carregue a imagem da logomarca oficial (UFSM / Pró-Reitoria) do seu computador. Ela será exibida no menu à esquerda e no cabeçalho dos relatórios de impressão.")
+        st.write("Carregue a imagem da logomarca oficial do seu computador. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone (favicon) na aba do navegador.")
 
         c_up, c_prev = st.columns([2, 1])
 
@@ -637,7 +640,7 @@ if verificar_senha():
 
             if arquivo_logo is not None:
                 st.session_state.logo_personalizada = arquivo_logo.getvalue()
-                st.success("Logomarca carregada com sucesso! Ela já está visível no menu lateral e pronta para impressão.")
+                st.success("Logomarca carregada com sucesso!")
                 st.rerun()
 
             if st.session_state.logo_personalizada is not None:
@@ -705,9 +708,18 @@ if verificar_senha():
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
 
-            # 4. CARREGAMENTO DO SELETOR COM TODAS AS UNIDADES CADASTRADAS NO SISTEMA
-            lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
-            unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", lista_unidades_select)
+            # 4. CARREGAMENTO DO SELETOR E BOTÃO DE IMPRESSÃO
+            col_sel_u, col_btn_imp = st.columns([3, 1])
+
+            with col_sel_u:
+                lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
+                unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", lista_unidades_select)
+
+            with col_btn_imp:
+                st.write(" ") # Espaçamento para alinhar com o selectbox
+                if st.button("🖨️ Imprimir / Gerar PDF", type="primary", use_container_width=True):
+                    # Injeta script JS para chamar a impressão nativa do navegador
+                    st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
 
             if unidade_selecionada != "--- TOTAL DA UFSM ---":
                 df_relatorio = df_disc[df_disc["Unidade_Consolidada"] == unidade_selecionada].copy()
