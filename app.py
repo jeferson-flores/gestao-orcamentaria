@@ -410,7 +410,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (CORRIGIDO)
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (COM COMPARAÇÃO MENSAL E ANUAL)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -436,7 +436,7 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw.copy()
             colunas = list(df.columns)
 
-            # FUNÇÃO AUXILIAR PARA ENCONTRAR COLUNA POR PALAVRA-CHAVE
+            # Localizador de colunas por nome
             def encontrar_coluna(termos_busca, indice_padrao):
                 for col in colunas:
                     for termo in termos_busca:
@@ -444,7 +444,6 @@ if verificar_senha():
                             return col
                 return colunas[indice_padrao] if len(colunas) > indice_padrao else colunas[0]
 
-            # Mapeamento Dinâmico por nome de cabeçalho
             col_mes_ref = encontrar_coluna(["mês", "mes", "referencia", "referência", "período", "periodo"], 1)
             col_resultado_lei = encontrar_coluna(["resultado", "lei", "rp", "fonte"], 2)
             col_ug_nome = encontrar_coluna(["ug", "unidade gestora", "nome ug", "gestora"], 6 if len(colunas)>6 else 0)
@@ -452,153 +451,222 @@ if verificar_senha():
             col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
             col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
 
-            # Aplica filtro de Resultado Lei APENAS se houver correspondência com "2", senão mantém os dados completos
+            # Filtro opcional do Resultado Lei
             mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
             df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
 
-            # Tratamento de valores e colunas
+            # Tratamento de dados basico
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
-            
             df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
                 lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
             )
-
             df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
             df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
-
             df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].map(
                 lambda c: st.session_state.mapa_contas_totalizadores.get(c, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
             )
 
-            df_disc["Mes_Ref"] = df_disc[col_mes_ref].astype(str).str.strip()
+            # TRATAMENTO DE DATAS (Mês/Ano)
+            df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
+            # Se falhou ao converter, tenta interpretar datas em formato texto tipo "JAN/2026" ou "2026-01"
+            if df_disc["Data_Ref"].isna().all():
+                df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref].astype(str), format='%m/%Y', errors='coerce')
 
-            # FILTROS: UNIDADE + MÊS DE REFERÊNCIA
-            col_sel_u, col_sel_m, col_btn_imp = st.columns([2, 2, 1])
+            df_disc["Ano_Mes"] = df_disc["Data_Ref"].dt.to_period("M")
 
-            with col_sel_u:
+            # CONTROLES DE FILTRO
+            c_flag, c_unid, c_mes, c_imp = st.columns([1.5, 2, 2, 1])
+
+            with c_flag:
+                tipo_visao = st.radio("📌 Visão do Relatório:", ["Mensal", "Anual"], horizontal=True)
+
+            with c_unid:
                 lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
-                unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade:", lista_unidades_select)
+                unidade_selecionada = st.selectbox("🏛️ Unidade:", lista_unidades_select)
 
-            with col_sel_m:
-                meses_disponiveis = [m for m in sorted(df_disc["Mes_Ref"].unique()) if m and m.lower() != "nan"]
-                lista_meses_select = ["--- TODOS OS MESES ---"] + meses_disponiveis
-                mes_selecionado = st.selectbox("📅 Selecione o Mês de Referência:", lista_meses_select)
+            # Filtro da Unidade
+            df_filtrado_unidade = df_disc.copy()
+            if unidade_selecionada != "--- TOTAL DA UFSM ---":
+                df_filtrado_unidade = df_filtrado_unidade[df_filtrado_unidade["Unidade_Consolidada"] == unidade_selecionada]
 
-            with col_btn_imp:
+            # Lista de Meses Disponíveis para Seleção
+            periodos_disponiveis = sorted([p for p in df_filtrado_unidade["Ano_Mes"].dropna().unique()], reverse=True)
+            
+            with c_mes:
+                if periodos_disponiveis:
+                    periodo_sel = st.selectbox("📅 Mês de Referência:", periodos_disponiveis, format_func=lambda x: str(x))
+                else:
+                    periodo_sel = None
+                    st.warning("Nenhuma data válida encontrada na planilha.")
+
+            with c_imp:
                 st.write(" ")
                 if st.button("🖨️ Imprimir / PDF", type="primary", use_container_width=True):
                     st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
 
-            # Aplicação dos Filtros
-            df_relatorio = df_disc.copy()
-            if unidade_selecionada != "--- TOTAL DA UFSM ---":
-                df_relatorio = df_relatorio[df_relatorio["Unidade_Consolidada"] == unidade_selecionada]
-            if mes_selecionado != "--- TODOS OS MESES ---":
-                df_relatorio = df_relatorio[df_relatorio["Mes_Ref"] == mes_selecionado]
-
-            val_total = df_relatorio["Valor_Tratado"].sum()
-            qtd_pis = df_relatorio["PI_Completo"].nunique()
-
-            k1, k2, k3 = st.columns(3)
-            k1.metric("Visão Selecionada", f"{unidade_selecionada} | {mes_selecionado}")
-            k2.metric("Total Executado", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-            k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
-
             st.markdown("---")
-            
-            # CONSTRUÇÃO DA ESTRUTURA COMPLETA (Todas as contas e todos os totalizadores)
-            # 1. Mapeamento de quais contas existem em cada totalizador
-            totalizadores_lista = sorted(st.session_state.totalizadores)
-            contas_lista = sorted(st.session_state.contas_gerenciais)
 
-            # Soma real do filtro
-            soma_por_conta = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+            if periodo_sel is not None:
+                totalizadores_lista = sorted(st.session_state.totalizadores)
+                contas_lista = sorted(st.session_state.contas_gerenciais)
 
-            # Montagem do relatório completo
-            linhas_relatorio = []
-            soma_total_geral = 0.0
+                if tipo_visao == "Mensal":
+                    # DEFINIÇÃO DOS 4 MESES COMPARATIVOS
+                    m_atual = periodo_sel
+                    m_1 = periodo_sel - 1
+                    m_2 = periodo_sel - 2
+                    m_ano_ant = periodo_sel - 12
 
-            for tot in totalizadores_lista:
-                # Contas associadas a este totalizador
-                contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                
-                soma_tot = 0.0
-                detalhes_contas = []
+                    lbl_m_atual = str(m_atual)
+                    lbl_m_1 = str(m_1)
+                    lbl_m_2 = str(m_2)
+                    lbl_m_ano_ant = str(m_ano_ant)
 
-                for c in contas_do_tot:
-                    v_conta = soma_por_conta.get(c, 0.0)
-                    soma_tot += v_conta
-                    detalhes_contas.append({
-                        "Estrutura": f"  ├─ {c}",
-                        "Valor (R$)": v_conta,
-                        "Tipo": "Conta"
-                    })
+                    # Subsets
+                    df_m0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_atual]
+                    df_m1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_1]
+                    df_m2 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_2]
+                    df_m12 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_ano_ant]
 
-                # Adiciona o Totalizador
-                linhas_relatorio.append({
-                    "Estrutura": f"📊 {tot}",
-                    "Valor (R$)": soma_tot,
-                    "Tipo": "Totalizador"
-                })
-                # Adiciona as contas do Totalizador
-                linhas_relatorio.extend(detalhes_contas)
-                soma_total_geral += soma_tot
+                    soma_m0 = df_m0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    soma_m1 = df_m1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    soma_m2 = df_m2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    soma_m12 = df_m12.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-            df_exibicao = pd.DataFrame(linhas_relatorio)
-            df_exibicao["% Participação"] = (df_exibicao["Valor (R$)"] / soma_total_geral * 100) if soma_total_geral > 0 else 0.0
+                    # MONTAGEM DA TABELA MENSAL
+                    linhas = []
+                    tot_g_m0, tot_g_m1, tot_g_m2, tot_g_m12 = 0.0, 0.0, 0.0, 0.0
 
-            # VISUALIZAÇÃO GRÁFICA + TABELA DE RESUMO
-            col_g, col_t = st.columns([1, 1])
+                    for tot in totalizadores_lista:
+                        contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
+                        
+                        v_tot_m0 = sum([soma_m0.get(c, 0.0) for c in contas_do_tot])
+                        v_tot_m1 = sum([soma_m1.get(c, 0.0) for c in contas_do_tot])
+                        v_tot_m2 = sum([soma_m2.get(c, 0.0) for c in contas_do_tot])
+                        v_tot_m12 = sum([soma_m12.get(c, 0.0) for c in contas_do_tot])
 
-            df_tot_somente = df_exibicao[df_exibicao["Tipo"] == "Totalizador"].copy()
+                        linhas.append({
+                            "Estrutura": f"📊 {tot}",
+                            lbl_m_atual: v_tot_m0,
+                            lbl_m_1: v_tot_m1,
+                            lbl_m_2: v_tot_m2,
+                            lbl_m_ano_ant: v_tot_m12,
+                            "Tipo": "Totalizador"
+                        })
 
-            with col_g:
-                st.subheader("Distribuição por Totalizador")
-                if soma_total_geral > 0:
-                    fig = px.pie(
-                        df_tot_somente[df_tot_somente["Valor (R$)"] > 0], 
-                        names="Estrutura", 
-                        values="Valor (R$)", 
-                        hole=0.4
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+                        for c in contas_do_tot:
+                            linhas.append({
+                                "Estrutura": f"  ├─ {c}",
+                                lbl_m_atual: soma_m0.get(c, 0.0),
+                                lbl_m_1: soma_m1.get(c, 0.0),
+                                lbl_m_2: soma_m2.get(c, 0.0),
+                                lbl_m_ano_ant: soma_m12.get(c, 0.0),
+                                "Tipo": "Conta"
+                            })
+
+                        tot_g_m0 += v_tot_m0
+                        tot_g_m1 += v_tot_m1
+                        tot_g_m2 += v_tot_m2
+                        tot_g_m12 += v_tot_m12
+
+                    df_exibicao = pd.DataFrame(linhas)
+
+                    # KPI Cards
+                    k1, k2, k3, k4 = st.columns(4)
+                    k1.metric(f"Atual ({lbl_m_atual})", f"R$ {tot_g_m0:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                    k2.metric(f"Mês Anterior ({lbl_m_1})", f"R$ {tot_g_m1:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                    k3.metric(f"2º Mês Ant. ({lbl_m_2})", f"R$ {tot_g_m2:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                    k4.metric(f"Ano Ant. ({lbl_m_ano_ant})", f"R$ {tot_g_m12:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+                    col_cols_exibir = [lbl_m_atual, lbl_m_1, lbl_m_2, lbl_m_ano_ant]
+
                 else:
-                    st.info("Nenhum valor movimentado para gerar o gráfico de pizza.")
+                    # VISÃO ANUAL (ACUMULADO ATÉ O MÊS DE REFERÊNCIA)
+                    ano_atual = periodo_sel.year
+                    mes_ref_num = periodo_sel.month
 
-            with col_t:
-                st.subheader("Resumo por Totalizador")
-                st.dataframe(
-                    df_tot_somente[["Estrutura", "Valor (R$)", "% Participação"]].style.format({"Valor (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
-                    use_container_width=True,
-                    height=380
-                )
+                    ano_1 = ano_atual - 1
+                    ano_2 = ano_atual - 2
+
+                    lbl_a0 = f"Jan-{periodo_sel.strftime('%b')}/{ano_atual}"
+                    lbl_a1 = f"Jan-{periodo_sel.strftime('%b')}/{ano_1}"
+                    lbl_a2 = f"Jan-{periodo_sel.strftime('%b')}/{ano_2}"
+
+                    # Filtro de intervalo acumulado
+                    df_a0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                    df_a1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                    df_a2 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_2) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+
+                    soma_a0 = df_a0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    soma_a1 = df_a1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    soma_a2 = df_a2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+
+                    linhas = []
+                    tot_g_a0, tot_g_a1, tot_g_a2 = 0.0, 0.0, 0.0
+
+                    for tot in totalizadores_lista:
+                        contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
+                        
+                        v_tot_a0 = sum([soma_a0.get(c, 0.0) for c in contas_do_tot])
+                        v_tot_a1 = sum([soma_a1.get(c, 0.0) for c in contas_do_tot])
+                        v_tot_a2 = sum([soma_a2.get(c, 0.0) for c in contas_do_tot])
+
+                        linhas.append({
+                            "Estrutura": f"📊 {tot}",
+                            lbl_a0: v_tot_a0,
+                            lbl_a1: v_tot_a1,
+                            lbl_a2: v_tot_a2,
+                            "Tipo": "Totalizador"
+                        })
+
+                        for c in contas_do_tot:
+                            linhas.append({
+                                "Estrutura": f"  ├─ {c}",
+                                lbl_a0: soma_a0.get(c, 0.0),
+                                lbl_a1: soma_a1.get(c, 0.0),
+                                lbl_a2: soma_a2.get(c, 0.0),
+                                "Tipo": "Conta"
+                            })
+
+                        tot_g_a0 += v_tot_a0
+                        tot_g_a1 += v_tot_a1
+                        tot_g_a2 += v_tot_a2
+
+                    df_exibicao = pd.DataFrame(linhas)
+
+                    # KPI Cards Anuais
+                    k1, k2, k3 = st.columns(3)
+                    k1.metric(f"Acumulado {lbl_a0}", f"R$ {tot_g_a0:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                    k2.metric(f"Acumulado {lbl_a1}", f"R$ {tot_g_a1:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+                    k3.metric(f"Acumulado {lbl_a2}", f"R$ {tot_g_a2:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+
+                    col_cols_exibir = [lbl_a0, lbl_a1, lbl_a2]
 
             st.markdown("---")
 
-            # DEMONSTRATIVO COMPLETO COM TODAS AS CONTAS E TOTALIZADORES
-            st.subheader("📋 Demonstrativo Financeiro Completo (Todas as Contas e Totalizadores)")
-            st.caption("Exibindo todas as contas e totalizadores cadastrados no sistema para a unidade e mês selecionados.")
+            # TABELA COMPARATIVA COMPLETA
+            st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+            
+            df_tabela_final = df_exibicao[["Estrutura"] + col_cols_exibir].copy()
 
-            # Formatação visual da tabela
-            df_tabela_final = df_exibicao[["Estrutura", "Valor (R$)", "% Participação"]].copy()
-            
             # Adicionar Linha de Total Geral ao Final do Relatório
-            linha_total_geral = pd.DataFrame([{
-                "Estrutura": "🏆 TOTAL GERAL DO RELATÓRIO",
-                "Valor (R$)": soma_total_geral,
-                "% Participação": 100.0 if soma_total_geral > 0 else 0.0
-            }])
-            
-            df_tabela_final = pd.concat([df_tabela_final, linha_total_geral], ignore_index=True)
+            somas_totais = {"Estrutura": "🏆 TOTAL GERAL DO RELATÓRIO"}
+            for col_c in col_cols_exibir:
+                somas_totais[col_c] = df_exibicao[df_exibicao["Tipo"] == "Totalizador"][col_c].sum()
+
+            df_tabela_final = pd.concat([df_tabela_final, pd.DataFrame([somas_totais])], ignore_index=True)
+
+            # Formatação de Moeda para todas as colunas de valores
+            dict_format = {col_c: "R$ {:,.2f}" for col_c in col_cols_exibir}
 
             st.dataframe(
-                df_tabela_final.style.format({"Valor (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
+                df_tabela_final.style.format(dict_format),
                 use_container_width=True,
-                height=600
+                height=650
             )
-
+            
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
