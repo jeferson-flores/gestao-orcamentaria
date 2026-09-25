@@ -198,37 +198,38 @@ MAPA_UGS_PADRAO = {
     "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM / Outros"
 }
 
-MAPA_PIS_PADRAO = {
-    "00000000000 - SEM PLANO INTERNO": "8.3. Outras Despesas Operacionais",
-    "BNDES000001 - BNDES": "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação",
-    "E1140000000 - MANUTENCAO PREDIAL DE INFRAESTRUTURA FISICA": "1.3. Manutenção Predial e Conservação",
-    "E1140000001 - MANUTENCAO DE ESPACOS E MOBILIARIOS DE USO COMUM": "1.3. Manutenção Predial e Conservação",
-    "E1140000002 - MANUTENCAO DE GERADORES E NO-BREAKS": "1.3. Manutenção Predial e Conservação",
-    "E1140000003 - ADEQUACAO E REFORMA PREDIAL": "1.1. Obras, Reformas e Adequações",
-    "E1140000004 - CONSERVACAO DAS AREAS VERDES E LIMPEZA URBANA": "1.4. Conservação de Áreas Verdes e Limpeza Urbana",
-    "E1140000005 - VIGILANCIA ORGANICA E DESARMADA": "2.1. Serviços de Vigilância e Portaria",
-    "E1140000006 - LIMPEZA E HIGIENIZACAO PREDIAL": "2.2. Serviços de Limpeza e Higienização",
-    "E1140000007 - ENERGIA ELETRICA DA UFSM": "1.2. Concessionárias (Energia, Água, Gás)",
-    "E1140000008 - AGUA E ESGOTO DA UFSM": "1.2. Concessionárias (Energia, Água, Gás)",
-    "E1140000010 - TELEFONIA FIXA DA UFSM": "3.3. Conectividade, Redes e Telefonia",
-    "E1140000011 - PROCESSAMENTO DE DADOS E CONECTIVIDADE DA UFSM": "3.1. Equipamentos e Infraestrutura de TI",
-    "E1140000012 - FROTA E COMBUSTIVEL DA UFSM": "7.3. Frota e Combustíveis",
-    "E1140000013 - APOIO ADMINISTRATIVO, PORTARIA E MOTORISTAS": "2.3. Apoio Administrativo e Motoristas",
-    "E1140000014 - BOLSAS DE ASSISTENCIA ESTUDANTIL DA UFSM": "4.2. Bolsas de Assistência Estudantil e Permanência",
-    "E1140000015 - ALIMENTACAO ESTUDANTIL DA UFSM": "4.1. Restaurante Universitário (RU) - Insumos e Operação",
-    "E1140000016 - MORADIA ESTUDANTIL DA UFSM": "4.3. Moradia Estudantil e Apoio ao Estudante",
-    "E1140000017 - BOLSAS INSTITUCIONAIS DA UFSM": "5.1. Bolsas de Graduação, Pós e Extensão",
-    "E1140000018 - FOMENTO A PESQUISA, EXTENSAO E INOVACAO DA UFSM": "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação",
-    "E1140000019 - FUNCIONAMENTO DAS UNIDADES ESPECIALIZADAS DA UFSM": "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)",
-    "E1140000020 - PASSAGENS E DIARIAS DA UFSM": "6.1. Passagens e Diárias (Nacionais e Internacionais)",
-    "E1140000021 - EVENTOS ACADEMICOS E CULTURAIS DA UFSM": "6.2. Eventos Acadêmicos, Culturais e Congressos",
-    "E1140000022 - CAPACITACAO DE SERVIDORES DA UFSM": "6.3. Capacitação e Desenvolvimento de Servidores",
-    "E1140000023 - AQUISICAO DE EQUIPAMENTOS E MOBILIARIO DA UFSM": "7.1. Aquisição de Equipamentos e Mobiliário",
-    "E1140000024 - BIBLIOTECAS DA UFSM": "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)",
-    "E1140000025 - MATERIAL DE EXPEDIENTE E SUPRIMENTOS DA UFSM": "8.1. Material de Expediente e Suprimentos",
-    "E1140000026 - ENCARGOS INSTITUCIONAIS DA UFSM": "8.2. Encargos Institucionais e Impostos",
-    "E1140000027 - OUTRAS DESPESAS OPERACIONAIS DA UFSM": "8.3. Outras Despesas Operacionais",
-    "P0000000000 - PLANO INTERNO RESERVADO PARA ATENDER A PO": "8.3. Outras Despesas Operacionais"
+# MAPEAMENTO PADRÃO DAS NATUREZAS DE DESPESA DETALHADAS
+MAPA_NATUREZAS_PADRAO = {
+    "'-8 - SEM INFORMACAO": "8.3. Outras Despesas Operacionais",
+    "31901143 - 13º SALARIO": "8.3. Outras Despesas Operacionais",
+    "31901145 - FERIAS - 1/3 CONSTITUCIONAL": "8.3. Outras Despesas Operacionais",
+    "33903004 - GAS E OUTROS MATERIAIS ENGARRAFADOS": "1.2. Concessionárias (Energia, Água, Gás)",
+    "33903007 - GENEROS DE ALIMENTACAO": "4.1. Restaurante Universitário (RU) - Insumos e Operação",
+    "33903010 - MATERIAL ODONTOLOGICO": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
+    "33903011 - MATERIAL QUIMICO": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
+    "33903012 - MATERIAL DE COUDELARIA OU DE USO ZOOTECNICO": "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)",
+    "33903014 - MATERIAL EDUCATIVO E ESPORTIVO": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
+    "33903015 - MATERIAL P/ FESTIVIDADES E HOMENAGENS": "6.2. Eventos Acadêmicos, Culturais e Congressos",
+    "33903016 - MATERIAL DE EXPEDIENTE": "8.1. Material de Expediente e Suprimentos",
+    "33903017 - MATERIAL DE TIC - MATERIAL DE CONSUMO": "3.1. Equipamentos e Infraestrutura de TI",
+    "33903019 - MATERIAL DE ACONDICIONAMENTO E EMBALAGEM": "8.1. Material de Expediente e Suprimentos",
+    "33903020 - MATERIAL DE CAMA, MESA E BANHO": "4.3. Moradia Estudantil e Apoio ao Estudante",
+    "33903021 - MATERIAL DE COPA E COZINHA": "4.1. Restaurante Universitário (RU) - Insumos e Operação",
+    "33903022 - MATERIAL DE LIMPEZA E PROD. DE HIGIENIZACAO": "2.2. Serviços de Limpeza e Higienização",
+    "33903024 - MATERIAL P/ MANUT.DE BENS IMOVEIS/INSTALACOES": "1.3. Manutenção Predial e Conservação",
+    "33903025 - MATERIAL P/ MANUTENCAO DE BENS MOVEIS": "1.3. Manutenção Predial e Conservação",
+    "33903026 - MATERIAL ELETRICO E ELETRONICO": "1.3. Manutenção Predial e Conservação",
+    "33903028 - MATERIAL DE PROTECAO E SEGURANCA": "2.1. Serviços de Vigilância e Portaria",
+    "33903029 - MATERIAL P/ AUDIO, VIDEO E FOTO": "3.1. Equipamentos e Infraestrutura de TI",
+    "33903030 - MATERIAL PARA COMUNICACOES": "3.3. Conectividade, Redes e Telefonia",
+    "33903031 - SEMENTES, MUDAS DE PLANTAS E INSUMOS": "1.4. Conservação de Áreas Verdes e Limpeza Urbana",
+    "33903035 - MATERIAL LABORATORIAL": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
+    "33903036 - MATERIAL HOSPITALAR": "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)",
+    "33903041 - MATERIAL P/ UTILIZACAO EM GRAFICA": "8.1. Material de Expediente e Suprimentos",
+    "33903042 - FERRAMENTAS": "1.3. Manutenção Predial e Conservação",
+    "33903044 - MATERIAL DE SINALIZACAO VISUAL E OUTROS": "1.3. Manutenção Predial e Conservação",
+    "33903046 - MATERIAL BIBLIOGRAFICO": "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)",
+    "33909214 - DIARIAS - CIVIL": "6.1. Passagens e Diárias (Nacionais e Internacionais)"
 }
 
 USUARIOS_PADRAO = [
@@ -255,8 +256,8 @@ if "tabela_usuarios" not in st.session_state:
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = None
 
-if "dicionario_pis" not in st.session_state:
-    st.session_state.dicionario_pis = MAPA_PIS_PADRAO.copy()
+if "dicionario_naturezas" not in st.session_state:
+    st.session_state.dicionario_naturezas = MAPA_NATUREZAS_PADRAO.copy()
 
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
@@ -336,7 +337,7 @@ if verificar_senha():
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏷️ Configuração de Contas & Naturezas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
@@ -400,7 +401,7 @@ if verificar_senha():
         with c_head2:
             st.markdown(f"""
                 <div class="titulo-impressao">
-                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
+                    22UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
                     <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - RELATÓRIO EXECUTIVO ORÇAMENTÁRIO</h4>
                     <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
                 </div>
@@ -414,10 +415,10 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw
             colunas = list(df.columns)
 
-            col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
+            col_resultado_lei = colunas[1] if len(colunas) > 1 else colunas[0]   # Coluna B
             col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
-            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
-            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod      # Coluna M
+            col_nat_cod = colunas[13] if len(colunas) > 13 else colunas[0]       # Coluna N (Natureza Despesa Código)
+            col_nat_nome = colunas[14] if len(colunas) > 14 else col_nat_cod     # Coluna O (Natureza Despesa Nome)
             col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
 
             df_disc = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
@@ -427,9 +428,9 @@ if verificar_senha():
                 lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
             )
 
-            df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
-            df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
-                lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
+            df_disc["ND_Completa"] = df_disc[col_nat_cod].astype(str).str.strip() + " - " + df_disc[col_nat_nome].astype(str).str.strip()
+            df_disc["Conta_Gerencial"] = df_disc["ND_Completa"].map(
+                lambda x: st.session_state.dicionario_naturezas.get(x, "Sem Classificação")
             )
 
             col_sel_u, col_btn_imp = st.columns([3, 1])
@@ -449,12 +450,12 @@ if verificar_senha():
                 df_relatorio = df_disc.copy()
 
             val_total = df_relatorio["Valor_Tratado"].sum()
-            qtd_pis = df_relatorio["PI_Completo"].nunique()
+            qtd_naturezas = df_relatorio["ND_Completa"].nunique()
 
             k1, k2, k3 = st.columns(3)
             k1.metric("Visão Selecionada", unidade_selecionada)
             k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-            k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
+            k3.metric("Naturezas de Despesa Ativas", qtd_naturezas if val_total > 0 else 0)
 
             st.markdown("---")
 
@@ -486,9 +487,9 @@ if verificar_senha():
                     )
 
                 st.markdown("---")
-                st.subheader("🔍 Detalhamento por Plano Interno (PI)")
-                df_det = df_relatorio.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
-                df_det.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
+                st.subheader("🔍 Detalhamento por Natureza de Despesa Detalhada")
+                df_det = df_relatorio.groupby(["Conta_Gerencial", "ND_Completa"])["Valor_Tratado"].sum().reset_index()
+                df_det.columns = ["Conta Gerencial", "Natureza de Despesa Detalhada", "Valor (R$)"]
                 df_det = df_det[df_det["Valor (R$)"] > 0].sort_values(by="Valor (R$)", ascending=False)
                 st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
 
@@ -592,13 +593,13 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS & MAPEAMENTO DE PIs (UNIFICADO COM ABAS)
+    # CONFIGURAÇÃO DE CONTAS & MAPEAMENTO DE NATUREZAS DE DESPESA
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Contas Gerenciais & Mapeamento de PIs")
-        st.write("Gerencie a estrutura do Plano de Contas e vincule os Planos Internos (SIAFI).")
+        st.header("⚙️ Configuração de Contas Gerenciais & Mapeamento de Naturezas de Despesa")
+        st.write("Gerencie a estrutura do Plano de Contas e vincule as Naturezas de Despesa Detalhadas (SIAFI).")
 
-        tab_c1, tab_c2 = st.tabs(["📌 Cadastro de Contas Gerenciais", "🔗 Mapeamento de PIs (Planos Internos)"])
+        tab_c1, tab_c2 = st.tabs(["📌 Cadastro de Contas Gerenciais", "🔗 Mapeamento de Naturezas de Despesa"])
 
         # TAB 1: CADASTRO DE CONTAS GERENCIAIS
         with tab_c1:
@@ -626,9 +627,9 @@ if verificar_senha():
 
                     if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
                         st.session_state.contas_gerenciais.remove(conta)
-                        for pi_k, val in list(st.session_state.dicionario_pis.items()):
+                        for nat_k, val in list(st.session_state.dicionario_naturezas.items()):
                             if val == conta:
-                                st.session_state.dicionario_pis[pi_k] = "Sem Classificação"
+                                st.session_state.dicionario_naturezas[nat_k] = "Sem Classificação"
                         st.rerun()
 
                     if st.session_state.editando_conta == conta:
@@ -638,9 +639,9 @@ if verificar_senha():
                             if c_save.button("Salvar", key=f"save_c_{idx}"):
                                 if novo_nome_c and novo_nome_c != conta:
                                     st.session_state.contas_gerenciais[idx] = novo_nome_c
-                                    for pi_k, val in st.session_state.dicionario_pis.items():
+                                    for nat_k, val in st.session_state.dicionario_naturezas.items():
                                         if val == conta:
-                                            st.session_state.dicionario_pis[pi_k] = novo_nome_c
+                                            st.session_state.dicionario_naturezas[nat_k] = novo_nome_c
                                     st.success("Conta alterada com sucesso!")
                                 st.session_state.editando_conta = None
                                 st.rerun()
@@ -649,52 +650,56 @@ if verificar_senha():
                                 st.session_state.editando_conta = None
                                 st.rerun()
 
-        # TAB 2: MAPEAMENTO DE PIs (DICIONÁRIO DE PIs INTEGRADO)
+        # TAB 2: MAPEAMENTO DE NATUREZAS DE DESPESA
         with tab_c2:
-            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
+            st.subheader("Mapeamento de Naturezas de Despesa Detalhadas (SIAFI -> Conta Gerencial)")
 
-            col_b1_pi, col_b2_pi = st.columns([2, 1])
-            with col_b1_pi:
-                st.caption("Associe cada Plano Interno a uma Conta Gerencial:")
-            with col_b2_pi:
-                if st.button("Restaurar Mapeamento Padrão de PIs"):
-                    st.session_state.dicionario_pis = MAPA_PIS_PADRAO.copy()
-                    st.success("Mapeamento padrão de PIs restaurado!")
+            col_b1_nat, col_b2_nat = st.columns([2, 1])
+            with col_b1_nat:
+                st.caption("Associe cada Natureza de Despesa Detalhada a uma Conta Gerencial:")
+            with col_b2_nat:
+                if st.button("Restaurar Mapeamento Padrão de Naturezas"):
+                    st.session_state.dicionario_naturezas = MAPA_NATUREZAS_PADRAO.copy()
+                    st.success("Mapeamento padrão de Naturezas de Despesa restaurado!")
                     st.rerun()
 
-            pis_para_mapear = set(st.session_state.dicionario_pis.keys())
+            naturezas_para_mapear = set(st.session_state.dicionario_naturezas.keys())
 
             if st.session_state.dados_tg_raw is not None:
                 df = st.session_state.dados_tg_raw
                 colunas = list(df.columns)
                 
-                col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
-                col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
+                col_nat_cod = colunas[13] if len(colunas) > 13 else colunas[0]
+                col_nat_nome = colunas[14] if len(colunas) > 14 else col_nat_cod
 
-                df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
-                df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
-                for pi_p in df_pis["PI_Completo"].unique():
-                    pis_para_mapear.add(pi_p)
+                df_nat = df[[col_nat_cod, col_nat_nome]].drop_duplicates().dropna()
+                df_nat["ND_Completa"] = df_nat[col_nat_cod].astype(str).str.strip() + " - " + df_nat[col_nat_nome].astype(str).str.strip()
+                for nat_p in df_nat["ND_Completa"].unique():
+                    naturezas_para_mapear.add(nat_p)
 
-            st.write(f"**Total de PIs identificados:** {len(pis_para_mapear)}")
+            st.write(f"**Total de Naturezas de Despesa identificadas:** {len(naturezas_para_mapear)}")
 
-            for pi_item in sorted(list(pis_para_mapear)):
+            for nat_item in sorted(list(naturezas_para_mapear)):
                 col_lbl, col_sel = st.columns([2, 2])
-                col_lbl.write(f"📌 **{pi_item}**")
+                col_lbl.write(f"📌 **{nat_item}**")
                 
-                conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
+                conta_sugerida = st.session_state.dicionario_naturezas.get(nat_item, "Sem Classificação")
                 if conta_sugerida == "Sem Classificação":
-                    p_up = pi_item.upper()
-                    if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
+                    n_up = nat_item.upper()
+                    if "ALIMENT" in n_up or "RU" in n_up:
                         conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
-                    elif "BOLSA" in p_up or "ASSIST" in p_up:
+                    elif "BOLSA" in n_up or "ASSIST" in n_up:
                         conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
-                    elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
+                    elif "ENERGIA" in n_up or "AGUA" in n_up or "GAS" in n_up:
                         conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
-                    elif "OBRA" in p_up or "REFORMA" in p_up:
+                    elif "OBRA" in n_up or "REFORMA" in n_up:
                         conta_sugerida = "1.1. Obras, Reformas e Adequações"
-                    elif "TIC" in p_up or "INFORMATICA" in p_up:
+                    elif "TIC" in n_up or "INFORMATICA" in n_up:
                         conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
+                    elif "EXPEDIENTE" in n_up or "EMBALAGEM" in n_up:
+                        conta_sugerida = "8.1. Material de Expediente e Suprimentos"
+                    elif "LABORATORIAL" in n_up or "QUIMICO" in n_up:
+                        conta_sugerida = "5.2. Material Didático, de Laboratório e Insumos de Pesquisa"
 
                 idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
 
@@ -702,9 +707,9 @@ if verificar_senha():
                     "Associar à Conta:",
                     st.session_state.contas_gerenciais,
                     index=idx_def,
-                    key=f"sel_pi_{pi_item}"
+                    key=f"sel_nat_{nat_item}"
                 )
-                st.session_state.dicionario_pis[pi_item] = nova_ass
+                st.session_state.dicionario_naturezas[nat_item] = nova_ass
 
     # -----------------------------------------------------------------------------
     # CADASTRO DE USUÁRIOS
