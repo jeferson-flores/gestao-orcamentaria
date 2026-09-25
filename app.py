@@ -4,15 +4,13 @@ import plotly.express as px
 from datetime import datetime
 
 # -----------------------------------------------------------------------------
-# 1. INICIALIZAÇÃO DA SESSÃO (Necessário antes de set_page_config para o Favicon)
+# 1. INICIALIZAÇÃO DA SESSÃO
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
     st.session_state.logo_personalizada = None
 
-# Define o ícone da aba: usa a logo em bytes se existir, senão usa emoji padrão
 icone_aba = st.session_state.logo_personalizada if st.session_state.logo_personalizada is not None else "🏛️"
 
-# Configuração da página e aba do Chrome
 st.set_page_config(
     page_title="SiGeO - Sistema de Gestão Orçamentária",
     page_icon=icone_aba,
@@ -30,7 +28,6 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* Estilização para Impressão */
     @media print {
         [data-testid="stSidebar"], 
         header, 
@@ -79,6 +76,17 @@ st.markdown("""
 # 2. BANCO DE DADOS/ESTRUTURAS PADRÃO
 # -----------------------------------------------------------------------------
 
+TOTALIZADORES_PADRAO = [
+    "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "G-4.0 Total de Assistência Estudantil e RU",
+    "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+]
+
 PLANO_CONTAS_PADRAO = [
     "1.1. Obras, Reformas e Adequações",
     "1.2. Concessionárias (Energia, Água, Gás)",
@@ -110,46 +118,43 @@ PLANO_CONTAS_PADRAO = [
     "Sem Classificação"
 ]
 
-MAPA_TOTALIZADORES = {
-    "1.1": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.2": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.3": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.4": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+MAPA_CONTAS_TOTALIZADORES_PADRAO = {
+    "1.1. Obras, Reformas e Adequações": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.2. Concessionárias (Energia, Água, Gás)": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.3. Manutenção Predial e Conservação": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "G-1.0 Total de Infraestrutura e Manutenção Predial",
     
-    "2.1": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.2": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.3": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.4": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.1. Serviços de Vigilância e Portaria": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.2. Serviços de Limpeza e Higienização": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.3. Apoio Administrativo e Motoristas": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.4. Recepção e Serviços Gerais": "G-2.0 Total de Serviços Terceirizados e Operacionais",
     
-    "3.1": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "3.2": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "3.3": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.1. Equipamentos e Infraestrutura de TI": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.2. Licenças de Software, Sistemas e Nuvem": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.3. Conectividade, Redes e Telefonia": "G-3.0 Total de Tecnologia da Informação e Comunicação",
     
-    "4.1": "G-4.0 Total de Assistência Estudantil e RU",
-    "4.2": "G-4.0 Total de Assistência Estudantil e RU",
-    "4.3": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.2. Bolsas de Assistência Estudantil e Permanência": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.3. Moradia Estudantil e Apoio ao Estudante": "G-4.0 Total de Assistência Estudantil e RU",
     
-    "5.1": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.2": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.3": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.4": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.1. Bolsas de Graduação, Pós e Extensão": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
     
-    "6.1": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "6.2": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "6.3": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.2. Eventos Acadêmicos, Culturais e Congressos": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.3. Capacitação e Desenvolvimento de Servidores": "G-6.0 Total de Viagens, Eventos e Capacitação",
     
-    "7.1": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "7.2": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "7.3": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.1. Aquisição de Equipamentos e Mobiliário": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.3. Frota e Combustíveis": "G-7.0 Total de Equipamentos, Acervo e Logística",
     
-    "8.1": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "8.2": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "8.3": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+    "8.1. Material de Expediente e Suprimentos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.2. Encargos Institucionais e Impostos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.3. Outras Despesas Operacionais": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "Sem Classificação": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
 }
-
-def obter_grupo_totalizador(conta_gerencial):
-    codigo_sub = str(conta_gerencial)[:3]
-    return MAPA_TOTALIZADORES.get(codigo_sub, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
 
 UNIDADES_UFSM_PADRAO = [
     "PRA - Pró-Reitoria de Administração",
@@ -248,8 +253,14 @@ USUARIOS_PADRAO = [
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "carga"
 
+if "totalizadores" not in st.session_state:
+    st.session_state.totalizadores = TOTALIZADORES_PADRAO.copy()
+
 if "contas_gerenciais" not in st.session_state:
     st.session_state.contas_gerenciais = PLANO_CONTAS_PADRAO.copy()
+
+if "mapa_contas_totalizadores" not in st.session_state:
+    st.session_state.mapa_contas_totalizadores = MAPA_CONTAS_TOTALIZADORES_PADRAO.copy()
 
 if "unidades_consolidadas" not in st.session_state:
     st.session_state.unidades_consolidadas = UNIDADES_UFSM_PADRAO.copy()
@@ -275,6 +286,9 @@ if "editando_unidade" not in st.session_state:
 
 if "editando_conta" not in st.session_state:
     st.session_state.editando_conta = None
+
+if "editando_totalizador" not in st.session_state:
+    st.session_state.editando_totalizador = None
 
 # -----------------------------------------------------------------------------
 # 3. AUTENTICAÇÃO
@@ -396,7 +410,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (COM TOTALIZADORES E BOTÕES '+')
+    # PÁGINA 2: RELATÓRIO EXECUTIVO
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -440,8 +454,10 @@ if verificar_senha():
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
 
-            # Atribuição do Grupo Totalizador
-            df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].apply(obter_grupo_totalizador)
+            # Atribuição do Totalizador baseado na Conta Gerencial
+            df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].map(
+                lambda c: st.session_state.mapa_contas_totalizadores.get(c, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
+            )
 
             col_sel_u, col_btn_imp = st.columns([3, 1])
 
@@ -472,7 +488,6 @@ if verificar_senha():
             if df_relatorio.empty or val_total == 0:
                 st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
             else:
-                # SELETOR DE MODO DE VISUALIZAÇÃO DO RELATÓRIO
                 modo_relatorio = st.radio(
                     "📊 Modo de Visualização do Demonstrativo:",
                     ["Visão Sintética (Apenas Totais dos Grupos)", "Visão Analítica Expansível (Clicar no '+' para abrir Contas e PIs)"],
@@ -483,14 +498,13 @@ if verificar_senha():
 
                 col_g, col_t = st.columns([1, 1])
 
-                # Tabela Consolidada dos Grupos Totalizadores
                 df_grp = df_relatorio.groupby("Grupo_Totalizador")["Valor_Tratado"].sum().reset_index()
                 df_grp.columns = ["Grupo Totalizador Gerencial", "Valor Total (R$)"]
                 df_grp["% Participação"] = (df_grp["Valor Total (R$)"] / val_total * 100) if val_total > 0 else 0
                 df_grp = df_grp[df_grp["Valor Total (R$)"] > 0].sort_values(by="Grupo Totalizador Gerencial")
 
                 with col_g:
-                    st.subheader("Distribuição por Grupo Totalizador")
+                    st.subheader("Distribuição por Totalizador")
                     fig = px.pie(
                         df_grp, 
                         names="Grupo Totalizador Gerencial", 
@@ -500,7 +514,7 @@ if verificar_senha():
                     st.plotly_chart(fig, use_container_width=True)
 
                 with col_t:
-                    st.subheader("Resumo por Grupo Totalizador")
+                    st.subheader("Resumo por Totalizador")
                     st.dataframe(
                         df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
                         use_container_width=True,
@@ -509,17 +523,15 @@ if verificar_senha():
 
                 st.markdown("---")
 
-                # VISÃO DE EXIBIÇÃO: SINTÉTICA OU EXPANSÍVEL POR GRUPOS (+ / -)
                 if modo_relatorio == "Visão Sintética (Apenas Totais dos Grupos)":
-                    st.subheader("📋 Demonstrativo Sintético de Custos")
+                    st.subheader("📋 Demonstrativo Sintético por Totalizadores")
                     st.dataframe(
                         df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
                         use_container_width=True
                     )
-
                 else:
                     st.subheader("🔍 Demonstrativo Analítico Expansível (+)")
-                    st.caption("Clique no grupo desejado para expandir e visualizar as contas gerenciais e os Planos Internos (PIs).")
+                    st.caption("Clique no totalizador desejado para expandir e visualizar as contas gerenciais e os Planos Internos (PIs).")
 
                     grupos_disponiveis = sorted(df_relatorio[df_relatorio["Valor_Tratado"] > 0]["Grupo_Totalizador"].unique())
 
@@ -640,13 +652,67 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS & MAPEAMENTO DE PIs (UNIFICADO COM ABAS)
+    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Contas Gerenciais & Mapeamento de PIs")
-        st.write("Gerencie a estrutura do Plano de Contas e vincule os Planos Internos (SIAFI).")
+        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & PIs")
+        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento dos PIs.")
 
-        tab_c1, tab_c2 = st.tabs(["📌 Cadastro de Contas Gerenciais", "🔗 Mapeamento de PIs (Planos Internos)"])
+        tab_t0, tab_c1, tab_c2, tab_c3 = st.tabs([
+            "📊 Cadastro de Totalizadores", 
+            "📌 Cadastro de Contas Gerenciais", 
+            "🔗 Vinculação de Contas aos Totalizadores", 
+            "🏷️ Mapeamento de PIs"
+        ])
+
+        # TAB 0: CADASTRO DE TOTALIZADORES
+        with tab_t0:
+            col_add_t, col_list_t = st.columns([1, 2])
+
+            with col_add_t:
+                st.subheader("Adicionar Totalizador")
+                novo_totalizador = st.text_input("Nome do Totalizador/Grupo:")
+                if st.button("➕ Adicionar Totalizador", use_container_width=True):
+                    if novo_totalizador and novo_totalizador not in st.session_state.totalizadores:
+                        st.session_state.totalizadores.append(novo_totalizador)
+                        st.success(f"Totalizador '{novo_totalizador}' adicionado!")
+                        st.rerun()
+
+            with col_list_t:
+                st.subheader(f"Totalizadores Cadastrados ({len(st.session_state.totalizadores)})")
+                
+                for idx, tot in enumerate(st.session_state.totalizadores):
+                    c_nome, c_edit, c_del = st.columns([5, 1, 1])
+                    c_nome.write(f"• **{tot}**")
+                    
+                    if c_edit.button("✏️", key=f"edit_tot_{idx}", help="Alterar nome do Totalizador"):
+                        st.session_state.editando_totalizador = tot
+                        st.rerun()
+
+                    if c_del.button("🗑️", key=f"del_tot_{idx}", help="Excluir Totalizador"):
+                        st.session_state.totalizadores.remove(tot)
+                        for c_k, v_tot in list(st.session_state.mapa_contas_totalizadores.items()):
+                            if v_tot == tot:
+                                st.session_state.mapa_contas_totalizadores[c_k] = "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+                        st.rerun()
+
+                    if st.session_state.editando_totalizador == tot:
+                        with st.container():
+                            c_in, c_save, c_canc = st.columns([4, 1, 1])
+                            novo_nome_tot = c_in.text_input("Novo nome:", value=tot, key=f"inp_tot_{idx}")
+                            if c_save.button("Salvar", key=f"save_tot_{idx}"):
+                                if novo_nome_tot and novo_nome_tot != tot:
+                                    st.session_state.totalizadores[idx] = novo_nome_tot
+                                    for c_k, v_tot in st.session_state.mapa_contas_totalizadores.items():
+                                        if v_tot == tot:
+                                            st.session_state.mapa_contas_totalizadores[c_k] = novo_nome_tot
+                                    st.success("Totalizador alterado com sucesso!")
+                                st.session_state.editando_totalizador = None
+                                st.rerun()
+
+                            if c_canc.button("Cancelar", key=f"canc_tot_{idx}"):
+                                st.session_state.editando_totalizador = None
+                                st.rerun()
 
         # TAB 1: CADASTRO DE CONTAS GERENCIAIS
         with tab_c1:
@@ -655,10 +721,13 @@ if verificar_senha():
             with col_add:
                 st.subheader("Adicionar Nova Conta")
                 nova_conta = st.text_input("Nome/Código da Conta:")
+                tot_para_conta = st.selectbox("Associar ao Totalizador:", st.session_state.totalizadores)
+
                 if st.button("➕ Adicionar Conta", use_container_width=True):
                     if nova_conta and nova_conta not in st.session_state.contas_gerenciais:
                         st.session_state.contas_gerenciais.append(nova_conta)
-                        st.success(f"Conta '{nova_conta}' adicionada!")
+                        st.session_state.mapa_contas_totalizadores[nova_conta] = tot_para_conta
+                        st.success(f"Conta '{nova_conta}' adicionada e associada ao '{tot_para_conta}'!")
                         st.rerun()
 
             with col_list:
@@ -674,6 +743,8 @@ if verificar_senha():
 
                     if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
                         st.session_state.contas_gerenciais.remove(conta)
+                        if conta in st.session_state.mapa_contas_totalizadores:
+                            del st.session_state.mapa_contas_totalizadores[conta]
                         for pi_k, val in list(st.session_state.dicionario_pis.items()):
                             if val == conta:
                                 st.session_state.dicionario_pis[pi_k] = "Sem Classificação"
@@ -686,6 +757,8 @@ if verificar_senha():
                             if c_save.button("Salvar", key=f"save_c_{idx}"):
                                 if novo_nome_c and novo_nome_c != conta:
                                     st.session_state.contas_gerenciais[idx] = novo_nome_c
+                                    if conta in st.session_state.mapa_contas_totalizadores:
+                                        st.session_state.mapa_contas_totalizadores[novo_nome_c] = st.session_state.mapa_contas_totalizadores.pop(conta)
                                     for pi_k, val in st.session_state.dicionario_pis.items():
                                         if val == conta:
                                             st.session_state.dicionario_pis[pi_k] = novo_nome_c
@@ -697,8 +770,31 @@ if verificar_senha():
                                 st.session_state.editando_conta = None
                                 st.rerun()
 
-        # TAB 2: MAPEAMENTO DE PIs (DICIONÁRIO DE PIs INTEGRADO)
+        # TAB 2: VINCULAÇÃO DE CONTAS AOS TOTALIZADORES
         with tab_c2:
+            st.subheader("Associação das Contas Gerenciais nos Totalizadores")
+            st.write("Defina a qual Totalizador (Grupo Gerencial) cada Conta pertence:")
+
+            for conta_item in st.session_state.contas_gerenciais:
+                col_lbl_c, col_sel_tot = st.columns([2, 2])
+                col_lbl_c.write(f"🏷️ **{conta_item}**")
+
+                tot_atual = st.session_state.mapa_contas_totalizadores.get(conta_item, st.session_state.totalizadores[0])
+                if tot_atual not in st.session_state.totalizadores:
+                    tot_atual = st.session_state.totalizadores[0]
+
+                idx_t = st.session_state.totalizadores.index(tot_atual)
+
+                novo_tot_ass = col_sel_tot.selectbox(
+                    "Totalizador / Grupo:",
+                    st.session_state.totalizadores,
+                    index=idx_t,
+                    key=f"sel_tot_for_{conta_item}"
+                )
+                st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
+
+        # TAB 3: MAPEAMENTO DE PIs
+        with tab_c3:
             st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
 
             if st.session_state.dados_tg_raw is None:
