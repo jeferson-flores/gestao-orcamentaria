@@ -358,8 +358,7 @@ if verificar_senha():
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    # 1. NOME ALTERADO CONFORME SOLICITADO
-    if st.sidebar.button("🏷️ Configuração de Contas & Natureza de Despesas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
@@ -389,66 +388,6 @@ if verificar_senha():
 
         arquivo = st.file_uploader("Selecione o arquivo da UFSM", type=["csv", "xlsx"])
 
-        def gerar_amostra_planilha(df_input):
-            """Gera a amostra de 10 linhas e 5 campos parametrizados."""
-            col_mes = "Mês Referência ACC (Código Completo) Sigla Completa (MMM/AAAA)"
-            col_ug_cod = "UG Responsável Código"
-            col_ug_nom = "UG Responsável Nome"
-            col_nd_cod = "Natureza Despesa Detalhada Código"
-            col_nd_nom = "Natureza Despesa Detalhada Nome"
-            col_valor = "DetaCusto Acum. DH - Moeda Origem"
-
-            df_sub = df_input.head(10).copy()
-            df_amostra = pd.DataFrame()
-
-            # 1. Mês de Referência
-            if col_mes in df_sub.columns:
-                df_amostra["Mês de Referência"] = df_sub[col_mes]
-            else:
-                df_amostra["Mês de Referência"] = "Não localizado"
-
-            # 2. Unidade cadastrada em "Configuração de Unidades" (Código ou Nome)
-            unidades_amostra = []
-            for _, row in df_sub.iterrows():
-                val_ug = None
-                if col_ug_cod in df_sub.columns and pd.notna(row[col_ug_cod]):
-                    val_ug = str(row[col_ug_cod]).strip()
-                elif col_ug_nom in df_sub.columns and pd.notna(row[col_ug_nom]):
-                    val_ug = str(row[col_ug_nom]).strip()
-
-                if val_ug:
-                    unidade_mapeada = st.session_state.mapa_ugs.get(val_ug, "Encargos Gerais da UFSM / Outros")
-                else:
-                    unidade_mapeada = "Encargos Gerais da UFSM / Outros"
-                unidades_amostra.append(unidade_mapeada)
-            
-            df_amostra["Unidade (Configuração)"] = unidades_amostra
-
-            # 3. Conta Gerencial (Natureza Despesa Código ou Nome)
-            contas_amostra = []
-            for _, row in df_sub.iterrows():
-                val_nd = None
-                if col_nd_cod in df_sub.columns and pd.notna(row[col_nd_cod]):
-                    val_nd = str(row[col_nd_cod]).strip()
-                elif col_nd_nom in df_sub.columns and pd.notna(row[col_nd_nom]):
-                    val_nd = str(row[col_nd_nom]).strip()
-
-                if val_nd:
-                    conta_mapeada = st.session_state.dicionario_pis.get(val_nd, "Sem Classificação")
-                else:
-                    conta_mapeada = "Sem Classificação"
-                contas_amostra.append(conta_mapeada)
-
-            df_amostra["Conta Gerencial"] = contas_amostra
-
-            # 4. Valor
-            if col_valor in df_sub.columns:
-                df_amostra["Valor"] = df_sub[col_valor].apply(converter_valor)
-            else:
-                df_amostra["Valor"] = 0.0
-
-            return df_amostra
-
         if arquivo is not None:
             try:
                 if arquivo.name.endswith(".csv"):
@@ -459,26 +398,13 @@ if verificar_senha():
                 
                 st.session_state.dados_tg_raw = df
                 st.success(f"Arquivo carregado com sucesso! {len(df):,} linhas identificadas.")
-                
-                st.subheader("🔍 Amostra do Carregamento (10 Primeiras Linhas)")
-                df_amostra = gerar_amostra_planilha(df)
-                st.dataframe(
-                    df_amostra.style.format({"Valor": "R$ {:,.2f}"}),
-                    use_container_width=True
-                )
+                st.dataframe(df.head(5), use_container_width=True)
 
             except Exception as e:
                 st.error(f"Erro ao ler o arquivo: {e}")
 
         elif st.session_state.dados_tg_raw is not None:
             st.info("Já existe uma planilha carregada na memória do sistema.")
-            st.subheader("🔍 Amostra do Carregamento (10 Primeiras Linhas)")
-            df_amostra = gerar_amostra_planilha(st.session_state.dados_tg_raw)
-            st.dataframe(
-                df_amostra.style.format({"Valor": "R$ {:,.2f}"}),
-                use_container_width=True
-            )
-
             if st.button("Remover e Enviar Nova Planilha"):
                 st.session_state.dados_tg_raw = None
                 st.rerun()
@@ -510,6 +436,7 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw
             colunas = list(df.columns)
 
+            col_mes_ref = colunas[1] if len(colunas) > 1 else colunas[0]        # Coluna B (Mês de Referência)
             col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
             col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
             col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
@@ -533,98 +460,132 @@ if verificar_senha():
                 lambda c: st.session_state.mapa_contas_totalizadores.get(c, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
             )
 
-            col_sel_u, col_btn_imp = st.columns([3, 1])
+            df_disc["Mes_Ref"] = df_disc[col_mes_ref].astype(str).str.strip()
+
+            # FILTROS: UNIDADE + MÊS DE REFERÊNCIA
+            col_sel_u, col_sel_m, col_btn_imp = st.columns([2, 2, 1])
 
             with col_sel_u:
                 lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
-                unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", lista_unidades_select)
+                unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade:", lista_unidades_select)
+
+            with col_sel_m:
+                meses_disponiveis = sorted(df_disc["Mes_Ref"].unique())
+                lista_meses_select = ["--- TODOS OS MESES ---"] + meses_disponiveis
+                mes_selecionado = st.selectbox("📅 Selecione o Mês de Referência:", lista_meses_select)
 
             with col_btn_imp:
                 st.write(" ")
-                if st.button("🖨️ Imprimir / Gerar PDF", type="primary", use_container_width=True):
+                if st.button("🖨️ Imprimir / PDF", type="primary", use_container_width=True):
                     st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
 
+            # Aplicação dos Filtros
+            df_relatorio = df_disc.copy()
             if unidade_selecionada != "--- TOTAL DA UFSM ---":
-                df_relatorio = df_disc[df_disc["Unidade_Consolidada"] == unidade_selecionada].copy()
-            else:
-                df_relatorio = df_disc.copy()
+                df_relatorio = df_relatorio[df_relatorio["Unidade_Consolidada"] == unidade_selecionada]
+            if mes_selecionado != "--- TODOS OS MESES ---":
+                df_relatorio = df_relatorio[df_relatorio["Mes_Ref"] == mes_selecionado]
 
             val_total = df_relatorio["Valor_Tratado"].sum()
             qtd_pis = df_relatorio["PI_Completo"].nunique()
 
             k1, k2, k3 = st.columns(3)
-            k1.metric("Visão Selecionada", unidade_selecionada)
+            k1.metric("Visão Selecionada", f"{unidade_selecionada} | {mes_selecionado}")
             k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
             k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
 
             st.markdown("---")
 
-            if df_relatorio.empty or val_total == 0:
-                st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
-            else:
-                modo_relatorio = st.radio(
-                    "📊 Modo de Visualização do Demonstrativo:",
-                    ["Visão Sintética (Apenas Totais dos Grupos)", "Visão Analítica Expansível (Clicar no '+' para abrir Contas e PIs)"],
-                    horizontal=True
-                )
+            # CONSTRUÇÃO DA ESTRUTURA COMPLETA (Todas as contas e todos os totalizadores)
+            # 1. Mapeamento de quais contas existem em cada totalizador
+            totalizadores_lista = sorted(st.session_state.totalizadores)
+            contas_lista = sorted(st.session_state.contas_gerenciais)
 
-                st.markdown("<br>", unsafe_allow_html=True)
+            # Soma real do filtro
+            soma_por_conta = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                col_g, col_t = st.columns([1, 1])
+            # Montagem do relatório completo
+            linhas_relatorio = []
+            soma_total_geral = 0.0
 
-                df_grp = df_relatorio.groupby("Grupo_Totalizador")["Valor_Tratado"].sum().reset_index()
-                df_grp.columns = ["Grupo Totalizador Gerencial", "Valor Total (R$)"]
-                df_grp["% Participação"] = (df_grp["Valor Total (R$)"] / val_total * 100) if val_total > 0 else 0
-                df_grp = df_grp[df_grp["Valor Total (R$)"] > 0].sort_values(by="Grupo Totalizador Gerencial")
+            for tot in totalizadores_lista:
+                # Contas associadas a este totalizador
+                contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
+                
+                soma_tot = 0.0
+                detalhes_contas = []
 
-                with col_g:
-                    st.subheader("Distribuição por Totalizador")
+                for c in contas_do_tot:
+                    v_conta = soma_por_conta.get(c, 0.0)
+                    soma_tot += v_conta
+                    detalhes_contas.append({
+                        "Estrutura": f"  ├─ {c}",
+                        "Valor (R$)": v_conta,
+                        "Tipo": "Conta"
+                    })
+
+                # Adiciona o Totalizador
+                linhas_relatorio.append({
+                    "Estrutura": f"📊 {tot}",
+                    "Valor (R$)": soma_tot,
+                    "Tipo": "Totalizador"
+                })
+                # Adiciona as contas do Totalizador
+                linhas_relatorio.extend(detalhes_contas)
+                soma_total_geral += soma_tot
+
+            df_exibicao = pd.DataFrame(linhas_relatorio)
+            df_exibicao["% Participação"] = (df_exibicao["Valor (R$)"] / soma_total_geral * 100) if soma_total_geral > 0 else 0.0
+
+            # VISUALIZAÇÃO GRÁFICA + TABELA DE RESUMO
+            col_g, col_t = st.columns([1, 1])
+
+            df_tot_somente = df_exibicao[df_exibicao["Tipo"] == "Totalizador"].copy()
+
+            with col_g:
+                st.subheader("Distribuição por Totalizador")
+                if soma_total_geral > 0:
                     fig = px.pie(
-                        df_grp, 
-                        names="Grupo Totalizador Gerencial", 
-                        values="Valor Total (R$)", 
+                        df_tot_somente[df_tot_somente["Valor (R$)"] > 0], 
+                        names="Estrutura", 
+                        values="Valor (R$)", 
                         hole=0.4
                     )
                     st.plotly_chart(fig, use_container_width=True)
-
-                with col_t:
-                    st.subheader("Resumo por Totalizador")
-                    st.dataframe(
-                        df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
-                        use_container_width=True,
-                        height=380
-                    )
-
-                st.markdown("---")
-
-                if modo_relatorio == "Visão Sintética (Apenas Totais dos Grupos)":
-                    st.subheader("📋 Demonstrativo Sintético por Totalizadores")
-                    st.dataframe(
-                        df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
-                        use_container_width=True
-                    )
                 else:
-                    st.subheader("🔍 Demonstrativo Analítico Expansível (+)")
-                    st.caption("Clique no totalizador desejado para expandir e visualizar as contas gerenciais e os Planos Internos (PIs).")
+                    st.info("Nenhum valor movimentado para gerar o gráfico de pizza.")
 
-                    grupos_disponiveis = sorted(df_relatorio[df_relatorio["Valor_Tratado"] > 0]["Grupo_Totalizador"].unique())
+            with col_t:
+                st.subheader("Resumo por Totalizador")
+                st.dataframe(
+                    df_tot_somente[["Estrutura", "Valor (R$)", "% Participação"]].style.format({"Valor (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
+                    use_container_width=True,
+                    height=380
+                )
 
-                    for grp in grupos_disponiveis:
-                        df_sub_grp = df_relatorio[df_relatorio["Grupo_Totalizador"] == grp]
-                        tot_grp = df_sub_grp["Valor_Tratado"].sum()
-                        pct_grp = (tot_grp / val_total * 100) if val_total > 0 else 0
+            st.markdown("---")
 
-                        exp_titulo = f"➕ **{grp}**  — Total: **R$ {tot_grp:,.2f}** ({pct_grp:.2f}%)".replace(",", "X").replace(".", ",").replace("X", ".")
+            # DEMONSTRATIVO COMPLETO COM TODAS AS CONTAS E TOTALIZADORES
+            st.subheader("📋 Demonstrativo Financeiro Completo (Todas as Contas e Totalizadores)")
+            st.caption("Exibindo todas as contas e totalizadores cadastrados no sistema para a unidade e mês selecionados.")
 
-                        with st.expander(exp_titulo):
-                            df_det_grp = df_sub_grp.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
-                            df_det_grp.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
-                            df_det_grp = df_det_grp[df_det_grp["Valor (R$)"] > 0].sort_values(by=["Conta Gerencial", "Valor (R$)"], ascending=[True, False])
+            # Formatação visual da tabela
+            df_tabela_final = df_exibicao[["Estrutura", "Valor (R$)", "% Participação"]].copy()
+            
+            # Adicionar Linha de Total Geral ao Final do Relatório
+            linha_total_geral = pd.DataFrame([{
+                "Estrutura": "🏆 TOTAL GERAL DO RELATÓRIO",
+                "Valor (R$)": soma_total_geral,
+                "% Participação": 100.0 if soma_total_geral > 0 else 0.0
+            }])
+            
+            df_tabela_final = pd.concat([df_tabela_final, linha_total_geral], ignore_index=True)
 
-                            st.dataframe(
-                                df_det_grp.style.format({"Valor (R$)": "R$ {:,.2f}"}),
-                                use_container_width=True
-                            )
+            st.dataframe(
+                df_tabela_final.style.format({"Valor (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
+                use_container_width=True,
+                height=600
+            )
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
@@ -726,17 +687,17 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS & NATUREZA DE DESPESAS
+    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Contas & Natureza de Despesas")
-        st.write("Gerencie totalizadores, plano de contas e vinculação de contas nos totalizadores.")
+        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & PIs")
+        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento dos PIs.")
 
-        # 2. ABA "Mapeamento de PIs" REMOVIDA
-        tab_t0, tab_c1, tab_c2 = st.tabs([
+        tab_t0, tab_c1, tab_c2, tab_c3 = st.tabs([
             "📊 Cadastro de Totalizadores", 
             "📌 Cadastro de Contas Gerenciais", 
-            "🔗 Vinculação de Contas aos Totalizadores"
+            "🔗 Vinculação de Contas aos Totalizadores", 
+            "🏷️ Mapeamento de PIs"
         ])
 
         # TAB 0: CADASTRO DE TOTALIZADORES
@@ -866,6 +827,53 @@ if verificar_senha():
                     key=f"sel_tot_for_{conta_item}"
                 )
                 st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
+
+        # TAB 3: MAPEAMENTO DE PIs
+        with tab_c3:
+            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
+
+            if st.session_state.dados_tg_raw is None:
+                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs e realizar o mapeamento.")
+            else:
+                df = st.session_state.dados_tg_raw
+                colunas = list(df.columns)
+                
+                col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
+                col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
+
+                df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
+                df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
+                lista_pis = sorted(df_pis["PI_Completo"].unique())
+
+                st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
+
+                for pi_item in lista_pis:
+                    col_lbl, col_sel = st.columns([2, 2])
+                    col_lbl.write(f"📌 **{pi_item}**")
+                    
+                    conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
+                    if conta_sugerida == "Sem Classificação":
+                        p_up = pi_item.upper()
+                        if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
+                            conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
+                        elif "BOLSA" in p_up or "ASSIST" in p_up:
+                            conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
+                        elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
+                            conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
+                        elif "OBRA" in p_up or "REFORMA" in p_up:
+                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
+                        elif "TIC" in p_up or "INFORMATICA" in p_up:
+                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
+
+                    idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
+
+                    nova_ass = col_sel.selectbox(
+                        "Associar à Conta:",
+                        st.session_state.contas_gerenciais,
+                        index=idx_def,
+                        key=f"sel_pi_{pi_item}"
+                    )
+                    st.session_state.dicionario_pis[pi_item] = nova_ass
 
     # -----------------------------------------------------------------------------
     # CADASTRO DE USUÁRIOS
