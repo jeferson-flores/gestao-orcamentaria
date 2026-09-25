@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 
 # -----------------------------------------------------------------------------
 # 1. CONFIGURAÇÃO DA PÁGINA
@@ -11,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Customização CSS para o menu por botões
+# Customização CSS (Menu Lateral + Estilo de Impressão)
 st.markdown("""
     <style>
     div[data-testid="stSidebar"] button {
@@ -20,6 +21,51 @@ st.markdown("""
         height: 2.8em;
         font-weight: bold;
         margin-bottom: 4px;
+    }
+
+    /* Estilização para Impressão (Ctrl + P) */
+    @media print {
+        /* Oculta o menu lateral, topo do Streamlit e botões de ação */
+        [data-testid="stSidebar"], 
+        header, 
+        footer, 
+        .stButton, 
+        .stSelectbox {
+            display: none !important;
+        }
+        
+        /* Ajusta a área do relatório para ocupar a folha inteira */
+        .main .block-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+        
+        /* Força que o fundo seja branco para economizar tinta */
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+    }
+    
+    .cabecalho-impressao {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #003366;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+    }
+    .titulo-impressao h2 {
+        margin: 0;
+        color: #003366;
+        font-size: 22px;
+    }
+    .titulo-impressao h4 {
+        margin: 4px 0 0 0;
+        color: #555555;
+        font-size: 14px;
+        font-weight: normal;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -177,6 +223,10 @@ if "dicionario_pis" not in st.session_state:
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
 
+# Guarda a logo personalizada inserida pelo usuário em bytes
+if "logo_personalizada" not in st.session_state:
+    st.session_state.logo_personalizada = None
+
 # Controle de edição inline
 if "editando_unidade" not in st.session_state:
     st.session_state.editando_unidade = None
@@ -185,7 +235,7 @@ if "editando_conta" not in st.session_state:
     st.session_state.editando_conta = None
 
 # -----------------------------------------------------------------------------
-# 3. AUTENTICAÇÃO DINÂMICA
+# 3. AUTENTICAÇÃO
 # -----------------------------------------------------------------------------
 def verificar_senha():
     if "autenticado" not in st.session_state:
@@ -218,14 +268,12 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL POR BOTÕES COM LOGO DA UFSM
+    # 4. MENU LATERAL
     # -----------------------------------------------------------------------------
     
-    # URL da logomarca oficial da UFSM
-    LOGO_UFSM_URL = "https://upload.wikimedia.org/wikipedia/commons/e/eb/Brasao-ufsm.png"
-
-    # Exibe a logo no topo do menu lateral (esquerda)
-    st.sidebar.image(LOGO_UFSM_URL, use_container_width=True)
+    # Exibe a logo personalizada na barra lateral se tiver sido enviada
+    if st.session_state.logo_personalizada is not None:
+        st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
     
     st.sidebar.title("🏛️ PRA / UFSM")
     st.sidebar.caption(f"Usuário: **{st.session_state.usuario_logado['nome']}** ({st.session_state.usuario_logado['perfil']})")
@@ -257,7 +305,11 @@ if verificar_senha():
         st.session_state.pagina_atual = "usuarios"
         st.rerun()
 
-    if st.sidebar.button("📊 6. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+    if st.sidebar.button("⚙️ 6. Configurações Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
+        st.session_state.pagina_atual = "config"
+        st.rerun()
+
+    if st.sidebar.button("📊 7. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
         st.session_state.pagina_atual = "relatorio"
         st.rerun()
 
@@ -537,7 +589,6 @@ if verificar_senha():
         with col_usr_list:
             st.subheader(f"Usuários Cadastrados ({len(st.session_state.tabela_usuarios)})")
             
-            # Converte lista de dicts para DataFrame visual
             df_usr_view = pd.DataFrame(st.session_state.tabela_usuarios)[["usuario", "nome", "perfil"]]
             df_usr_view.columns = ["Login", "Nome Completo", "Perfil"]
             st.dataframe(df_usr_view, use_container_width=True)
@@ -550,7 +601,6 @@ if verificar_senha():
             
             if usr_selecionado:
                 dados_usr = next(u for u in st.session_state.tabela_usuarios if u["usuario"] == usr_selecionado)
-                
                 c_edit_pass, c_del_usr = st.columns(2)
                 
                 with c_edit_pass:
@@ -573,10 +623,59 @@ if verificar_senha():
                             st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 6: RELATÓRIO EXECUTIVO
+    # PÁGINA 6: CONFIGURAÇÕES VISUAIS (DOWNLOAD/UPLOAD DA LOGO)
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "config":
+        st.header("⚙️ Configurações Visuais e Logomarca")
+        st.write("Carregue a imagem da logomarca oficial (UFSM / Pró-Reitoria) do seu computador. Ela será exibida no menu à esquerda e no cabeçalho dos relatórios de impressão.")
+
+        c_up, c_prev = st.columns([2, 1])
+
+        with c_up:
+            st.subheader("Fazer Upload da Logo")
+            arquivo_logo = st.file_uploader("Selecione uma imagem (.png, .jpg, .jpeg):", type=["png", "jpg", "jpeg"])
+
+            if arquivo_logo is not None:
+                st.session_state.logo_personalizada = arquivo_logo.getvalue()
+                st.success("Logomarca carregada com sucesso! Ela já está visível no menu lateral e pronta para impressão.")
+                st.rerun()
+
+            if st.session_state.logo_personalizada is not None:
+                st.markdown("---")
+                if st.button("🗑️ Remover Logomarca Atual"):
+                    st.session_state.logo_personalizada = None
+                    st.success("Logomarca removida com sucesso!")
+                    st.rerun()
+
+        with c_prev:
+            st.subheader("Pré-visualização")
+            if st.session_state.logo_personalizada is not None:
+                st.image(st.session_state.logo_personalizada, caption="Logo Ativa no Sistema", width=200)
+            else:
+                st.info("Nenhuma imagem carregada até o momento.")
+
+    # -----------------------------------------------------------------------------
+    # PÁGINA 7: RELATÓRIO EXECUTIVO
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
-        st.header("📊 Relatório Executivo de Despesas Discricionárias")
+        
+        # CABEÇALHO FORMATAÇÃO PARA IMPRESSÃO / TELA
+        c_head1, c_head2 = st.columns([1, 4])
+        with c_head1:
+            if st.session_state.logo_personalizada is not None:
+                st.image(st.session_state.logo_personalizada, width=130)
+            else:
+                st.write("🏛️ **UFSM**")
+        with c_head2:
+            st.markdown(f"""
+                <div class="titulo-impressao">
+                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
+                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - RELATÓRIO EXECUTIVO ORÇAMENTÁRIO</h4>
+                    <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
 
         if st.session_state.dados_tg_raw is None:
             st.info("👋 Por favor, faça a carga do arquivo na aba **'1. Carga da Planilha'** para acessar os relatórios.")
