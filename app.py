@@ -409,8 +409,8 @@ if verificar_senha():
                 st.session_state.dados_tg_raw = None
                 st.rerun()
 
-    # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (EXPANSÍVEL E COMPARATIVO)
+# -----------------------------------------------------------------------------
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (TABELA ALINHADA E FORMATADA)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -468,6 +468,17 @@ if verificar_senha():
 
             df_disc["Ano_Mes"] = df_disc["Data_Ref"].dt.to_period("M")
 
+            # MAPEAMENTO PARA FORMATO MMM/AAAA
+            meses_siglas = {
+                1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
+                7: "JUL", 8: "AGO", 9: "SET", 10: "OUT", 11: "NOV", 12: "DEZ"
+            }
+            
+            def fmt_mmm_aaaa(periodo):
+                if pd.isna(periodo): return ""
+                return f"{meses_siglas[periodo.month]}/{periodo.year}"
+
+            # CONTROLES DE FILTRO
             c_flag, c_unid, c_mes, c_imp = st.columns([1.5, 2, 2, 1])
 
             with c_flag:
@@ -485,7 +496,11 @@ if verificar_senha():
             
             with c_mes:
                 if periodos_disponiveis:
-                    periodo_sel = st.selectbox("📅 Mês de Referência:", periodos_disponiveis, format_func=lambda x: str(x))
+                    periodo_sel = st.selectbox(
+                        "📅 Mês de Referência:", 
+                        periodos_disponiveis, 
+                        format_func=fmt_mmm_aaaa
+                    )
                 else:
                     periodo_sel = None
                     st.warning("Nenhuma data válida encontrada na planilha.")
@@ -507,10 +522,10 @@ if verificar_senha():
                     m_2 = periodo_sel - 2
                     m_ano_ant = periodo_sel - 12
 
-                    lbl_m_atual = str(m_atual)
-                    lbl_m_1 = str(m_1)
-                    lbl_m_2 = str(m_2)
-                    lbl_m_ano_ant = str(m_ano_ant)
+                    lbl_m_atual = f"{fmt_mmm_aaaa(m_atual)} (R$)"
+                    lbl_m_1 = f"{fmt_mmm_aaaa(m_1)} (R$)"
+                    lbl_m_2 = f"{fmt_mmm_aaaa(m_2)} (R$)"
+                    lbl_m_ano_ant = f"{fmt_mmm_aaaa(m_ano_ant)} (R$)"
 
                     df_m0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_atual]
                     df_m1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_1]
@@ -522,7 +537,7 @@ if verificar_senha():
                     soma_m2 = df_m2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
                     soma_m12 = df_m12.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                    col_cols_exibir = [lbl_m_atual, lbl_m_1, lbl_m_2, lbl_m_ano_ant]
+                    cols_exibir = [lbl_m_atual, lbl_m_1, lbl_m_2, lbl_m_ano_ant]
                     dict_somas = {lbl_m_atual: soma_m0, lbl_m_1: soma_m1, lbl_m_2: soma_m2, lbl_m_ano_ant: soma_m12}
 
                 else:
@@ -530,10 +545,11 @@ if verificar_senha():
                     mes_ref_num = periodo_sel.month
                     ano_1 = ano_atual - 1
                     ano_2 = ano_atual - 2
+                    sigla_mes = meses_siglas[mes_ref_num]
 
-                    lbl_a0 = f"Jan-{periodo_sel.strftime('%b')}/{ano_atual}"
-                    lbl_a1 = f"Jan-{periodo_sel.strftime('%b')}/{ano_1}"
-                    lbl_a2 = f"Jan-{periodo_sel.strftime('%b')}/{ano_2}"
+                    lbl_a0 = f"JAN-{sigla_mes}/{ano_atual} (R$)"
+                    lbl_a1 = f"JAN-{sigla_mes}/{ano_1} (R$)"
+                    lbl_a2 = f"JAN-{sigla_mes}/{ano_2} (R$)"
 
                     df_a0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
                     df_a1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
@@ -543,60 +559,58 @@ if verificar_senha():
                     soma_a1 = df_a1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
                     soma_a2 = df_a2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                    col_cols_exibir = [lbl_a0, lbl_a1, lbl_a2]
+                    cols_exibir = [lbl_a0, lbl_a1, lbl_a2]
                     dict_somas = {lbl_a0: soma_a0, lbl_a1: soma_a1, lbl_a2: soma_a2}
 
-                # DEMONSTRATIVO FINANCEIRO EXPANSÍVEL POR TOTALIZADOR
-                st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
-                st.caption("Clique no totalizador para expandir (+) ou recolher (-) as contas subordinadas. Por padrão, as contas iniciam recolhidas.")
+                # CONTROLE DE EXPANSÃO / RECOLHIMENTO
+                col_sub1, col_sub2 = st.columns([3, 1])
+                with col_sub1:
+                    st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+                with col_sub2:
+                    expandir_tudo = st.checkbox("➕ Expandir todos os detalhamentos", value=False)
 
-                totais_gerais = {col: 0.0 for col in col_cols_exibir}
+                linhas = []
+                somas_totais_gerais = {col: 0.0 for col in cols_exibir}
 
-                # EXIBIÇÃO SANFONA/EXPANDÍVEL (INICIA RECOLHIDO)
                 for tot in totalizadores_lista:
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     
-                    # Cálculo dos totais do grupo
-                    totais_grupo = {}
-                    for col in col_cols_exibir:
-                        val_grupo = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
-                        totais_grupo[col] = val_grupo
-                        totais_gerais[col] += val_grupo
+                    row_tot = {"Estrutura": tot}
+                    for col in cols_exibir:
+                        val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
+                        row_tot[col] = val_g
+                        somas_totais_gerais[col] += val_g
 
-                    # Título do expander sem o emoji de gráfico
-                    valores_str = " | ".join([f"{col}: R$ {totais_grupo[col]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") for col in col_cols_exibir])
-                    titulo_expander = f"**{tot}** — ({valores_str})"
+                    linhas.append(row_tot)
 
-                    with st.expander(titulo_expander, expanded=False):
-                        linhas_contas = []
+                    # Se o checkbox estiver marcado, inclui as contas subordinadas com recuo de parágrafo
+                    if expandir_tudo:
                         for c in contas_do_tot:
-                            row = {"Conta Gerencial": c}
-                            for col in col_cols_exibir:
-                                row[col] = dict_somas[col].get(c, 0.0)
-                            linhas_contas.append(row)
+                            row_conta = {"Estrutura": f"    {c}"}
+                            for col in cols_exibir:
+                                row_conta[col] = dict_somas[col].get(c, 0.0)
+                            linhas.append(row_conta)
 
-                        df_contas = pd.DataFrame(linhas_contas)
-                        dict_format = {col: "R$ {:,.2f}" for col in col_cols_exibir}
-                        
-                        # Oculta a coluna de índices (hide_index=True) e exibe sem o prefixo ├─
-                        st.dataframe(
-                            df_contas.style.format(dict_format),
-                            use_container_width=True,
-                            hide_index=True
-                        )
+                # LINHA DE TOTAL GERAL
+                row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
+                for col in cols_exibir:
+                    row_tot_geral[col] = somas_totais_gerais[col]
+                linhas.append(row_tot_geral)
 
-                st.markdown("---")
+                df_exibicao = pd.DataFrame(linhas)
 
-                # TABELA DE TOTAL GERAL DO RELATÓRIO
-                st.subheader("🏆 TOTAL GERAL DO RELATÓRIO")
-                df_total_geral = pd.DataFrame([totais_gerais])
-                dict_format_tot = {col: "R$ {:,.2f}" for col in col_cols_exibir}
-                
-                # Oculta a primeira coluna de índice
+                # FUNÇÃO DE FORMATAÇÃO NUMÉRICA: PONTO MILHAR, VÍRGULA CENTAVOS (SEM "R$")
+                def formatar_br(val):
+                    return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+                dict_format = {col: formatar_br for col in cols_exibir}
+
+                # EXIBIÇÃO EM TABELA ÚNICA PERFEITAMENTE ALINHADA SEM ÍNDICE
                 st.dataframe(
-                    df_total_geral.style.format(dict_format_tot),
+                    df_exibicao.style.format(dict_format),
                     use_container_width=True,
-                    hide_index=True
+                    hide_index=True,
+                    height=600 if expandir_tudo else 380
                 )
                 
     # -----------------------------------------------------------------------------
