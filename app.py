@@ -30,9 +30,8 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* Estilização para Impressão (Ctrl + P ou Botão) */
+    /* Estilização para Impressão */
     @media print {
-        /* Oculta o menu lateral, topo do Streamlit e botões de ação na impressão */
         [data-testid="stSidebar"], 
         header, 
         footer, 
@@ -42,7 +41,6 @@ st.markdown("""
             display: none !important;
         }
         
-        /* Ajusta a área do relatório para ocupar a folha inteira */
         .main .block-container {
             padding: 0 !important;
             margin: 0 !important;
@@ -271,10 +269,9 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL
+    # 4. MENU LATERAL REORGANIZADO
     # -----------------------------------------------------------------------------
     
-    # Exibe a logo personalizada na barra lateral se tiver sido enviada
     if st.session_state.logo_personalizada is not None:
         st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
     
@@ -288,32 +285,34 @@ if verificar_senha():
 
     st.sidebar.markdown("---")
 
+    # MÓDULOS DE OPERAÇÃO E CONSULTA
     if st.sidebar.button("📁 1. Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
-    if st.sidebar.button("🏛️ 2. Cadastro de Unidades & UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades" else "secondary"):
+    if st.sidebar.button("📊 2. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+        st.session_state.pagina_atual = "relatorio"
+        st.rerun()
+
+    st.sidebar.markdown("---")
+    
+    # SEÇÃO DE CONFIGURAÇÕES
+    st.sidebar.subheader("⚙️ Configurações")
+
+    if st.sidebar.button("🏛️ Configuração de Unidades", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades" else "secondary"):
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    if st.sidebar.button("🏷️ 3. Plano de Contas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
-    if st.sidebar.button("📖 4. Dicionário de PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "dicionario" else "secondary"):
-        st.session_state.pagina_atual = "dicionario"
-        st.rerun()
-
-    if st.sidebar.button("👤 5. Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
+    if st.sidebar.button("👤 Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
         st.session_state.pagina_atual = "usuarios"
         st.rerun()
 
-    if st.sidebar.button("⚙️ 6. Configurações Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
+    if st.sidebar.button("🎨 Configuração Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
         st.session_state.pagina_atual = "config"
-        st.rerun()
-
-    if st.sidebar.button("📊 7. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
-        st.session_state.pagina_atual = "relatorio"
         st.rerun()
 
     st.sidebar.markdown("---")
@@ -356,10 +355,115 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: CADASTRO DE UNIDADES E MAPEAMENTO DE UGs
+    # PÁGINA 2: RELATÓRIO EXECUTIVO
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "relatorio":
+        c_head1, c_head2 = st.columns([1, 4])
+        with c_head1:
+            if st.session_state.logo_personalizada is not None:
+                st.image(st.session_state.logo_personalizada, width=130)
+            else:
+                st.write("🏛️ **UFSM**")
+        with c_head2:
+            st.markdown(f"""
+                <div class="titulo-impressao">
+                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
+                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - RELATÓRIO EXECUTIVO ORÇAMENTÁRIO</h4>
+                    <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        if st.session_state.dados_tg_raw is None:
+            st.info("👋 Por favor, faça a carga do arquivo na aba **'1. Carga da Planilha'** para acessar os relatórios.")
+        else:
+            df = st.session_state.dados_tg_raw
+            colunas = list(df.columns)
+
+            col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
+            col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
+            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
+            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod      # Coluna M
+            col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
+
+            df_disc = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
+            df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
+            
+            df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
+                lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
+            )
+
+            df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
+            df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
+                lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
+            )
+
+            col_sel_u, col_btn_imp = st.columns([3, 1])
+
+            with col_sel_u:
+                lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
+                unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", lista_unidades_select)
+
+            with col_btn_imp:
+                st.write(" ")
+                if st.button("🖨️ Imprimir / Gerar PDF", type="primary", use_container_width=True):
+                    st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
+
+            if unidade_selecionada != "--- TOTAL DA UFSM ---":
+                df_relatorio = df_disc[df_disc["Unidade_Consolidada"] == unidade_selecionada].copy()
+            else:
+                df_relatorio = df_disc.copy()
+
+            val_total = df_relatorio["Valor_Tratado"].sum()
+            qtd_pis = df_relatorio["PI_Completo"].nunique()
+
+            k1, k2, k3 = st.columns(3)
+            k1.metric("Visão Selecionada", unidade_selecionada)
+            k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+            k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
+
+            st.markdown("---")
+
+            if df_relatorio.empty or val_total == 0:
+                st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
+            else:
+                col_g, col_t = st.columns([1, 1])
+
+                df_exec = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
+                df_exec.columns = ["Conta Gerencial", "Valor Total (R$)"]
+                df_exec = df_exec[df_exec["Valor Total (R$)"] > 0].sort_values(by="Valor Total (R$)", ascending=False)
+
+                with col_g:
+                    st.subheader("Distribuição por Conta Gerencial")
+                    fig = px.pie(
+                        df_exec, 
+                        names="Conta Gerencial", 
+                        values="Valor Total (R$)", 
+                        hole=0.4
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                with col_t:
+                    st.subheader("Resumo de Valores por Conta")
+                    st.dataframe(
+                        df_exec.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
+                        use_container_width=True,
+                        height=380
+                    )
+
+                st.markdown("---")
+                st.subheader("🔍 Detalhamento por Plano Interno (PI)")
+                df_det = df_relatorio.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
+                df_det.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
+                df_det = df_det[df_det["Valor (R$)"] > 0].sort_values(by="Valor (R$)", ascending=False)
+                st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
+
+    # -----------------------------------------------------------------------------
+    # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades":
-        st.header("🏛️ Cadastro de Unidades Organizacionais & Mapeamento de UGs")
+        st.header("⚙️ Configuração de Unidades Organizacionais & Mapeamento de UGs")
         st.write("Gestão das Unidades Institucionais e alocação de UGs da planilha.")
 
         tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento de UGs (Colunas F/G)"])
@@ -455,114 +559,115 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 3: PLANO DE CONTAS CONTÁBEIS
+    # CONFIGURAÇÃO DE CONTAS & MAPEAMENTO DE PIs (UNIFICADO COM ABAS)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("🏷️ Estrutura do Plano de Contas Gerenciais")
-        st.write("Plano de contas gerenciais para apresentação à Alta Gestão.")
+        st.header("⚙️ Configuração de Contas Gerenciais & Mapeamento de PIs")
+        st.write("Gerencie a estrutura do Plano de Contas e vincule os Planos Internos (SIAFI).")
 
-        col_add, col_list = st.columns([1, 2])
+        tab_c1, tab_c2 = st.tabs(["📌 Cadastro de Contas Gerenciais", "🔗 Mapeamento de PIs (Planos Internos)"])
 
-        with col_add:
-            st.subheader("Adicionar Nova Conta")
-            nova_conta = st.text_input("Nome/Código da Conta:")
-            if st.button("➕ Adicionar Conta", use_container_width=True):
-                if nova_conta and nova_conta not in st.session_state.contas_gerenciais:
-                    st.session_state.contas_gerenciais.append(nova_conta)
-                    st.success(f"Conta '{nova_conta}' adicionada!")
-                    st.rerun()
+        # TAB 1: CADASTRO DE CONTAS GERENCIAIS
+        with tab_c1:
+            col_add, col_list = st.columns([1, 2])
 
-        with col_list:
-            st.subheader(f"Plano de Contas Ativo ({len(st.session_state.contas_gerenciais)})")
-            
-            for idx, conta in enumerate(st.session_state.contas_gerenciais):
-                c_nome, c_edit, c_del = st.columns([5, 1, 1])
-                c_nome.write(f"• **{conta}**")
+            with col_add:
+                st.subheader("Adicionar Nova Conta")
+                nova_conta = st.text_input("Nome/Código da Conta:")
+                if st.button("➕ Adicionar Conta", use_container_width=True):
+                    if nova_conta and nova_conta not in st.session_state.contas_gerenciais:
+                        st.session_state.contas_gerenciais.append(nova_conta)
+                        st.success(f"Conta '{nova_conta}' adicionada!")
+                        st.rerun()
+
+            with col_list:
+                st.subheader(f"Plano de Contas Ativo ({len(st.session_state.contas_gerenciais)})")
                 
-                if c_edit.button("✏️", key=f"edit_c_{idx}", help="Alterar nome da Conta"):
-                    st.session_state.editando_conta = conta
-                    st.rerun()
+                for idx, conta in enumerate(st.session_state.contas_gerenciais):
+                    c_nome, c_edit, c_del = st.columns([5, 1, 1])
+                    c_nome.write(f"• **{conta}**")
+                    
+                    if c_edit.button("✏️", key=f"edit_c_{idx}", help="Alterar nome da Conta"):
+                        st.session_state.editando_conta = conta
+                        st.rerun()
 
-                if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
-                    st.session_state.contas_gerenciais.remove(conta)
-                    for pi_k, val in list(st.session_state.dicionario_pis.items()):
-                        if val == conta:
-                            st.session_state.dicionario_pis[pi_k] = "Sem Classificação"
-                    st.rerun()
+                    if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
+                        st.session_state.contas_gerenciais.remove(conta)
+                        for pi_k, val in list(st.session_state.dicionario_pis.items()):
+                            if val == conta:
+                                st.session_state.dicionario_pis[pi_k] = "Sem Classificação"
+                        st.rerun()
 
-                if st.session_state.editando_conta == conta:
-                    with st.container():
-                        c_in, c_save, c_canc = st.columns([4, 1, 1])
-                        novo_nome_c = c_in.text_input("Novo nome:", value=conta, key=f"inp_c_{idx}")
-                        if c_save.button("Salvar", key=f"save_c_{idx}"):
-                            if novo_nome_c and novo_nome_c != conta:
-                                st.session_state.contas_gerenciais[idx] = novo_nome_c
-                                for pi_k, val in st.session_state.dicionario_pis.items():
-                                    if val == conta:
-                                        st.session_state.dicionario_pis[pi_k] = novo_nome_c
-                                st.success("Conta alterada com sucesso!")
-                            st.session_state.editando_conta = None
-                            st.rerun()
+                    if st.session_state.editando_conta == conta:
+                        with st.container():
+                            c_in, c_save, c_canc = st.columns([4, 1, 1])
+                            novo_nome_c = c_in.text_input("Novo nome:", value=conta, key=f"inp_c_{idx}")
+                            if c_save.button("Salvar", key=f"save_c_{idx}"):
+                                if novo_nome_c and novo_nome_c != conta:
+                                    st.session_state.contas_gerenciais[idx] = novo_nome_c
+                                    for pi_k, val in st.session_state.dicionario_pis.items():
+                                        if val == conta:
+                                            st.session_state.dicionario_pis[pi_k] = novo_nome_c
+                                    st.success("Conta alterada com sucesso!")
+                                st.session_state.editando_conta = None
+                                st.rerun()
 
-                        if c_canc.button("Cancelar", key=f"canc_c_{idx}"):
-                            st.session_state.editando_conta = None
-                            st.rerun()
+                            if c_canc.button("Cancelar", key=f"canc_c_{idx}"):
+                                st.session_state.editando_conta = None
+                                st.rerun()
 
-    # -----------------------------------------------------------------------------
-    # PÁGINA 4: DICIONÁRIO DE PIs
-    # -----------------------------------------------------------------------------
-    elif st.session_state.pagina_atual == "dicionario":
-        st.header("📖 Dicionário de Mapeamento dos PIs")
-        st.write("Mapeamento automático e manual de Planos Internos (SIAFI) para as Contas Gerenciais.")
+        # TAB 2: MAPEAMENTO DE PIs (DICIONÁRIO DE PIs INTEGRADO)
+        with tab_c2:
+            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
 
-        if st.session_state.dados_tg_raw is None:
-            st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs do relatório.")
-        else:
-            df = st.session_state.dados_tg_raw
-            colunas = list(df.columns)
-            
-            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
-            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
-
-            df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
-            df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
-            lista_pis = sorted(df_pis["PI_Completo"].unique())
-
-            st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
-
-            for pi_item in lista_pis:
-                col_lbl, col_sel = st.columns([2, 2])
-                col_lbl.write(f"📌 **{pi_item}**")
+            if st.session_state.dados_tg_raw is None:
+                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs e realizar o mapeamento.")
+            else:
+                df = st.session_state.dados_tg_raw
+                colunas = list(df.columns)
                 
-                conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
-                if conta_sugerida == "Sem Classificação":
-                    p_up = pi_item.upper()
-                    if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
-                        conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
-                    elif "BOLSA" in p_up or "ASSIST" in p_up:
-                        conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
-                    elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
-                        conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
-                    elif "OBRA" in p_up or "REFORMA" in p_up:
-                        conta_sugerida = "1.1. Obras, Reformas e Adequações"
-                    elif "TIC" in p_up or "INFORMATICA" in p_up:
-                        conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
+                col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
+                col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
 
-                idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
+                df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
+                df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
+                lista_pis = sorted(df_pis["PI_Completo"].unique())
 
-                nova_ass = col_sel.selectbox(
-                    "Conta Gerencial:",
-                    st.session_state.contas_gerenciais,
-                    index=idx_def,
-                    key=f"sel_pi_{pi_item}"
-                )
-                st.session_state.dicionario_pis[pi_item] = nova_ass
+                st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
+
+                for pi_item in lista_pis:
+                    col_lbl, col_sel = st.columns([2, 2])
+                    col_lbl.write(f"📌 **{pi_item}**")
+                    
+                    conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
+                    if conta_sugerida == "Sem Classificação":
+                        p_up = pi_item.upper()
+                        if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
+                            conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
+                        elif "BOLSA" in p_up or "ASSIST" in p_up:
+                            conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
+                        elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
+                            conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
+                        elif "OBRA" in p_up or "REFORMA" in p_up:
+                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
+                        elif "TIC" in p_up or "INFORMATICA" in p_up:
+                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
+
+                    idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
+
+                    nova_ass = col_sel.selectbox(
+                        "Associar à Conta:",
+                        st.session_state.contas_gerenciais,
+                        index=idx_def,
+                        key=f"sel_pi_{pi_item}"
+                    )
+                    st.session_state.dicionario_pis[pi_item] = nova_ass
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 5: CADASTRO DE USUÁRIOS
+    # CADASTRO DE USUÁRIOS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "usuarios":
-        st.header("👤 Gestão de Usuários e Permissões")
+        st.header("⚙️ Gestão de Usuários e Permissões")
         st.write("Cadastre e controle os usuários que possuem acesso ao sistema.")
 
         col_usr_add, col_usr_list = st.columns([1, 2])
@@ -626,7 +731,7 @@ if verificar_senha():
                             st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 6: CONFIGURAÇÕES VISUAIS (LOGOMARCA & FAVICON)
+    # CONFIGURAÇÕES VISUAIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "config":
         st.header("⚙️ Configurações Visuais e Logomarca")
@@ -656,116 +761,3 @@ if verificar_senha():
                 st.image(st.session_state.logo_personalizada, caption="Logo Ativa no Sistema", width=200)
             else:
                 st.info("Nenhuma imagem carregada até o momento.")
-
-    # -----------------------------------------------------------------------------
-    # PÁGINA 7: RELATÓRIO EXECUTIVO
-    # -----------------------------------------------------------------------------
-    elif st.session_state.pagina_atual == "relatorio":
-        
-        # CABEÇALHO FORMATAÇÃO PARA IMPRESSÃO / TELA
-        c_head1, c_head2 = st.columns([1, 4])
-        with c_head1:
-            if st.session_state.logo_personalizada is not None:
-                st.image(st.session_state.logo_personalizada, width=130)
-            else:
-                st.write("🏛️ **UFSM**")
-        with c_head2:
-            st.markdown(f"""
-                <div class="titulo-impressao">
-                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
-                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - RELATÓRIO EXECUTIVO ORÇAMENTÁRIO</h4>
-                    <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
-                </div>
-            """, unsafe_allow_html=True)
-
-        st.markdown("---")
-
-        if st.session_state.dados_tg_raw is None:
-            st.info("👋 Por favor, faça a carga do arquivo na aba **'1. Carga da Planilha'** para acessar os relatórios.")
-        else:
-            df = st.session_state.dados_tg_raw
-            colunas = list(df.columns)
-
-            col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
-            col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
-            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
-            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod      # Coluna M
-            col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
-
-            # 1. Filtro: Recursos Discricionários (Coluna C contém "2")
-            df_disc = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
-
-            # 2. Tratamento e Mapeamento
-            df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
-            
-            df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
-                lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
-            )
-
-            # 3. Tradução dos PIs
-            df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
-            df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
-                lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
-            )
-
-            # 4. CARREGAMENTO DO SELETOR E BOTÃO DE IMPRESSÃO
-            col_sel_u, col_btn_imp = st.columns([3, 1])
-
-            with col_sel_u:
-                lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
-                unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade para Análise:", lista_unidades_select)
-
-            with col_btn_imp:
-                st.write(" ") # Espaçamento para alinhar com o selectbox
-                if st.button("🖨️ Imprimir / Gerar PDF", type="primary", use_container_width=True):
-                    # Injeta script JS para chamar a impressão nativa do navegador
-                    st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
-
-            if unidade_selecionada != "--- TOTAL DA UFSM ---":
-                df_relatorio = df_disc[df_disc["Unidade_Consolidada"] == unidade_selecionada].copy()
-            else:
-                df_relatorio = df_disc.copy()
-
-            val_total = df_relatorio["Valor_Tratado"].sum()
-            qtd_pis = df_relatorio["PI_Completo"].nunique()
-
-            k1, k2, k3 = st.columns(3)
-            k1.metric("Visão Selecionada", unidade_selecionada)
-            k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-            k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
-
-            st.markdown("---")
-
-            if df_relatorio.empty or val_total == 0:
-                st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
-            else:
-                col_g, col_t = st.columns([1, 1])
-
-                df_exec = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
-                df_exec.columns = ["Conta Gerencial", "Valor Total (R$)"]
-                df_exec = df_exec[df_exec["Valor Total (R$)"] > 0].sort_values(by="Valor Total (R$)", ascending=False)
-
-                with col_g:
-                    st.subheader("Distribuição por Conta Gerencial")
-                    fig = px.pie(
-                        df_exec, 
-                        names="Conta Gerencial", 
-                        values="Valor Total (R$)", 
-                        hole=0.4
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-
-                with col_t:
-                    st.subheader("Resumo de Valores por Conta")
-                    st.dataframe(
-                        df_exec.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
-                        use_container_width=True,
-                        height=380
-                    )
-
-                st.markdown("---")
-                st.subheader("🔍 Detalhamento por Plano Interno (PI)")
-                df_det = df_relatorio.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
-                df_det.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
-                df_det = df_det[df_det["Valor (R$)"] > 0].sort_values(by="Valor (R$)", ascending=False)
-                st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
