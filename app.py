@@ -156,56 +156,6 @@ MAPA_CONTAS_TOTALIZADORES_PADRAO = {
     "Sem Classificação": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
 }
 
-# MAPEAMENTO PADRÃO DAS NATUREZAS DE DESPESA -> CONTAS GERENCIAIS
-MAPA_NATUREZA_CONTA_PADRAO = {
-    "339014 - DIARIAS - CIVIL": "6.1. Passagens e Diárias (Nacionais e Internacionais)",
-    "339018 - AUXILIO FINANCEIRO A ESTUDANTES": "4.2. Bolsas de Assistência Estudantil e Permanência",
-    "339020 - AUXILIO FINANCEIRO A PESQUISADORES": "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação",
-    "339030 - MATERIAL DE CONSUMO": "8.1. Material de Expediente e Suprimentos",
-    "339031 - PREMIACOES CULTURAIS, ARTISTICAS, CIENTIFICAS, DESPORTIVAS E OUTRAS": "6.2. Eventos Acadêmicos, Culturais e Congressos",
-    "339032 - MATERIAL, BEM OU SERVICO PARA DISTRIBUICAO GRATUITA": "4.3. Moradia Estudantil e Apoio ao Estudante",
-    "339033 - PASSAGENS E DESPESAS COM LOCOMOCAO": "6.1. Passagens e Diárias (Nacionais e Internacionais)",
-    "339036 - OUTROS SERVICOS DE TERCEIROS - PESSOA FISICA": "8.3. Outras Despesas Operacionais",
-    "339037 - LOCACAO DE MAO-DE-OBRA": "2.3. Apoio Administrativo e Motoristas",
-    "339039 - OUTROS SERVICOS DE TERCEIROS - PESSOA JURIDICA": "8.3. Outras Despesas Operacionais",
-    "339040 - SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO - PESSOA JURIDICA": "3.2. Licenças de Software, Sistemas e Nuvem",
-    "339047 - OBRIGACOES TRIBUTARIAS E CONTRIBUTIVAS": "8.2. Encargos Institucionais e Impostos",
-    "339048 - OUTROS AUXILIOS FINANCEIROS A PESSOAS FISICAS": "4.2. Bolsas de Assistência Estudantil e Permanência",
-    "339091 - SENTENCAS JUDICIAIS": "8.2. Encargos Institucionais e Impostos",
-    "339092 - DESPESAS DE EXERCICIOS ANTERIORES": "8.3. Outras Despesas Operacionais",
-    "339093 - INDENIZACOES E RESTITUICOES": "8.3. Outras Despesas Operacionais",
-    "339139 - OUTROS SERVICOS DE TERCEIROS - PESSOA JURIDICA": "8.3. Outras Despesas Operacionais",
-    "339140 - SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO - PESSOA JURIDICA": "3.2. Licenças de Software, Sistemas e Nuvem",
-    "339192 - DESPESAS DE EXERCICIOS ANTERIORES": "8.3. Outras Despesas Operacionais",
-    "339193 - INDENIZACOES E RESTITUICOES": "8.3. Outras Despesas Operacionais",
-    "449030 - MATERIAL DE CONSUMO": "7.1. Aquisição de Equipamentos e Mobiliário",
-    "449039 - OUTROS SERVICOS DE TERCEIROS - PESSOA JURIDICA": "1.1. Obras, Reformas e Adequações",
-    "449040 - SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO - PESSOA JURIDICA": "3.1. Equipamentos e Infraestrutura de TI",
-    "449051 - OBRAS E INSTALACOES": "1.1. Obras, Reformas e Adequações",
-    "449052 - EQUIPAMENTOS E MATERIAL PERMANENTE": "7.1. Aquisição de Equipamentos e Mobiliário",
-    "449092 - DESPESAS DE EXERCICIOS ANTERIORES": "8.3. Outras Despesas Operacionais",
-    "449093 - INDENIZACOES E RESTITUICOES": "8.3. Outras Despesas Operacionais",
-    "449151 - OBRAS E INSTALACOES": "1.1. Obras, Reformas e Adequações",
-    "449152 - EQUIPAMENTOS E MATERIAL PERMANENTE": "7.1. Aquisição de Equipamentos e Mobiliário",
-    "339004 - CONTRATACAO POR TEMPO DETERMINADO": "2.3. Apoio Administrativo e Motoristas",
-    "339015 - DIARIAS - MILITAR": "6.1. Passagens e Diárias (Nacionais e Internacionais)",
-    "339035 - SERVICOS DE CONSULTORIA": "8.3. Outras Despesas Operacionais",
-    "339038 - ARRENDAMENTO MERCANTIL": "8.3. Outras Despesas Operacionais",
-    "339046 - AUXILIO-ALIMENTACAO": "4.1. Restaurante Universitário (RU) - Insumos e Operação",
-    "339049 - AUXILIO-TRANSPORTE": "7.3. Frota e Combustíveis",
-    "339086 - PESSOAL DECORRENTE DE DECISAO JUDICIAL": "8.2. Encargos Institucionais e Impostos",
-    "339095 - TAXA DE CAMBIO E COMISSOES BANCARIAS": "8.2. Encargos Institucionais e Impostos",
-    "339130 - MATERIAL DE CONSUMO": "8.1. Material de Expediente e Suprimentos",
-    "449033 - PASSAGENS E DESPESAS COM LOCOMOCAO": "6.1. Passagens e Diárias (Nacionais e Internacionais)",
-    "449035 - SERVICOS DE CONSULTORIA": "8.3. Outras Despesas Operacionais",
-    "449036 - OUTROS SERVICOS DE TERCEIROS - PESSOA FISICA": "8.3. Outras Despesas Operacionais",
-    "449061 - AQUISICAO DE IMOVEIS": "1.1. Obras, Reformas e Adequações",
-    "449091 - SENTENCAS JUDICIAIS": "8.2. Encargos Institucionais e Impostos",
-    "449130 - MATERIAL DE CONSUMO": "7.1. Aquisição de Equipamentos e Mobiliário",
-    "449139 - OUTROS SERVICOS DE TERCEIROS - PESSOA JURIDICA": "1.1. Obras, Reformas e Adequações",
-    "449140 - SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO - PESSOA JURIDICA": "3.1. Equipamentos e Infraestrutura de TI"
-}
-
 UNIDADES_UFSM_PADRAO = [
     "PRA - Pró-Reitoria de Administração",
     "PROPLAN - Pró-Reitoria de Planejamento",
@@ -312,9 +262,6 @@ if "contas_gerenciais" not in st.session_state:
 if "mapa_contas_totalizadores" not in st.session_state:
     st.session_state.mapa_contas_totalizadores = MAPA_CONTAS_TOTALIZADORES_PADRAO.copy()
 
-if "mapa_natureza_conta" not in st.session_state:
-    st.session_state.mapa_natureza_conta = MAPA_NATUREZA_CONTA_PADRAO.copy()
-
 if "unidades_consolidadas" not in st.session_state:
     st.session_state.unidades_consolidadas = UNIDADES_UFSM_PADRAO.copy()
 
@@ -411,7 +358,8 @@ if verificar_senha():
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    # 1. NOME ALTERADO CONFORME SOLICITADO
+    if st.sidebar.button("🏷️ Configuração de Contas & Natureza de Despesas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
@@ -441,6 +389,66 @@ if verificar_senha():
 
         arquivo = st.file_uploader("Selecione o arquivo da UFSM", type=["csv", "xlsx"])
 
+        def gerar_amostra_planilha(df_input):
+            """Gera a amostra de 10 linhas e 5 campos parametrizados."""
+            col_mes = "Mês Referência ACC (Código Completo) Sigla Completa (MMM/AAAA)"
+            col_ug_cod = "UG Responsável Código"
+            col_ug_nom = "UG Responsável Nome"
+            col_nd_cod = "Natureza Despesa Detalhada Código"
+            col_nd_nom = "Natureza Despesa Detalhada Nome"
+            col_valor = "DetaCusto Acum. DH - Moeda Origem"
+
+            df_sub = df_input.head(10).copy()
+            df_amostra = pd.DataFrame()
+
+            # 1. Mês de Referência
+            if col_mes in df_sub.columns:
+                df_amostra["Mês de Referência"] = df_sub[col_mes]
+            else:
+                df_amostra["Mês de Referência"] = "Não localizado"
+
+            # 2. Unidade cadastrada em "Configuração de Unidades" (Código ou Nome)
+            unidades_amostra = []
+            for _, row in df_sub.iterrows():
+                val_ug = None
+                if col_ug_cod in df_sub.columns and pd.notna(row[col_ug_cod]):
+                    val_ug = str(row[col_ug_cod]).strip()
+                elif col_ug_nom in df_sub.columns and pd.notna(row[col_ug_nom]):
+                    val_ug = str(row[col_ug_nom]).strip()
+
+                if val_ug:
+                    unidade_mapeada = st.session_state.mapa_ugs.get(val_ug, "Encargos Gerais da UFSM / Outros")
+                else:
+                    unidade_mapeada = "Encargos Gerais da UFSM / Outros"
+                unidades_amostra.append(unidade_mapeada)
+            
+            df_amostra["Unidade (Configuração)"] = unidades_amostra
+
+            # 3. Conta Gerencial (Natureza Despesa Código ou Nome)
+            contas_amostra = []
+            for _, row in df_sub.iterrows():
+                val_nd = None
+                if col_nd_cod in df_sub.columns and pd.notna(row[col_nd_cod]):
+                    val_nd = str(row[col_nd_cod]).strip()
+                elif col_nd_nom in df_sub.columns and pd.notna(row[col_nd_nom]):
+                    val_nd = str(row[col_nd_nom]).strip()
+
+                if val_nd:
+                    conta_mapeada = st.session_state.dicionario_pis.get(val_nd, "Sem Classificação")
+                else:
+                    conta_mapeada = "Sem Classificação"
+                contas_amostra.append(conta_mapeada)
+
+            df_amostra["Conta Gerencial"] = contas_amostra
+
+            # 4. Valor
+            if col_valor in df_sub.columns:
+                df_amostra["Valor"] = df_sub[col_valor].apply(converter_valor)
+            else:
+                df_amostra["Valor"] = 0.0
+
+            return df_amostra
+
         if arquivo is not None:
             try:
                 if arquivo.name.endswith(".csv"):
@@ -451,13 +459,26 @@ if verificar_senha():
                 
                 st.session_state.dados_tg_raw = df
                 st.success(f"Arquivo carregado com sucesso! {len(df):,} linhas identificadas.")
-                st.dataframe(df.head(5), use_container_width=True)
+                
+                st.subheader("🔍 Amostra do Carregamento (10 Primeiras Linhas)")
+                df_amostra = gerar_amostra_planilha(df)
+                st.dataframe(
+                    df_amostra.style.format({"Valor": "R$ {:,.2f}"}),
+                    use_container_width=True
+                )
 
             except Exception as e:
                 st.error(f"Erro ao ler o arquivo: {e}")
 
         elif st.session_state.dados_tg_raw is not None:
             st.info("Já existe uma planilha carregada na memória do sistema.")
+            st.subheader("🔍 Amostra do Carregamento (10 Primeiras Linhas)")
+            df_amostra = gerar_amostra_planilha(st.session_state.dados_tg_raw)
+            st.dataframe(
+                df_amostra.style.format({"Valor": "R$ {:,.2f}"}),
+                use_container_width=True
+            )
+
             if st.button("Remover e Enviar Nova Planilha"):
                 st.session_state.dados_tg_raw = None
                 st.rerun()
@@ -491,14 +512,6 @@ if verificar_senha():
 
             col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
             col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
-            
-            # Tenta localizar a coluna de Natureza de Despesa se existir na planilha
-            col_nat_despesa = None
-            for c in colunas:
-                if "natureza" in c.lower() or "nat" in c.lower() or "element" in c.lower():
-                    col_nat_despesa = c
-                    break
-
             col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
             col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod      # Coluna M
             col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
@@ -511,23 +524,9 @@ if verificar_senha():
             )
 
             df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
-            
-            # Função para obter a conta gerencial (prioriza o PI; se não houver no PI, tenta pela Natureza de Despesa)
-            def obter_conta_gerencial(row):
-                pi = row["PI_Completo"]
-                if pi in st.session_state.dicionario_pis and st.session_state.dicionario_pis[pi] != "Sem Classificação":
-                    return st.session_state.dicionario_pis[pi]
-                
-                if col_nat_despesa and pd.notna(row[col_nat_despesa]):
-                    nat = str(row[col_nat_despesa]).strip().upper()
-                    if nat in st.session_state.mapa_natureza_conta:
-                        return st.session_state.mapa_natureza_conta[nat]
-                    for key_nat, conta in st.session_state.mapa_natureza_conta.items():
-                        if key_nat.split(" - ")[0] in nat:
-                            return conta
-                return "Sem Classificação"
-
-            df_disc["Conta_Gerencial"] = df_disc.apply(obter_conta_gerencial, axis=1)
+            df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
+                lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
+            )
 
             # Atribuição do Totalizador baseado na Conta Gerencial
             df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].map(
@@ -727,18 +726,17 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES, NATUREZAS & MAPEAMENTO DE PIs
+    # CONFIGURAÇÃO DE CONTAS & NATUREZA DE DESPESAS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais, Naturezas & PIs")
-        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento dos PIs/Naturezas de despesa.")
+        st.header("⚙️ Configuração de Contas & Natureza de Despesas")
+        st.write("Gerencie totalizadores, plano de contas e vinculação de contas nos totalizadores.")
 
-        tab_t0, tab_c1, tab_c2, tab_c3, tab_c4 = st.tabs([
+        # 2. ABA "Mapeamento de PIs" REMOVIDA
+        tab_t0, tab_c1, tab_c2 = st.tabs([
             "📊 Cadastro de Totalizadores", 
             "📌 Cadastro de Contas Gerenciais", 
-            "🔗 Vinculação de Contas aos Totalizadores", 
-            "🏷️ Mapeamento de PIs",
-            "📋 Naturezas de Despesa -> Contas"
+            "🔗 Vinculação de Contas aos Totalizadores"
         ])
 
         # TAB 0: CADASTRO DE TOTALIZADORES
@@ -868,72 +866,6 @@ if verificar_senha():
                     key=f"sel_tot_for_{conta_item}"
                 )
                 st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
-
-        # TAB 3: MAPEAMENTO DE PIs
-        with tab_c3:
-            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
-
-            if st.session_state.dados_tg_raw is None:
-                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs e realizar o mapeamento.")
-            else:
-                df = st.session_state.dados_tg_raw
-                colunas = list(df.columns)
-                
-                col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
-                col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
-
-                df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
-                df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
-                lista_pis = sorted(df_pis["PI_Completo"].unique())
-
-                st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
-
-                for pi_item in lista_pis:
-                    col_lbl, col_sel = st.columns([2, 2])
-                    col_lbl.write(f"📌 **{pi_item}**")
-                    
-                    conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
-                    if conta_sugerida == "Sem Classificação":
-                        p_up = pi_item.upper()
-                        if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
-                            conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
-                        elif "BOLSA" in p_up or "ASSIST" in p_up:
-                            conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
-                        elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
-                            conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
-                        elif "OBRA" in p_up or "REFORMA" in p_up:
-                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
-                        elif "TIC" in p_up or "INFORMATICA" in p_up:
-                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
-
-                    idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
-
-                    nova_ass = col_sel.selectbox(
-                        "Associar à Conta:",
-                        st.session_state.contas_gerenciais,
-                        index=idx_def,
-                        key=f"sel_pi_{pi_item}"
-                    )
-                    st.session_state.dicionario_pis[pi_item] = nova_ass
-
-        # TAB 4: MAPEAMENTO DE NATUREZAS DE DESPESA
-        with tab_c4:
-            st.subheader("Mapeamento Padrão: Natureza de Despesa -> Conta Gerencial")
-            st.write("Defina ou ajuste o mapeamento padrão de cada Natureza de Despesa para as Contas Gerenciais:")
-
-            for nat_item, conta_assoc in list(st.session_state.mapa_natureza_conta.items()):
-                col_nat_lbl, col_nat_sel = st.columns([2, 2])
-                col_nat_lbl.write(f"📋 **{nat_item}**")
-
-                idx_nat_def = st.session_state.contas_gerenciais.index(conta_assoc) if conta_assoc in st.session_state.contas_gerenciais else 0
-
-                nova_conta_assoc = col_nat_sel.selectbox(
-                    "Conta Gerencial:",
-                    st.session_state.contas_gerenciais,
-                    index=idx_nat_def,
-                    key=f"sel_nat_{nat_item}"
-                )
-                st.session_state.mapa_natureza_conta[nat_item] = nova_conta_assoc
 
     # -----------------------------------------------------------------------------
     # CADASTRO DE USUÁRIOS
