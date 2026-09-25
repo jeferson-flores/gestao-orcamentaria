@@ -110,6 +110,47 @@ PLANO_CONTAS_PADRAO = [
     "Sem Classificação"
 ]
 
+MAPA_TOTALIZADORES = {
+    "1.1": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.2": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.3": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.4": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    
+    "2.1": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.2": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.3": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.4": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    
+    "3.1": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.2": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.3": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    
+    "4.1": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.2": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.3": "G-4.0 Total de Assistência Estudantil e RU",
+    
+    "5.1": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.2": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.3": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.4": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    
+    "6.1": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.2": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.3": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    
+    "7.1": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.2": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.3": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    
+    "8.1": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.2": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.3": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+}
+
+def obter_grupo_totalizador(conta_gerencial):
+    codigo_sub = str(conta_gerencial)[:3]
+    return MAPA_TOTALIZADORES.get(codigo_sub, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
+
 UNIDADES_UFSM_PADRAO = [
     "PRA - Pró-Reitoria de Administração",
     "PROPLAN - Pró-Reitoria de Planejamento",
@@ -355,7 +396,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (COM TOTALIZADORES E BOTÕES '+')
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -399,6 +440,9 @@ if verificar_senha():
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
 
+            # Atribuição do Grupo Totalizador
+            df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].apply(obter_grupo_totalizador)
+
             col_sel_u, col_btn_imp = st.columns([3, 1])
 
             with col_sel_u:
@@ -428,36 +472,73 @@ if verificar_senha():
             if df_relatorio.empty or val_total == 0:
                 st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
             else:
+                # SELETOR DE MODO DE VISUALIZAÇÃO DO RELATÓRIO
+                modo_relatorio = st.radio(
+                    "📊 Modo de Visualização do Demonstrativo:",
+                    ["Visão Sintética (Apenas Totais dos Grupos)", "Visão Analítica Expansível (Clicar no '+' para abrir Contas e PIs)"],
+                    horizontal=True
+                )
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
                 col_g, col_t = st.columns([1, 1])
 
-                df_exec = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
-                df_exec.columns = ["Conta Gerencial", "Valor Total (R$)"]
-                df_exec = df_exec[df_exec["Valor Total (R$)"] > 0].sort_values(by="Valor Total (R$)", ascending=False)
+                # Tabela Consolidada dos Grupos Totalizadores
+                df_grp = df_relatorio.groupby("Grupo_Totalizador")["Valor_Tratado"].sum().reset_index()
+                df_grp.columns = ["Grupo Totalizador Gerencial", "Valor Total (R$)"]
+                df_grp["% Participação"] = (df_grp["Valor Total (R$)"] / val_total * 100) if val_total > 0 else 0
+                df_grp = df_grp[df_grp["Valor Total (R$)"] > 0].sort_values(by="Grupo Totalizador Gerencial")
 
                 with col_g:
-                    st.subheader("Distribuição por Conta Gerencial")
+                    st.subheader("Distribuição por Grupo Totalizador")
                     fig = px.pie(
-                        df_exec, 
-                        names="Conta Gerencial", 
+                        df_grp, 
+                        names="Grupo Totalizador Gerencial", 
                         values="Valor Total (R$)", 
                         hole=0.4
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
                 with col_t:
-                    st.subheader("Resumo de Valores por Conta")
+                    st.subheader("Resumo por Grupo Totalizador")
                     st.dataframe(
-                        df_exec.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
+                        df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
                         use_container_width=True,
                         height=380
                     )
 
                 st.markdown("---")
-                st.subheader("🔍 Detalhamento por Plano Interno (PI)")
-                df_det = df_relatorio.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
-                df_det.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
-                df_det = df_det[df_det["Valor (R$)"] > 0].sort_values(by="Valor (R$)", ascending=False)
-                st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
+
+                # VISÃO DE EXIBIÇÃO: SINTÉTICA OU EXPANSÍVEL POR GRUPOS (+ / -)
+                if modo_relatorio == "Visão Sintética (Apenas Totais dos Grupos)":
+                    st.subheader("📋 Demonstrativo Sintético de Custos")
+                    st.dataframe(
+                        df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
+                        use_container_width=True
+                    )
+
+                else:
+                    st.subheader("🔍 Demonstrativo Analítico Expansível (+)")
+                    st.caption("Clique no grupo desejado para expandir e visualizar as contas gerenciais e os Planos Internos (PIs).")
+
+                    grupos_disponiveis = sorted(df_relatorio[df_relatorio["Valor_Tratado"] > 0]["Grupo_Totalizador"].unique())
+
+                    for grp in grupos_disponiveis:
+                        df_sub_grp = df_relatorio[df_relatorio["Grupo_Totalizador"] == grp]
+                        tot_grp = df_sub_grp["Valor_Tratado"].sum()
+                        pct_grp = (tot_grp / val_total * 100) if val_total > 0 else 0
+
+                        exp_titulo = f"➕ **{grp}**  — Total: **R$ {tot_grp:,.2f}** ({pct_grp:.2f}%)".replace(",", "X").replace(".", ",").replace("X", ".")
+
+                        with st.expander(exp_titulo):
+                            df_det_grp = df_sub_grp.groupby(["Conta_Gerencial", "PI_Completo"])["Valor_Tratado"].sum().reset_index()
+                            df_det_grp.columns = ["Conta Gerencial", "Plano Interno (PI)", "Valor (R$)"]
+                            df_det_grp = df_det_grp[df_det_grp["Valor (R$)"] > 0].sort_values(by=["Conta Gerencial", "Valor (R$)"], ascending=[True, False])
+
+                            st.dataframe(
+                                df_det_grp.style.format({"Valor (R$)": "R$ {:,.2f}"}),
+                                use_container_width=True
+                            )
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
