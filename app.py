@@ -4,15 +4,13 @@ import plotly.express as px
 from datetime import datetime
 
 # -----------------------------------------------------------------------------
-# 1. INICIALIZAÇÃO DA SESSÃO (Necessário antes de set_page_config para o Favicon)
+# 1. INICIALIZAÇÃO DA SESSÃO
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
     st.session_state.logo_personalizada = None
 
-# Define o ícone da aba: usa a logo em bytes se existir, senão usa emoji padrão
 icone_aba = st.session_state.logo_personalizada if st.session_state.logo_personalizada is not None else "🏛️"
 
-# Configuração da página e aba do Chrome
 st.set_page_config(
     page_title="SiGeO - Sistema de Gestão Orçamentária",
     page_icon=icone_aba,
@@ -30,7 +28,6 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* Estilização para Impressão */
     @media print {
         [data-testid="stSidebar"], 
         header, 
@@ -79,6 +76,17 @@ st.markdown("""
 # 2. BANCO DE DADOS/ESTRUTURAS PADRÃO
 # -----------------------------------------------------------------------------
 
+TOTALIZADORES_PADRAO = [
+    "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "G-4.0 Total de Assistência Estudantil e RU",
+    "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+]
+
 PLANO_CONTAS_PADRAO = [
     "1.1. Obras, Reformas e Adequações",
     "1.2. Concessionárias (Energia, Água, Gás)",
@@ -109,6 +117,44 @@ PLANO_CONTAS_PADRAO = [
     "8.3. Outras Despesas Operacionais",
     "Sem Classificação"
 ]
+
+MAPA_CONTAS_TOTALIZADORES_PADRAO = {
+    "1.1. Obras, Reformas e Adequações": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.2. Concessionárias (Energia, Água, Gás)": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.3. Manutenção Predial e Conservação": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    
+    "2.1. Serviços de Vigilância e Portaria": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.2. Serviços de Limpeza e Higienização": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.3. Apoio Administrativo e Motoristas": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.4. Recepção e Serviços Gerais": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    
+    "3.1. Equipamentos e Infraestrutura de TI": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.2. Licenças de Software, Sistemas e Nuvem": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.3. Conectividade, Redes e Telefonia": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    
+    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.2. Bolsas de Assistência Estudantil e Permanência": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.3. Moradia Estudantil e Apoio ao Estudante": "G-4.0 Total de Assistência Estudantil e RU",
+    
+    "5.1. Bolsas de Graduação, Pós e Extensão": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    
+    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.2. Eventos Acadêmicos, Culturais e Congressos": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.3. Capacitação e Desenvolvimento de Servidores": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    
+    "7.1. Aquisição de Equipamentos e Mobiliário": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.3. Frota e Combustíveis": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    
+    "8.1. Material de Expediente e Suprimentos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.2. Encargos Institucionais e Impostos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.3. Outras Despesas Operacionais": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "Sem Classificação": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+}
 
 UNIDADES_UFSM_PADRAO = [
     "PRA - Pró-Reitoria de Administração",
@@ -198,40 +244,6 @@ MAPA_UGS_PADRAO = {
     "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM / Outros"
 }
 
-# MAPEAMENTO PADRÃO DAS NATUREZAS DE DESPESA DETALHADAS
-MAPA_NATUREZAS_PADRAO = {
-    "'-8 - SEM INFORMACAO": "8.3. Outras Despesas Operacionais",
-    "31901143 - 13º SALARIO": "8.3. Outras Despesas Operacionais",
-    "31901145 - FERIAS - 1/3 CONSTITUCIONAL": "8.3. Outras Despesas Operacionais",
-    "33903004 - GAS E OUTROS MATERIAIS ENGARRAFADOS": "1.2. Concessionárias (Energia, Água, Gás)",
-    "33903007 - GENEROS DE ALIMENTACAO": "4.1. Restaurante Universitário (RU) - Insumos e Operação",
-    "33903010 - MATERIAL ODONTOLOGICO": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
-    "33903011 - MATERIAL QUIMICO": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
-    "33903012 - MATERIAL DE COUDELARIA OU DE USO ZOOTECNICO": "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)",
-    "33903014 - MATERIAL EDUCATIVO E ESPORTIVO": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
-    "33903015 - MATERIAL P/ FESTIVIDADES E HOMENAGENS": "6.2. Eventos Acadêmicos, Culturais e Congressos",
-    "33903016 - MATERIAL DE EXPEDIENTE": "8.1. Material de Expediente e Suprimentos",
-    "33903017 - MATERIAL DE TIC - MATERIAL DE CONSUMO": "3.1. Equipamentos e Infraestrutura de TI",
-    "33903019 - MATERIAL DE ACONDICIONAMENTO E EMBALAGEM": "8.1. Material de Expediente e Suprimentos",
-    "33903020 - MATERIAL DE CAMA, MESA E BANHO": "4.3. Moradia Estudantil e Apoio ao Estudante",
-    "33903021 - MATERIAL DE COPA E COZINHA": "4.1. Restaurante Universitário (RU) - Insumos e Operação",
-    "33903022 - MATERIAL DE LIMPEZA E PROD. DE HIGIENIZACAO": "2.2. Serviços de Limpeza e Higienização",
-    "33903024 - MATERIAL P/ MANUT.DE BENS IMOVEIS/INSTALACOES": "1.3. Manutenção Predial e Conservação",
-    "33903025 - MATERIAL P/ MANUTENCAO DE BENS MOVEIS": "1.3. Manutenção Predial e Conservação",
-    "33903026 - MATERIAL ELETRICO E ELETRONICO": "1.3. Manutenção Predial e Conservação",
-    "33903028 - MATERIAL DE PROTECAO E SEGURANCA": "2.1. Serviços de Vigilância e Portaria",
-    "33903029 - MATERIAL P/ AUDIO, VIDEO E FOTO": "3.1. Equipamentos e Infraestrutura de TI",
-    "33903030 - MATERIAL PARA COMUNICACOES": "3.3. Conectividade, Redes e Telefonia",
-    "33903031 - SEMENTES, MUDAS DE PLANTAS E INSUMOS": "1.4. Conservação de Áreas Verdes e Limpeza Urbana",
-    "33903035 - MATERIAL LABORATORIAL": "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
-    "33903036 - MATERIAL HOSPITALAR": "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)",
-    "33903041 - MATERIAL P/ UTILIZACAO EM GRAFICA": "8.1. Material de Expediente e Suprimentos",
-    "33903042 - FERRAMENTAS": "1.3. Manutenção Predial e Conservação",
-    "33903044 - MATERIAL DE SINALIZACAO VISUAL E OUTROS": "1.3. Manutenção Predial e Conservação",
-    "33903046 - MATERIAL BIBLIOGRAFICO": "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)",
-    "33909214 - DIARIAS - CIVIL": "6.1. Passagens e Diárias (Nacionais e Internacionais)"
-}
-
 USUARIOS_PADRAO = [
     {"usuario": "admin", "nome": "Administrador Geral", "senha": "ufsm2026", "perfil": "Administrador"},
     {"usuario": "pra_gestor", "nome": "Gestor PRA", "senha": "pra123", "perfil": "Gestor"},
@@ -241,8 +253,14 @@ USUARIOS_PADRAO = [
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "carga"
 
+if "totalizadores" not in st.session_state:
+    st.session_state.totalizadores = TOTALIZADORES_PADRAO.copy()
+
 if "contas_gerenciais" not in st.session_state:
     st.session_state.contas_gerenciais = PLANO_CONTAS_PADRAO.copy()
+
+if "mapa_contas_totalizadores" not in st.session_state:
+    st.session_state.mapa_contas_totalizadores = MAPA_CONTAS_TOTALIZADORES_PADRAO.copy()
 
 if "unidades_consolidadas" not in st.session_state:
     st.session_state.unidades_consolidadas = UNIDADES_UFSM_PADRAO.copy()
@@ -256,8 +274,8 @@ if "tabela_usuarios" not in st.session_state:
 if "usuario_logado" not in st.session_state:
     st.session_state.usuario_logado = None
 
-if "dicionario_naturezas" not in st.session_state:
-    st.session_state.dicionario_naturezas = MAPA_NATUREZAS_PADRAO.copy()
+if "dicionario_ndd" not in st.session_state:
+    st.session_state.dicionario_ndd = {}
 
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
@@ -268,6 +286,9 @@ if "editando_unidade" not in st.session_state:
 
 if "editando_conta" not in st.session_state:
     st.session_state.editando_conta = None
+
+if "editando_totalizador" not in st.session_state:
+    st.session_state.editando_totalizador = None
 
 # -----------------------------------------------------------------------------
 # 3. AUTENTICAÇÃO
@@ -337,7 +358,7 @@ if verificar_senha():
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    if st.sidebar.button("🏷️ Configuração de Contas & Naturezas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏷️ Configuração de Contas & NDD", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
@@ -401,7 +422,7 @@ if verificar_senha():
         with c_head2:
             st.markdown(f"""
                 <div class="titulo-impressao">
-                    22UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
+                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
                     <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - RELATÓRIO EXECUTIVO ORÇAMENTÁRIO</h4>
                     <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
                 </div>
@@ -415,10 +436,10 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw
             colunas = list(df.columns)
 
-            col_resultado_lei = colunas[1] if len(colunas) > 1 else colunas[0]   # Coluna B
+            col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
             col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
-            col_nat_cod = colunas[13] if len(colunas) > 13 else colunas[0]       # Coluna N (Natureza Despesa Código)
-            col_nat_nome = colunas[14] if len(colunas) > 14 else col_nat_cod     # Coluna O (Natureza Despesa Nome)
+            col_ndd_cod = colunas[11] if len(colunas) > 11 else colunas[0]       # Coluna L (Natureza Despesa Detalhada Código)
+            col_ndd_nome = colunas[12] if len(colunas) > 12 else col_ndd_cod     # Coluna M (Natureza Despesa Detalhada Nome)
             col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
 
             df_disc = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
@@ -428,9 +449,14 @@ if verificar_senha():
                 lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
             )
 
-            df_disc["ND_Completa"] = df_disc[col_nat_cod].astype(str).str.strip() + " - " + df_disc[col_nat_nome].astype(str).str.strip()
-            df_disc["Conta_Gerencial"] = df_disc["ND_Completa"].map(
-                lambda x: st.session_state.dicionario_naturezas.get(x, "Sem Classificação")
+            df_disc["NDD_Completa"] = df_disc[col_ndd_cod].astype(str).str.strip() + " - " + df_disc[col_ndd_nome].astype(str).str.strip()
+            df_disc["Conta_Gerencial"] = df_disc["NDD_Completa"].map(
+                lambda x: st.session_state.dicionario_ndd.get(x, "Sem Classificação")
+            )
+
+            # Atribuição do Totalizador baseado na Conta Gerencial
+            df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].map(
+                lambda c: st.session_state.mapa_contas_totalizadores.get(c, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
             )
 
             col_sel_u, col_btn_imp = st.columns([3, 1])
@@ -450,48 +476,81 @@ if verificar_senha():
                 df_relatorio = df_disc.copy()
 
             val_total = df_relatorio["Valor_Tratado"].sum()
-            qtd_naturezas = df_relatorio["ND_Completa"].nunique()
+            qtd_ndd = df_relatorio["NDD_Completa"].nunique()
 
             k1, k2, k3 = st.columns(3)
             k1.metric("Visão Selecionada", unidade_selecionada)
             k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-            k3.metric("Naturezas de Despesa Ativas", qtd_naturezas if val_total > 0 else 0)
+            k3.metric("Naturezas de Despesa Detalhadas Ativas", qtd_ndd if val_total > 0 else 0)
 
             st.markdown("---")
 
             if df_relatorio.empty or val_total == 0:
                 st.info(f"Nenhum valor ou lançamento financeiro foi encontrado para a unidade **'{unidade_selecionada}'** na planilha do Tesouro Gerencial fornecida.")
             else:
+                modo_relatorio = st.radio(
+                    "📊 Modo de Visualização do Demonstrativo:",
+                    ["Visão Sintética (Apenas Totais dos Grupos)", "Visão Analítica Expansível (Clicar no '+' para abrir Contas e NDD)"],
+                    horizontal=True
+                )
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
                 col_g, col_t = st.columns([1, 1])
 
-                df_exec = df_relatorio.groupby("Conta_Gerencial")["Valor_Tratado"].sum().reset_index()
-                df_exec.columns = ["Conta Gerencial", "Valor Total (R$)"]
-                df_exec = df_exec[df_exec["Valor Total (R$)"] > 0].sort_values(by="Valor Total (R$)", ascending=False)
+                df_grp = df_relatorio.groupby("Grupo_Totalizador")["Valor_Tratado"].sum().reset_index()
+                df_grp.columns = ["Grupo Totalizador Gerencial", "Valor Total (R$)"]
+                df_grp["% Participação"] = (df_grp["Valor Total (R$)"] / val_total * 100) if val_total > 0 else 0
+                df_grp = df_grp[df_grp["Valor Total (R$)"] > 0].sort_values(by="Grupo Totalizador Gerencial")
 
                 with col_g:
-                    st.subheader("Distribuição por Conta Gerencial")
+                    st.subheader("Distribuição por Totalizador")
                     fig = px.pie(
-                        df_exec, 
-                        names="Conta Gerencial", 
+                        df_grp, 
+                        names="Grupo Totalizador Gerencial", 
                         values="Valor Total (R$)", 
                         hole=0.4
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
                 with col_t:
-                    st.subheader("Resumo de Valores por Conta")
+                    st.subheader("Resumo por Totalizador")
                     st.dataframe(
-                        df_exec.style.format({"Valor Total (R$)": "R$ {:,.2f}"}),
+                        df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
                         use_container_width=True,
                         height=380
                     )
 
                 st.markdown("---")
-                st.subheader("🔍 Detalhamento por Natureza de Despesa Detalhada")
-                df_det = df_relatorio.groupby(["Conta_Gerencial", "ND_Completa"])["Valor_Tratado"].sum().reset_index()
-                df_det.columns = ["Conta Gerencial", "Natureza de Despesa Detalhada", "Valor (R$)"]
-                df_det = df_det[df_det["Valor (R$)"] > 0].sort_values(by="Valor (R$)", ascending=False)
-                st.dataframe(df_det.style.format({"Valor (R$)": "R$ {:,.2f}"}), use_container_width=True)
+
+                if modo_relatorio == "Visão Sintética (Apenas Totais dos Grupos)":
+                    st.subheader("📋 Demonstrativo Sintético por Totalizadores")
+                    st.dataframe(
+                        df_grp.style.format({"Valor Total (R$)": "R$ {:,.2f}", "% Participação": "{:.2f}%"}),
+                        use_container_width=True
+                    )
+                else:
+                    st.subheader("🔍 Demonstrativo Analítico Expansível (+)")
+                    st.caption("Clique no totalizador desejado para expandir e visualizar as contas gerenciais e as Naturezas de Despesa Detalhadas (NDD).")
+
+                    grupos_disponiveis = sorted(df_relatorio[df_relatorio["Valor_Tratado"] > 0]["Grupo_Totalizador"].unique())
+
+                    for grp in grupos_disponiveis:
+                        df_sub_grp = df_relatorio[df_relatorio["Grupo_Totalizador"] == grp]
+                        tot_grp = df_sub_grp["Valor_Tratado"].sum()
+                        pct_grp = (tot_grp / val_total * 100) if val_total > 0 else 0
+
+                        exp_titulo = f"➕ **{grp}**  — Total: **R$ {tot_grp:,.2f}** ({pct_grp:.2f}%)".replace(",", "X").replace(".", ",").replace("X", ".")
+
+                        with st.expander(exp_titulo):
+                            df_det_grp = df_sub_grp.groupby(["Conta_Gerencial", "NDD_Completa"])["Valor_Tratado"].sum().reset_index()
+                            df_det_grp.columns = ["Conta Gerencial", "Natureza de Despesa Detalhada", "Valor (R$)"]
+                            df_det_grp = df_det_grp[df_det_grp["Valor (R$)"] > 0].sort_values(by=["Conta Gerencial", "Valor (R$)"], ascending=[True, False])
+
+                            st.dataframe(
+                                df_det_grp.style.format({"Valor (R$)": "R$ {:,.2f}"}),
+                                use_container_width=True
+                            )
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
@@ -593,13 +652,67 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS & MAPEAMENTO DE NATUREZAS DE DESPESA
+    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE NDD
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Contas Gerenciais & Mapeamento de Naturezas de Despesa")
-        st.write("Gerencie a estrutura do Plano de Contas e vincule as Naturezas de Despesa Detalhadas (SIAFI).")
+        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & Natureza de Despesa Detalhada")
+        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento das Naturezas de Despesa Detalhadas (NDD).")
 
-        tab_c1, tab_c2 = st.tabs(["📌 Cadastro de Contas Gerenciais", "🔗 Mapeamento de Naturezas de Despesa"])
+        tab_t0, tab_c1, tab_c2, tab_c3 = st.tabs([
+            "📊 Cadastro de Totalizadores", 
+            "📌 Cadastro de Contas Gerenciais", 
+            "🔗 Vinculação de Contas aos Totalizadores", 
+            "🏷️ Mapeamento de NDD"
+        ])
+
+        # TAB 0: CADASTRO DE TOTALIZADORES
+        with tab_t0:
+            col_add_t, col_list_t = st.columns([1, 2])
+
+            with col_add_t:
+                st.subheader("Adicionar Totalizador")
+                novo_totalizador = st.text_input("Nome do Totalizador/Grupo:")
+                if st.button("➕ Adicionar Totalizador", use_container_width=True):
+                    if novo_totalizador and novo_totalizador not in st.session_state.totalizadores:
+                        st.session_state.totalizadores.append(novo_totalizador)
+                        st.success(f"Totalizador '{novo_totalizador}' adicionado!")
+                        st.rerun()
+
+            with col_list_t:
+                st.subheader(f"Totalizadores Cadastrados ({len(st.session_state.totalizadores)})")
+                
+                for idx, tot in enumerate(st.session_state.totalizadores):
+                    c_nome, c_edit, c_del = st.columns([5, 1, 1])
+                    c_nome.write(f"• **{tot}**")
+                    
+                    if c_edit.button("✏️", key=f"edit_tot_{idx}", help="Alterar nome do Totalizador"):
+                        st.session_state.editando_totalizador = tot
+                        st.rerun()
+
+                    if c_del.button("🗑️", key=f"del_tot_{idx}", help="Excluir Totalizador"):
+                        st.session_state.totalizadores.remove(tot)
+                        for c_k, v_tot in list(st.session_state.mapa_contas_totalizadores.items()):
+                            if v_tot == tot:
+                                st.session_state.mapa_contas_totalizadores[c_k] = "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+                        st.rerun()
+
+                    if st.session_state.editando_totalizador == tot:
+                        with st.container():
+                            c_in, c_save, c_canc = st.columns([4, 1, 1])
+                            novo_nome_tot = c_in.text_input("Novo nome:", value=tot, key=f"inp_tot_{idx}")
+                            if c_save.button("Salvar", key=f"save_tot_{idx}"):
+                                if novo_nome_tot and novo_nome_tot != tot:
+                                    st.session_state.totalizadores[idx] = novo_nome_tot
+                                    for c_k, v_tot in st.session_state.mapa_contas_totalizadores.items():
+                                        if v_tot == tot:
+                                            st.session_state.mapa_contas_totalizadores[c_k] = novo_nome_tot
+                                    st.success("Totalizador alterado com sucesso!")
+                                st.session_state.editando_totalizador = None
+                                st.rerun()
+
+                            if c_canc.button("Cancelar", key=f"canc_tot_{idx}"):
+                                st.session_state.editando_totalizador = None
+                                st.rerun()
 
         # TAB 1: CADASTRO DE CONTAS GERENCIAIS
         with tab_c1:
@@ -608,10 +721,13 @@ if verificar_senha():
             with col_add:
                 st.subheader("Adicionar Nova Conta")
                 nova_conta = st.text_input("Nome/Código da Conta:")
+                tot_para_conta = st.selectbox("Associar ao Totalizador:", st.session_state.totalizadores)
+
                 if st.button("➕ Adicionar Conta", use_container_width=True):
                     if nova_conta and nova_conta not in st.session_state.contas_gerenciais:
                         st.session_state.contas_gerenciais.append(nova_conta)
-                        st.success(f"Conta '{nova_conta}' adicionada!")
+                        st.session_state.mapa_contas_totalizadores[nova_conta] = tot_para_conta
+                        st.success(f"Conta '{nova_conta}' adicionada e associada ao '{tot_para_conta}'!")
                         st.rerun()
 
             with col_list:
@@ -627,9 +743,11 @@ if verificar_senha():
 
                     if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
                         st.session_state.contas_gerenciais.remove(conta)
-                        for nat_k, val in list(st.session_state.dicionario_naturezas.items()):
+                        if conta in st.session_state.mapa_contas_totalizadores:
+                            del st.session_state.mapa_contas_totalizadores[conta]
+                        for ndd_k, val in list(st.session_state.dicionario_ndd.items()):
                             if val == conta:
-                                st.session_state.dicionario_naturezas[nat_k] = "Sem Classificação"
+                                st.session_state.dicionario_ndd[ndd_k] = "Sem Classificação"
                         st.rerun()
 
                     if st.session_state.editando_conta == conta:
@@ -639,9 +757,11 @@ if verificar_senha():
                             if c_save.button("Salvar", key=f"save_c_{idx}"):
                                 if novo_nome_c and novo_nome_c != conta:
                                     st.session_state.contas_gerenciais[idx] = novo_nome_c
-                                    for nat_k, val in st.session_state.dicionario_naturezas.items():
+                                    if conta in st.session_state.mapa_contas_totalizadores:
+                                        st.session_state.mapa_contas_totalizadores[novo_nome_c] = st.session_state.mapa_contas_totalizadores.pop(conta)
+                                    for ndd_k, val in st.session_state.dicionario_ndd.items():
                                         if val == conta:
-                                            st.session_state.dicionario_naturezas[nat_k] = novo_nome_c
+                                            st.session_state.dicionario_ndd[ndd_k] = novo_nome_c
                                     st.success("Conta alterada com sucesso!")
                                 st.session_state.editando_conta = None
                                 st.rerun()
@@ -650,66 +770,75 @@ if verificar_senha():
                                 st.session_state.editando_conta = None
                                 st.rerun()
 
-        # TAB 2: MAPEAMENTO DE NATUREZAS DE DESPESA
+        # TAB 2: VINCULAÇÃO DE CONTAS AOS TOTALIZADORES
         with tab_c2:
-            st.subheader("Mapeamento de Naturezas de Despesa Detalhadas (SIAFI -> Conta Gerencial)")
+            st.subheader("Associação das Contas Gerenciais nos Totalizadores")
+            st.write("Defina a qual Totalizador (Grupo Gerencial) cada Conta pertence:")
 
-            col_b1_nat, col_b2_nat = st.columns([2, 1])
-            with col_b1_nat:
-                st.caption("Associe cada Natureza de Despesa Detalhada a uma Conta Gerencial:")
-            with col_b2_nat:
-                if st.button("Restaurar Mapeamento Padrão de Naturezas"):
-                    st.session_state.dicionario_naturezas = MAPA_NATUREZAS_PADRAO.copy()
-                    st.success("Mapeamento padrão de Naturezas de Despesa restaurado!")
-                    st.rerun()
+            for conta_item in st.session_state.contas_gerenciais:
+                col_lbl_c, col_sel_tot = st.columns([2, 2])
+                col_lbl_c.write(f"🏷️ **{conta_item}**")
 
-            naturezas_para_mapear = set(st.session_state.dicionario_naturezas.keys())
+                tot_atual = st.session_state.mapa_contas_totalizadores.get(conta_item, st.session_state.totalizadores[0])
+                if tot_atual not in st.session_state.totalizadores:
+                    tot_atual = st.session_state.totalizadores[0]
 
-            if st.session_state.dados_tg_raw is not None:
+                idx_t = st.session_state.totalizadores.index(tot_atual)
+
+                novo_tot_ass = col_sel_tot.selectbox(
+                    "Totalizador / Grupo:",
+                    st.session_state.totalizadores,
+                    index=idx_t,
+                    key=f"sel_tot_for_{conta_item}"
+                )
+                st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
+
+        # TAB 3: MAPEAMENTO DE NDD
+        with tab_c3:
+            st.subheader("Mapeamento de Natureza de Despesa Detalhada (NDD SIAFI -> Conta Gerencial)")
+
+            if st.session_state.dados_tg_raw is None:
+                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar as Naturezas de Despesa Detalhada e realizar o mapeamento.")
+            else:
                 df = st.session_state.dados_tg_raw
                 colunas = list(df.columns)
                 
-                col_nat_cod = colunas[13] if len(colunas) > 13 else colunas[0]
-                col_nat_nome = colunas[14] if len(colunas) > 14 else col_nat_cod
+                col_ndd_cod = colunas[11] if len(colunas) > 11 else colunas[0]
+                col_ndd_nome = colunas[12] if len(colunas) > 12 else col_ndd_cod
 
-                df_nat = df[[col_nat_cod, col_nat_nome]].drop_duplicates().dropna()
-                df_nat["ND_Completa"] = df_nat[col_nat_cod].astype(str).str.strip() + " - " + df_nat[col_nat_nome].astype(str).str.strip()
-                for nat_p in df_nat["ND_Completa"].unique():
-                    naturezas_para_mapear.add(nat_p)
+                df_ndd = df[[col_ndd_cod, col_ndd_nome]].drop_duplicates().dropna()
+                df_ndd["NDD_Completa"] = df_ndd[col_ndd_cod].astype(str).str.strip() + " - " + df_ndd[col_ndd_nome].astype(str).str.strip()
+                lista_ndd = sorted(df_ndd["NDD_Completa"].unique())
 
-            st.write(f"**Total de Naturezas de Despesa identificadas:** {len(naturezas_para_mapear)}")
+                st.write(f"**Total de NDDs únicas identificadas na planilha:** {len(lista_ndd)}")
 
-            for nat_item in sorted(list(naturezas_para_mapear)):
-                col_lbl, col_sel = st.columns([2, 2])
-                col_lbl.write(f"📌 **{nat_item}**")
-                
-                conta_sugerida = st.session_state.dicionario_naturezas.get(nat_item, "Sem Classificação")
-                if conta_sugerida == "Sem Classificação":
-                    n_up = nat_item.upper()
-                    if "ALIMENT" in n_up or "RU" in n_up:
-                        conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
-                    elif "BOLSA" in n_up or "ASSIST" in n_up:
-                        conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
-                    elif "ENERGIA" in n_up or "AGUA" in n_up or "GAS" in n_up:
-                        conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
-                    elif "OBRA" in n_up or "REFORMA" in n_up:
-                        conta_sugerida = "1.1. Obras, Reformas e Adequações"
-                    elif "TIC" in n_up or "INFORMATICA" in n_up:
-                        conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
-                    elif "EXPEDIENTE" in n_up or "EMBALAGEM" in n_up:
-                        conta_sugerida = "8.1. Material de Expediente e Suprimentos"
-                    elif "LABORATORIAL" in n_up or "QUIMICO" in n_up:
-                        conta_sugerida = "5.2. Material Didático, de Laboratório e Insumos de Pesquisa"
+                for ndd_item in lista_ndd:
+                    col_lbl, col_sel = st.columns([2, 2])
+                    col_lbl.write(f"📌 **{ndd_item}**")
+                    
+                    conta_sugerida = st.session_state.dicionario_ndd.get(ndd_item, "Sem Classificação")
+                    if conta_sugerida == "Sem Classificação":
+                        p_up = ndd_item.upper()
+                        if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
+                            conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
+                        elif "BOLSA" in p_up or "ASSIST" in p_up:
+                            conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
+                        elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
+                            conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
+                        elif "OBRA" in p_up or "REFORMA" in p_up:
+                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
+                        elif "TIC" in p_up or "INFORMATICA" in p_up:
+                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
 
-                idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
+                    idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
 
-                nova_ass = col_sel.selectbox(
-                    "Associar à Conta:",
-                    st.session_state.contas_gerenciais,
-                    index=idx_def,
-                    key=f"sel_nat_{nat_item}"
-                )
-                st.session_state.dicionario_naturezas[nat_item] = nova_ass
+                    nova_ass = col_sel.selectbox(
+                        "Associar à Conta:",
+                        st.session_state.contas_gerenciais,
+                        index=idx_def,
+                        key=f"sel_ndd_{ndd_item}"
+                    )
+                    st.session_state.dicionario_ndd[ndd_item] = nova_ass
 
     # -----------------------------------------------------------------------------
     # CADASTRO DE USUÁRIOS
