@@ -410,7 +410,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (CORRIGIDO)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -433,17 +433,30 @@ if verificar_senha():
         if st.session_state.dados_tg_raw is None:
             st.info("👋 Por favor, faça a carga do arquivo na aba **'1. Carga da Planilha'** para acessar os relatórios.")
         else:
-            df = st.session_state.dados_tg_raw
+            df = st.session_state.dados_tg_raw.copy()
             colunas = list(df.columns)
 
-            col_mes_ref = colunas[1] if len(colunas) > 1 else colunas[0]        # Coluna B (Mês de Referência)
-            col_resultado_lei = colunas[2] if len(colunas) > 2 else colunas[0]   # Coluna C
-            col_ug_nome = colunas[6] if len(colunas) > 6 else colunas[0]         # Coluna G
-            col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]        # Coluna L
-            col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod      # Coluna M
-            col_valor = colunas[19] if len(colunas) > 19 else colunas[-1]       # Coluna T
+            # FUNÇÃO AUXILIAR PARA ENCONTRAR COLUNA POR PALAVRA-CHAVE
+            def encontrar_coluna(termos_busca, indice_padrao):
+                for col in colunas:
+                    for termo in termos_busca:
+                        if termo.lower() in str(col).lower():
+                            return col
+                return colunas[indice_padrao] if len(colunas) > indice_padrao else colunas[0]
 
-            df_disc = df[df[col_resultado_lei].astype(str).str.contains("2", na=False)].copy()
+            # Mapeamento Dinâmico por nome de cabeçalho
+            col_mes_ref = encontrar_coluna(["mês", "mes", "referencia", "referência", "período", "periodo"], 1)
+            col_resultado_lei = encontrar_coluna(["resultado", "lei", "rp", "fonte"], 2)
+            col_ug_nome = encontrar_coluna(["ug", "unidade gestora", "nome ug", "gestora"], 6 if len(colunas)>6 else 0)
+            col_pi_cod = encontrar_coluna(["código pi", "codigo pi", "pi"], 11 if len(colunas)>11 else 0)
+            col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
+            col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
+
+            # Aplica filtro de Resultado Lei APENAS se houver correspondência com "2", senão mantém os dados completos
+            mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
+            df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
+
+            # Tratamento de valores e colunas
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
             
             df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
@@ -455,7 +468,6 @@ if verificar_senha():
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
 
-            # Atribuição do Totalizador baseado na Conta Gerencial
             df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].map(
                 lambda c: st.session_state.mapa_contas_totalizadores.get(c, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
             )
@@ -470,7 +482,7 @@ if verificar_senha():
                 unidade_selecionada = st.selectbox("🏛️ Selecione a Unidade:", lista_unidades_select)
 
             with col_sel_m:
-                meses_disponiveis = sorted(df_disc["Mes_Ref"].unique())
+                meses_disponiveis = [m for m in sorted(df_disc["Mes_Ref"].unique()) if m and m.lower() != "nan"]
                 lista_meses_select = ["--- TODOS OS MESES ---"] + meses_disponiveis
                 mes_selecionado = st.selectbox("📅 Selecione o Mês de Referência:", lista_meses_select)
 
@@ -491,11 +503,11 @@ if verificar_senha():
 
             k1, k2, k3 = st.columns(3)
             k1.metric("Visão Selecionada", f"{unidade_selecionada} | {mes_selecionado}")
-            k2.metric("Total Executado (Discricionário)", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
+            k2.metric("Total Executado", f"R$ {val_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
             k3.metric("Planos Internos (PIs) Ativos", qtd_pis if val_total > 0 else 0)
 
             st.markdown("---")
-
+            
             # CONSTRUÇÃO DA ESTRUTURA COMPLETA (Todas as contas e todos os totalizadores)
             # 1. Mapeamento de quais contas existem em cada totalizador
             totalizadores_lista = sorted(st.session_state.totalizadores)
