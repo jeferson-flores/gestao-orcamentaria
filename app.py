@@ -410,7 +410,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (COM COMPARAÇÃO MENSAL E ANUAL)
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (EXPANSÍVEL E COMPARATIVO)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -436,7 +436,6 @@ if verificar_senha():
             df = st.session_state.dados_tg_raw.copy()
             colunas = list(df.columns)
 
-            # Localizador de colunas por nome
             def encontrar_coluna(termos_busca, indice_padrao):
                 for col in colunas:
                     for termo in termos_busca:
@@ -451,11 +450,9 @@ if verificar_senha():
             col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
             col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
 
-            # Filtro opcional do Resultado Lei
             mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
             df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
 
-            # Tratamento de dados basico
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
             df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
                 lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
@@ -464,19 +461,13 @@ if verificar_senha():
             df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
                 lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
             )
-            df_disc["Grupo_Totalizador"] = df_disc["Conta_Gerencial"].map(
-                lambda c: st.session_state.mapa_contas_totalizadores.get(c, "G-8.0 Total de Despesas Operacionais e Encargos Institucionais")
-            )
 
-            # TRATAMENTO DE DATAS (Mês/Ano)
             df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
-            # Se falhou ao converter, tenta interpretar datas em formato texto tipo "JAN/2026" ou "2026-01"
             if df_disc["Data_Ref"].isna().all():
                 df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref].astype(str), format='%m/%Y', errors='coerce')
 
             df_disc["Ano_Mes"] = df_disc["Data_Ref"].dt.to_period("M")
 
-            # CONTROLES DE FILTRO
             c_flag, c_unid, c_mes, c_imp = st.columns([1.5, 2, 2, 1])
 
             with c_flag:
@@ -486,12 +477,10 @@ if verificar_senha():
                 lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
                 unidade_selecionada = st.selectbox("🏛️ Unidade:", lista_unidades_select)
 
-            # Filtro da Unidade
             df_filtrado_unidade = df_disc.copy()
             if unidade_selecionada != "--- TOTAL DA UFSM ---":
                 df_filtrado_unidade = df_filtrado_unidade[df_filtrado_unidade["Unidade_Consolidada"] == unidade_selecionada]
 
-            # Lista de Meses Disponíveis para Seleção
             periodos_disponiveis = sorted([p for p in df_filtrado_unidade["Ano_Mes"].dropna().unique()], reverse=True)
             
             with c_mes:
@@ -513,7 +502,6 @@ if verificar_senha():
                 contas_lista = sorted(st.session_state.contas_gerenciais)
 
                 if tipo_visao == "Mensal":
-                    # DEFINIÇÃO DOS 4 MESES COMPARATIVOS
                     m_atual = periodo_sel
                     m_1 = periodo_sel - 1
                     m_2 = periodo_sel - 2
@@ -524,7 +512,6 @@ if verificar_senha():
                     lbl_m_2 = str(m_2)
                     lbl_m_ano_ant = str(m_ano_ant)
 
-                    # Subsets
                     df_m0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_atual]
                     df_m1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_1]
                     df_m2 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_2]
@@ -535,58 +522,12 @@ if verificar_senha():
                     soma_m2 = df_m2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
                     soma_m12 = df_m12.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                    # MONTAGEM DA TABELA MENSAL
-                    linhas = []
-                    tot_g_m0, tot_g_m1, tot_g_m2, tot_g_m12 = 0.0, 0.0, 0.0, 0.0
-
-                    for tot in totalizadores_lista:
-                        contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                        
-                        v_tot_m0 = sum([soma_m0.get(c, 0.0) for c in contas_do_tot])
-                        v_tot_m1 = sum([soma_m1.get(c, 0.0) for c in contas_do_tot])
-                        v_tot_m2 = sum([soma_m2.get(c, 0.0) for c in contas_do_tot])
-                        v_tot_m12 = sum([soma_m12.get(c, 0.0) for c in contas_do_tot])
-
-                        linhas.append({
-                            "Estrutura": f"📊 {tot}",
-                            lbl_m_atual: v_tot_m0,
-                            lbl_m_1: v_tot_m1,
-                            lbl_m_2: v_tot_m2,
-                            lbl_m_ano_ant: v_tot_m12,
-                            "Tipo": "Totalizador"
-                        })
-
-                        for c in contas_do_tot:
-                            linhas.append({
-                                "Estrutura": f"  ├─ {c}",
-                                lbl_m_atual: soma_m0.get(c, 0.0),
-                                lbl_m_1: soma_m1.get(c, 0.0),
-                                lbl_m_2: soma_m2.get(c, 0.0),
-                                lbl_m_ano_ant: soma_m12.get(c, 0.0),
-                                "Tipo": "Conta"
-                            })
-
-                        tot_g_m0 += v_tot_m0
-                        tot_g_m1 += v_tot_m1
-                        tot_g_m2 += v_tot_m2
-                        tot_g_m12 += v_tot_m12
-
-                    df_exibicao = pd.DataFrame(linhas)
-
-                    # KPI Cards
-                    k1, k2, k3, k4 = st.columns(4)
-                    k1.metric(f"Atual ({lbl_m_atual})", f"R$ {tot_g_m0:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-                    k2.metric(f"Mês Anterior ({lbl_m_1})", f"R$ {tot_g_m1:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-                    k3.metric(f"2º Mês Ant. ({lbl_m_2})", f"R$ {tot_g_m2:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-                    k4.metric(f"Ano Ant. ({lbl_m_ano_ant})", f"R$ {tot_g_m12:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
                     col_cols_exibir = [lbl_m_atual, lbl_m_1, lbl_m_2, lbl_m_ano_ant]
+                    dict_somas = {lbl_m_atual: soma_m0, lbl_m_1: soma_m1, lbl_m_2: soma_m2, lbl_m_ano_ant: soma_m12}
 
                 else:
-                    # VISÃO ANUAL (ACUMULADO ATÉ O MÊS DE REFERÊNCIA)
                     ano_atual = periodo_sel.year
                     mes_ref_num = periodo_sel.month
-
                     ano_1 = ano_atual - 1
                     ano_2 = ano_atual - 2
 
@@ -594,7 +535,6 @@ if verificar_senha():
                     lbl_a1 = f"Jan-{periodo_sel.strftime('%b')}/{ano_1}"
                     lbl_a2 = f"Jan-{periodo_sel.strftime('%b')}/{ano_2}"
 
-                    # Filtro de intervalo acumulado
                     df_a0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
                     df_a1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
                     df_a2 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_2) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
@@ -603,70 +543,62 @@ if verificar_senha():
                     soma_a1 = df_a1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
                     soma_a2 = df_a2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                    linhas = []
-                    tot_g_a0, tot_g_a1, tot_g_a2 = 0.0, 0.0, 0.0
-
-                    for tot in totalizadores_lista:
-                        contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                        
-                        v_tot_a0 = sum([soma_a0.get(c, 0.0) for c in contas_do_tot])
-                        v_tot_a1 = sum([soma_a1.get(c, 0.0) for c in contas_do_tot])
-                        v_tot_a2 = sum([soma_a2.get(c, 0.0) for c in contas_do_tot])
-
-                        linhas.append({
-                            "Estrutura": f"📊 {tot}",
-                            lbl_a0: v_tot_a0,
-                            lbl_a1: v_tot_a1,
-                            lbl_a2: v_tot_a2,
-                            "Tipo": "Totalizador"
-                        })
-
-                        for c in contas_do_tot:
-                            linhas.append({
-                                "Estrutura": f"  ├─ {c}",
-                                lbl_a0: soma_a0.get(c, 0.0),
-                                lbl_a1: soma_a1.get(c, 0.0),
-                                lbl_a2: soma_a2.get(c, 0.0),
-                                "Tipo": "Conta"
-                            })
-
-                        tot_g_a0 += v_tot_a0
-                        tot_g_a1 += v_tot_a1
-                        tot_g_a2 += v_tot_a2
-
-                    df_exibicao = pd.DataFrame(linhas)
-
-                    # KPI Cards Anuais
-                    k1, k2, k3 = st.columns(3)
-                    k1.metric(f"Acumulado {lbl_a0}", f"R$ {tot_g_a0:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-                    k2.metric(f"Acumulado {lbl_a1}", f"R$ {tot_g_a1:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-                    k3.metric(f"Acumulado {lbl_a2}", f"R$ {tot_g_a2:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
-
                     col_cols_exibir = [lbl_a0, lbl_a1, lbl_a2]
+                    dict_somas = {lbl_a0: soma_a0, lbl_a1: soma_a1, lbl_a2: soma_a2}
 
-            st.markdown("---")
+                # DEMONSTRATIVO FINANCEIRO EXPANSÍVEL POR TOTALIZADOR
+                st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+                st.caption("Clique no totalizador para expandir (+) ou recolher (-) as contas subordinadas. Por padrão, as contas iniciam recolhidas.")
 
-            # TABELA COMPARATIVA COMPLETA
-            st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
-            
-            df_tabela_final = df_exibicao[["Estrutura"] + col_cols_exibir].copy()
+                totais_gerais = {col: 0.0 for col in col_cols_exibir}
 
-            # Adicionar Linha de Total Geral ao Final do Relatório
-            somas_totais = {"Estrutura": "🏆 TOTAL GERAL DO RELATÓRIO"}
-            for col_c in col_cols_exibir:
-                somas_totais[col_c] = df_exibicao[df_exibicao["Tipo"] == "Totalizador"][col_c].sum()
+                # EXIBIÇÃO SANFONA/EXPANDÍVEL (INICIA RECOLHIDO)
+                for tot in totalizadores_lista:
+                    contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
+                    
+                    # Cálculo dos totais do grupo
+                    totais_grupo = {}
+                    for col in col_cols_exibir:
+                        val_grupo = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
+                        totais_grupo[col] = val_grupo
+                        totais_gerais[col] += val_grupo
 
-            df_tabela_final = pd.concat([df_tabela_final, pd.DataFrame([somas_totais])], ignore_index=True)
+                    # Título do expander sem o emoji de gráfico
+                    valores_str = " | ".join([f"{col}: R$ {totais_grupo[col]:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") for col in col_cols_exibir])
+                    titulo_expander = f"**{tot}** — ({valores_str})"
 
-            # Formatação de Moeda para todas as colunas de valores
-            dict_format = {col_c: "R$ {:,.2f}" for col_c in col_cols_exibir}
+                    with st.expander(titulo_expander, expanded=False):
+                        linhas_contas = []
+                        for c in contas_do_tot:
+                            row = {"Conta Gerencial": c}
+                            for col in col_cols_exibir:
+                                row[col] = dict_somas[col].get(c, 0.0)
+                            linhas_contas.append(row)
 
-            st.dataframe(
-                df_tabela_final.style.format(dict_format),
-                use_container_width=True,
-                height=650
-            )
-            
+                        df_contas = pd.DataFrame(linhas_contas)
+                        dict_format = {col: "R$ {:,.2f}" for col in col_cols_exibir}
+                        
+                        # Oculta a coluna de índices (hide_index=True) e exibe sem o prefixo ├─
+                        st.dataframe(
+                            df_contas.style.format(dict_format),
+                            use_container_width=True,
+                            hide_index=True
+                        )
+
+                st.markdown("---")
+
+                # TABELA DE TOTAL GERAL DO RELATÓRIO
+                st.subheader("🏆 TOTAL GERAL DO RELATÓRIO")
+                df_total_geral = pd.DataFrame([totais_gerais])
+                dict_format_tot = {col: "R$ {:,.2f}" for col in col_cols_exibir}
+                
+                # Oculta a primeira coluna de índice
+                st.dataframe(
+                    df_total_geral.style.format(dict_format_tot),
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
