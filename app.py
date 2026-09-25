@@ -409,8 +409,8 @@ if verificar_senha():
                 st.session_state.dados_tg_raw = None
                 st.rerun()
 
-# -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (TABELA ALINHADA E FORMATADA)
+    # -----------------------------------------------------------------------------
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (EXPANSÃO INDIVIDUAL E VARIAÇÃO %)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -468,7 +468,6 @@ if verificar_senha():
 
             df_disc["Ano_Mes"] = df_disc["Data_Ref"].dt.to_period("M")
 
-            # MAPEAMENTO PARA FORMATO MMM/AAAA
             meses_siglas = {
                 1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
                 7: "JUL", 8: "AGO", 9: "SET", 10: "OUT", 11: "NOV", 12: "DEZ"
@@ -516,102 +515,145 @@ if verificar_senha():
                 totalizadores_lista = sorted(st.session_state.totalizadores)
                 contas_lista = sorted(st.session_state.contas_gerenciais)
 
+                # SELEÇÃO INDIVIDUAL DE TOTALIZADORES PARA EXPANDIR
+                tot_expandidos = st.multiselect(
+                    "📂 Selecione o(s) totalizador(es) que deseja expandir:",
+                    options=totalizadores_lista,
+                    default=[],
+                    placeholder="Clique aqui para escolher quais grupos expandir..."
+                )
+
                 if tipo_visao == "Mensal":
-                    m_atual = periodo_sel
-                    m_1 = periodo_sel - 1
-                    m_2 = periodo_sel - 2
-                    m_ano_ant = periodo_sel - 12
+                    p0, p1, p2, p3 = periodo_sel, periodo_sel - 1, periodo_sel - 2, periodo_sel - 12
+                    
+                    lbl_0 = f"{fmt_mmm_aaaa(p0)} (R$)"
+                    lbl_1 = f"{fmt_mmm_aaaa(p1)} (R$)"
+                    var_1_str = f"Var. % ({fmt_mmm_aaaa(p0)} vs {fmt_mmm_aaaa(p1)})"
+                    lbl_2 = f"{fmt_mmm_aaaa(p2)} (R$)"
+                    var_2_str = f"Var. % ({fmt_mmm_aaaa(p1)} vs {fmt_mmm_aaaa(p2)})"
+                    lbl_3 = f"{fmt_mmm_aaaa(p3)} (R$)"
+                    var_3_str = f"Var. % ({fmt_mmm_aaaa(p0)} vs {fmt_mmm_aaaa(p3)})"
 
-                    lbl_m_atual = f"{fmt_mmm_aaaa(m_atual)} (R$)"
-                    lbl_m_1 = f"{fmt_mmm_aaaa(m_1)} (R$)"
-                    lbl_m_2 = f"{fmt_mmm_aaaa(m_2)} (R$)"
-                    lbl_m_ano_ant = f"{fmt_mmm_aaaa(m_ano_ant)} (R$)"
+                    df0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p0]
+                    df1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p1]
+                    df2 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p2]
+                    df3 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p3]
 
-                    df_m0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_atual]
-                    df_m1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_1]
-                    df_m2 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_2]
-                    df_m12 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == m_ano_ant]
+                    s0 = df0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    s1 = df1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    s3 = df3.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                    soma_m0 = df_m0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    soma_m1 = df_m1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    soma_m2 = df_m2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    soma_m12 = df_m12.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-
-                    cols_exibir = [lbl_m_atual, lbl_m_1, lbl_m_2, lbl_m_ano_ant]
-                    dict_somas = {lbl_m_atual: soma_m0, lbl_m_1: soma_m1, lbl_m_2: soma_m2, lbl_m_ano_ant: soma_m12}
+                    cols_valores = [lbl_0, lbl_1, lbl_2, lbl_3]
+                    cols_ordem_final = ["Estrutura", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
+                    dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2, lbl_3: s3}
+                    mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2), var_3_str: (lbl_0, lbl_3)}
 
                 else:
-                    ano_atual = periodo_sel.year
-                    mes_ref_num = periodo_sel.month
-                    ano_1 = ano_atual - 1
-                    ano_2 = ano_atual - 2
+                    ano_atual, mes_ref_num = periodo_sel.year, periodo_sel.month
+                    ano_1, ano_2 = ano_atual - 1, ano_atual - 2
                     sigla_mes = meses_siglas[mes_ref_num]
 
-                    lbl_a0 = f"JAN-{sigla_mes}/{ano_atual} (R$)"
-                    lbl_a1 = f"JAN-{sigla_mes}/{ano_1} (R$)"
-                    lbl_a2 = f"JAN-{sigla_mes}/{ano_2} (R$)"
+                    lbl_0 = f"JAN-{sigla_mes}/{ano_atual} (R$)"
+                    lbl_1 = f"JAN-{sigla_mes}/{ano_1} (R$)"
+                    var_1_str = f"Var. % ({ano_atual} vs {ano_1})"
+                    lbl_2 = f"JAN-{sigla_mes}/{ano_2} (R$)"
+                    var_2_str = f"Var. % ({ano_1} vs {ano_2})"
 
-                    df_a0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
-                    df_a1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
-                    df_a2 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_2) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                    df0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                    df1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                    df2 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_2) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
 
-                    soma_a0 = df_a0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    soma_a1 = df_a1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    soma_a2 = df_a2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    s0 = df0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    s1 = df1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                    s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
-                    cols_exibir = [lbl_a0, lbl_a1, lbl_a2]
-                    dict_somas = {lbl_a0: soma_a0, lbl_a1: soma_a1, lbl_a2: soma_a2}
+                    cols_valores = [lbl_0, lbl_1, lbl_2]
+                    cols_ordem_final = ["Estrutura", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
+                    dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
+                    mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
 
-                # CONTROLE DE EXPANSÃO / RECOLHIMENTO
-                col_sub1, col_sub2 = st.columns([3, 1])
-                with col_sub1:
-                    st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
-                with col_sub2:
-                    expandir_tudo = st.checkbox("➕ Expandir todos os detalhamentos", value=False)
-
+                # CONSTRUÇÃO DAS LINHAS
                 linhas = []
-                somas_totais_gerais = {col: 0.0 for col in cols_exibir}
+                somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
                 for tot in totalizadores_lista:
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     
-                    row_tot = {"Estrutura": tot}
-                    for col in cols_exibir:
+                    is_expanded = tot in tot_expandidos
+                    prefixo = "➖ " if is_expanded else "➕ "
+                    
+                    row_tot = {"Estrutura": f"{prefixo}{tot}"}
+                    for col in cols_valores:
                         val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
                         row_tot[col] = val_g
                         somas_totais_gerais[col] += val_g
 
+                    # Calcula as Variações % do Totalizador
+                    for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                        base = row_tot[v_ant]
+                        row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
                     linhas.append(row_tot)
 
-                    # Se o checkbox estiver marcado, inclui as contas subordinadas com recuo de parágrafo
-                    if expandir_tudo:
+                    # Se o totalizador estiver expandido, insere as contas filhas
+                    if is_expanded:
                         for c in contas_do_tot:
-                            row_conta = {"Estrutura": f"    {c}"}
-                            for col in cols_exibir:
+                            row_conta = {"Estrutura": f"      {c}"}
+                            for col in cols_valores:
                                 row_conta[col] = dict_somas[col].get(c, 0.0)
+
+                            for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                                base = row_conta[v_ant]
+                                row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
                             linhas.append(row_conta)
 
                 # LINHA DE TOTAL GERAL
                 row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
-                for col in cols_exibir:
+                for col in cols_valores:
                     row_tot_geral[col] = somas_totais_gerais[col]
+
+                for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                    base = row_tot_geral[v_ant]
+                    row_tot_geral[col_var] = ((row_tot_geral[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
                 linhas.append(row_tot_geral)
 
-                df_exibicao = pd.DataFrame(linhas)
+                df_exibicao = pd.DataFrame(linhas)[cols_ordem_final]
 
-                # FUNÇÃO DE FORMATAÇÃO NUMÉRICA: PONTO MILHAR, VÍRGULA CENTAVOS (SEM "R$")
-                def formatar_br(val):
-                    return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                # FORMATAÇÃO VISUAL E ESTILIZAÇÃO DE CORES DAS VARIAÇÕES %
+                def formatar_tabela(styler):
+                    # Formatação de Números
+                    format_dict = {}
+                    for col in cols_valores:
+                        format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    for col in mapeamento_var.keys():
+                        format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
 
-                dict_format = {col: formatar_br for col in cols_exibir}
+                    styler.format(format_dict)
 
-                # EXIBIÇÃO EM TABELA ÚNICA PERFEITAMENTE ALINHADA SEM ÍNDICE
+                    # Função de cor para Variação Percentual
+                    def colorir_variacao(val):
+                        if isinstance(val, (int, float)):
+                            if val > 0.01:
+                                return 'color: #2e7d32; font-weight: bold; background-color: #e8f5e9' # Verde
+                            elif val < -0.01:
+                                return 'color: #c62828; font-weight: bold; background-color: #ffebee' # Vermelho
+                        return 'color: #666666;' # Neutro/Cinza
+
+                    styler.map(colorir_variacao, subset=list(mapeamento_var.keys()))
+                    return styler
+
+                st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+
+                # RENDERIZAÇÃO DA TABELA ESTILIZADA
                 st.dataframe(
-                    df_exibicao.style.format(dict_format),
+                    formatar_tabela(df_exibicao.style),
                     use_container_width=True,
                     hide_index=True,
-                    height=600 if expandir_tudo else 380
-                )
+                    height=500
+                )                
                 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
