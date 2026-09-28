@@ -596,7 +596,7 @@ if verificar_senha():
                     styler.format(format_dict)
                     return styler
 
-                for idx_t, tot in enumerate(totalizadores_lista):
+for idx_t, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     is_expanded = tot in st.session_state.tot_expandidos_set
 
@@ -607,11 +607,11 @@ if verificar_senha():
                         val_tot_dict[col] = val_g
                         somas_totais_gerais[col] += val_g
 
-                    # RENDERIZAÇÃO: BOTÃO À ESQUERDA + TABELA COMPLETA ALINHADA
-                    col_btn, col_tabela = st.columns([0.4, 11.6])
+                    # ALINHAMENTO PADRONIZADO: Coluna de ação com largura fixa (0.5) para TODAS as linhas
+                    col_btn, col_tabela = st.columns([0.5, 11.5])
                     
                     with col_btn:
-                        sinal = "-" if is_expanded else "+"
+                        sinal = "➖" if is_expanded else "➕"
                         if st.button(sinal, key=f"btn_toggle_tot_line_{idx_t}", help=f"{'Recolher' if is_expanded else 'Expandir'} {tot}"):
                             if is_expanded:
                                 st.session_state.tot_expandidos_set.remove(tot)
@@ -637,21 +637,24 @@ if verificar_senha():
                             hide_index=True
                         )
 
-                        # SUB-CONTAS DETALHADAS (EXPANDIDO)
-                        if is_expanded:
-                            linhas_filhas = []
-                            for c in contas_do_tot:
-                                row_conta = {"Estrutura": f"↳ {c}"}
-                                for col in cols_valores:
-                                    row_conta[col] = dict_somas[col].get(c, 0.0)
+                    # SUB-CONTAS DETALHADAS (EXPANDIDO)
+                    if is_expanded:
+                        linhas_filhas = []
+                        for c in contas_do_tot:
+                            row_conta = {"Estrutura": f"↳ {c}"}
+                            for col in cols_valores:
+                                row_conta[col] = dict_somas[col].get(c, 0.0)
 
-                                for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                                    base = row_conta[v_ant]
-                                    row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+                            for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                                base = row_conta[v_ant]
+                                row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                                linhas_filhas.append(row_conta)
+                            linhas_filhas.append(row_conta)
 
-                            if linhas_filhas:
+                        if linhas_filhas:
+                            # Mantém o recuo idêntico da coluna de dados para alinhar perfeitamente com o totalizador acima
+                            col_vazia, col_tabela_filha = st.columns([0.5, 11.5])
+                            with col_tabela_filha:
                                 df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
                                 st.dataframe(
                                     formatar_linha(df_filhas.style),
@@ -659,7 +662,7 @@ if verificar_senha():
                                     hide_index=True
                                 )
 
-                    st.markdown("<hr style='margin: 4px 0;'/>", unsafe_allow_html=True)
+                    st.markdown("<hr style='margin: 2px 0;'/>", unsafe_allow_html=True)
 
                 # LINHA DE TOTAL GERAL
                 row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
