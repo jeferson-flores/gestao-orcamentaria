@@ -193,60 +193,27 @@ UNIDADES_UFSM_PADRAO = [
     "Encargos Gerais da UFSM / Outros"
 ]
 
+# Mapeamento alterado para aceitar Códigos de UG (Coluna F) além de nomes
 MAPA_UGS_PADRAO = {
+    "153164": "PRA - Pró-Reitoria de Administração",
+    "153165": "PROPLAN - Pró-Reitoria de Planejamento",
+    "153166": "PROGRAD - Pró-Reitoria de Graduação",
+    "153167": "PRPGP - Pró-Reitoria de Pós-Graduação e Pesquisa",
+    "153168": "PRE - Pró-Reitoria de Extensão",
+    "153169": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "153170": "PROINFRA - Pró-Reitoria de Infraestrutura",
+    "153171": "CCSH - Centro de Ciências Sociais e Humanas",
+    "153172": "CT - Centro de Tecnologia",
+    "153173": "CCR - Centro de Ciências Rurais",
+    "153174": "CCS - Centro de Ciências da Saúde",
+    "153175": "CCNE - Centro de Ciências Naturais e Exatas",
+    "153176": "CAL - Centro de Artes e Letras",
+    "153177": "CE - Centro de Educação",
+    "153178": "CEFD - Centro de Educação Física e Desportos",
     "REITORIA DA UFSM": "Reitoria e Gabinete do Reitor",
-    "GABINETE DO REITOR": "Reitoria e Gabinete do Reitor",
-    "AUDITORIA INTERNA": "Reitoria e Gabinete do Reitor",
-    "CORREGEDORIA SETORIAL DA UFSM": "Reitoria e Gabinete do Reitor",
-    "COORDENADORIA DE COMUNICACAO SOCIAL": "Reitoria e Gabinete do Reitor",
-    "EDITORA UFSM": "Reitoria e Gabinete do Reitor",
     "PRO-REITORIA DE ADMINISTRACAO DA UFSM": "PRA - Pró-Reitoria de Administração",
-    "ALMOXARIFADO CENTRAL DA UFSM": "PRA - Pró-Reitoria de Administração",
-    "UFSM-DEPARTAMENTO DE MATERIAL E PATRIMONIO": "PRA - Pró-Reitoria de Administração",
-    "DEPARTAMENTO DE CONTABILIDADE E FINANCAS": "PRA - Pró-Reitoria de Administração",
-    "SERVICOS DE TRANSPORTES E OFICINAS/UFSM": "PRA - Pró-Reitoria de Administração",
-    "SETOR DE IMPORTACAOES DA UFSM": "PRA - Pró-Reitoria de Administração",
     "PRO-REITORIA DE PLANEJAMENTO DA UFSM": "PROPLAN - Pró-Reitoria de Planejamento",
-    "COORDENADORIA DE PLANEJAMENTO INFORMACIONAL": "PROPLAN - Pró-Reitoria de Planejamento",
-    "PRO-REITORIA DE GRADUACAO DA UFSM": "PROGRAD - Pró-Reitoria de Graduação",
-    "DEPARTAMENTO DE REGISTRO E CONTROLE ACADEMICO": "PROGRAD - Pró-Reitoria de Graduação",
-    "PRO-REITORIA DE POS-GRADUACAO E PESQUISA-UFSM": "PRPGP - Pró-Reitoria de Pós-Graduação e Pesquisa",
-    "PRO-REITORIA DE EXTENSAO DA UFSM": "PRE - Pró-Reitoria de Extensão",
-    "PRO-REITORIA DE INOVACAO E EMPREENDEDORISMO": "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
-    "AGENCIA DE INOVACAO E TRANSFERENCIA DE TECNOLOGIA": "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
-    "PROGEP": "PROGEP - Pró-Reitoria de Gestão de Pessoas",
-    "PRO REITORIA DE GESTAO DE PESSOAS": "PROGEP - Pró-Reitoria de Gestão de Pessoas",
-    "PRO-REITORIA DE ASSUNTOS ESTUDANTIS DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO - CAMPUS PM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO - CAMPUS FW": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "RESTAURANTE UNIVERSITARIO - CAMPUS CACH.SUL": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "SECRET. APOIO ADMIN. - PRAE": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "COORDENADORIA DE ACOES EDUCACIONAIS DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "PRO-REITORIA DE INFRAESTRUTURA - UFSM": "PROINFRA - Pró-Reitoria de Infraestrutura",
-    "PRO-REITORIA DE INFRAESTRUTURA - PROINFRA": "PROINFRA - Pró-Reitoria de Infraestrutura",
-    "DIRETORIA DE GESTAO AMBIENTAL": "DGA - Diretoria de Gestão Ambiental",
-    "CENTRO DE PROCESSAMENTO DE DADOS DA UFSM": "DTI / CPD - Diretoria de TI / Processamento de Dados",
-    "LABORATORIO DE MANUTENCAO DE INFORMATICA UFSM": "DTI / CPD - Diretoria de TI / Processamento de Dados",
-    "DIRETORIA DE TI": "DTI / CPD - Diretoria de TI / Processamento de Dados",
-    "DIRETORIA DE RELACOES INTERNACIONAIS": "DRI - Diretoria de Relações Internacionais",
-    "CENTRO DE ARTES E LETRAS DA UFSM": "CAL - Centro de Artes e Letras",
-    "CENTRO DE CIENCIAS NATURAIS E EXATAS DA UFSM": "CCNE - Centro de Ciências Naturais e Exatas",
-    "CENTRO DE CIENCIAS RURAIS DA UFSM": "CCR - Centro de Ciências Rurais",
-    "CENTRO DE CIENCIAS DA SAUDE DA UFSM": "CCS - Centro de Ciências da Saúde",
     "CENTRO DE CIENCIAS SOCIAIS E HUMANAS DA UFSM": "CCSH - Centro de Ciências Sociais e Humanas",
-    "CENTRO EDUCACAO DA UFSM": "CE - Centro de Educação",
-    "CENTRO DE EDUCACAO FISICA E DESPORTOS DA UFSM": "CEFD - Centro de Educação Física e Desportos",
-    "CENTRO DE TECNOLOGIA DA UFSM": "CT - Centro de Tecnologia",
-    "COLEGIO POLITECNICO DA UFSM": "Colégio Politécnico da UFSM",
-    "COLEGIO TECNICO INDUSTRIAL DA UFSM": "CTISM - Colégio Técnico Industrial de Santa Maria",
-    "CAMPUS DA UFSM EM FREDERICO WESTPHALEN": "Campus Frederico Westphalen",
-    "CAMPUS DA UFSM EM PALMEIRAS DAS MISSOES": "Campus Palmeira das Missões",
-    "CAMPUS DA UFSM EM CACHOEIRA DO SUL": "Campus Cachoeira do Sul",
-    "ESPACO MULTIDISC. PESQ E EXTENS SILV MARTINS": "Campus Silveira Martins",
-    "HOSPITAL DE CLINICAS VETERINARIAS DA UFSM": "Hospital Veterinário / HVU",
-    "FAZENDA ESCOLA DA UFSM": "CCR - Centro de Ciências Rurais",
-    "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM / Outros"
 }
 
 USUARIOS_PADRAO = [
@@ -365,7 +332,7 @@ if verificar_senha():
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏷️ Configuração de Contas & PIs / NDs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
@@ -452,28 +419,56 @@ if verificar_senha():
 
             col_mes_ref = encontrar_coluna(["mês", "mes", "referencia", "referência", "período", "periodo"], 1)
             col_resultado_lei = encontrar_coluna(["resultado", "lei", "rp", "fonte"], 2)
+            
+            # PRIORIZAÇÃO DE CÓDIGOS EM DETRIMENTO DA DESCRIÇÃO TEXTUAL
+            col_ug_cod = encontrar_coluna(["código ug", "codigo ug", "cod ug", "ug código"], 5 if len(colunas)>5 else 0)
             col_ug_nome = encontrar_coluna(["ug", "unidade gestora", "nome ug", "gestora"], 6 if len(colunas)>6 else 0)
+            
+            col_nd_cod = encontrar_coluna(["código natureza", "codigo natureza", "cod nd", "natureza código", "código nd"], 13 if len(colunas)>13 else 0)
+            col_nd_nome = encontrar_coluna(["natureza de despesa", "natureza despesa", "nome nd"], 14 if len(colunas)>14 else 0)
+            
             col_pi_cod = encontrar_coluna(["código pi", "codigo pi", "pi"], 11 if len(colunas)>11 else 0)
             col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
             col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
 
-            # AJUSTE 1: Filtro de RP flexibilizado para incluir registros válidos sem excluir dados do CCSH
+            # Filtro de RP
             mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
             df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
 
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
             
-            # AJUSTE 2: Mapeamento sanitizado de UGs com fallback
-            df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).str.strip().map(
-                lambda x: st.session_state.mapa_ugs.get(x, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in x or "HUMANA" in x else "Encargos Gerais da UFSM / Outros")
-            )
+            # TRATAMENTO DA UNIDADE VIA CÓDIGO (COLUNA F) COM FALLBACK PARA NOME (COLUNA G)
+            def extrair_unidade(row):
+                cod_ug = str(row[col_ug_cod]).strip() if pd.notna(row[col_ug_cod]) else ""
+                nome_ug = str(row[col_ug_nome]).strip() if pd.notna(row[col_ug_nome]) else ""
+                
+                if cod_ug in st.session_state.mapa_ugs:
+                    return st.session_state.mapa_ugs[cod_ug]
+                if nome_ug in st.session_state.mapa_ugs:
+                    return st.session_state.mapa_ugs[nome_ug]
+                
+                if "SOCIAL" in nome_ug.upper() or "HUMANA" in nome_ug.upper() or "CCSH" in nome_ug.upper():
+                    return "CCSH - Centro de Ciências Sociais e Humanas"
+                return "Encargos Gerais da UFSM / Outros"
+
+            df_disc["Unidade_Consolidada"] = df_disc.apply(extrair_unidade, axis=1)
             
+            # TRATAMENTO DO ITEM POR CÓDIGO DA ND (COLUNA N) OU PI
+            df_disc["ND_Cod"] = df_disc[col_nd_cod].astype(str).str.strip()
             df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
             
-            # AJUSTE 3: Atribuição garantida para PIs não classificados
-            df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
-                lambda x: st.session_state.dicionario_pis.get(x, "8.3. Outras Despesas Operacionais")
-            )
+            def mapear_conta(row):
+                pi_comp = row["PI_Completo"]
+                nd_c = row["ND_Cod"]
+                
+                if pi_comp in st.session_state.dicionario_pis:
+                    return st.session_state.dicionario_pis[pi_comp]
+                if nd_c in st.session_state.dicionario_pis:
+                    return st.session_state.dicionario_pis[nd_c]
+                
+                return "8.3. Outras Despesas Operacionais"
+
+            df_disc["Conta_Gerencial"] = df_disc.apply(mapear_conta, axis=1)
 
             df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
             if df_disc["Data_Ref"].isna().all():
@@ -725,15 +720,15 @@ if verificar_senha():
                     
                     cols_tot_g[idx_col_g].markdown(f"<div style='text-align: right; font-weight: bold; color: #003366; font-size: 15px;'>{v_g_str}</div>", unsafe_allow_html=True)
                     idx_col_g += 1
-                    
+
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades":
-        st.header("⚙️ Configuração de Unidades Organizacionais & Mapeamento de UGs")
-        st.write("Gestão das Unidades Institucionais e alocação de UGs da planilha.")
+        st.header("⚙️ Configuração de Unidades Organizacionais & Mapeamento de UGs (Por Código/Nome)")
+        st.write("Gestão das Unidades Institucionais e alocação das Unidades Gestoras (UG) da planilha.")
 
-        tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento de UGs (Colunas F/G)"])
+        tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento por Código de UG (Coluna F) / Nome (Coluna G)"])
 
         with tab1:
             col_u1, col_u2 = st.columns([1, 2])
@@ -784,23 +779,28 @@ if verificar_senha():
                                 st.rerun()
 
         with tab2:
-            st.subheader("Alocação de Unidades Gestoras (UGs SIAFI -> Unidade Consolidada)")
+            st.subheader("Alocação por Código / Nome de UG SIAFI -> Unidade Consolidada")
             
             ugs_para_mapear = set(st.session_state.mapa_ugs.keys())
 
             if st.session_state.dados_tg_raw is not None:
                 df_raw = st.session_state.dados_tg_raw
                 cols = list(df_raw.columns)
-                col_ug_nom = cols[6] if len(cols) > 6 else cols[0]
-                ugs_planilha = df_raw[col_ug_nom].dropna().unique()
-                for ug_p in ugs_planilha:
-                    ugs_para_mapear.add(str(ug_p).strip())
+                col_ug_c = cols[5] if len(cols) > 5 else cols[0]
+                col_ug_n = cols[6] if len(cols) > 6 else cols[0]
+                
+                # Pega tanto os códigos (Coluna F) quanto os nomes se necessário
+                for _, row in df_raw.iterrows():
+                    c_val = str(row[col_ug_c]).strip() if pd.notna(row[col_ug_c]) else ""
+                    n_val = str(row[col_ug_n]).strip() if pd.notna(row[col_ug_n]) else ""
+                    if c_val: ugs_para_mapear.add(c_val)
+                    elif n_val: ugs_para_mapear.add(n_val)
 
-            st.write(f"**Total de UGs identificadas:** {len(ugs_para_mapear)}")
+            st.write(f"**Total de Chaves de UG identificadas:** {len(ugs_para_mapear)}")
 
             col_b1, col_b2 = st.columns([2, 1])
             with col_b1:
-                st.caption("Associe cada UG do SIAFI/Tesouro Gerencial a uma das Unidades Consolidadas:")
+                st.caption("Associe cada Código/Nome de UG SIAFI a uma Unidade Consolidada:")
             with col_b2:
                 if st.button("Restaurar Mapeamento Padrão"):
                     st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
@@ -809,9 +809,9 @@ if verificar_senha():
 
             for ug_item in sorted(list(ugs_para_mapear)):
                 c_ug, c_sel = st.columns([2, 2])
-                c_ug.write(f"🏢 **{ug_item}**")
+                c_ug.write(f"🏢 UG: **{ug_item}**")
                 
-                def_val = st.session_state.mapa_ugs.get(ug_item, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in ug_item or "HUMANA" in ug_item else "Encargos Gerais da UFSM / Outros")
+                def_val = st.session_state.mapa_ugs.get(ug_item, "Encargos Gerais da UFSM / Outros")
                 if def_val not in st.session_state.unidades_consolidadas:
                     st.session_state.unidades_consolidadas.append(def_val)
 
@@ -826,17 +826,17 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs
+    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs/NDs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & PIs")
-        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento dos PIs.")
+        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & Códigos ND/PI")
+        st.write("Gerencie totalizadores, plano de contas, vinculação de contas e mapeamento por código.")
 
         tab_t0, tab_c1, tab_c2, tab_c3 = st.tabs([
             "📊 Cadastro de Totalizadores", 
             "📌 Cadastro de Contas Gerenciais", 
             "🔗 Vinculação de Contas aos Totalizadores", 
-            "🏷️ Mapeamento de PIs"
+            "🏷️ Mapeamento de PIs / Códigos ND"
         ])
 
         with tab_t0:
@@ -965,22 +965,25 @@ if verificar_senha():
                 st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
 
         with tab_c3:
-            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
+            st.subheader("Mapeamento por Código (PI / Código ND -> Conta Gerencial)")
 
             if st.session_state.dados_tg_raw is None:
-                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs e realizar o mapeamento.")
+                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os códigos de PI/ND e realizar o mapeamento.")
             else:
                 df = st.session_state.dados_tg_raw
                 colunas = list(df.columns)
                 
                 col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
                 col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
+                col_nd_c = colunas[13] if len(colunas) > 13 else colunas[0]
 
                 df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
                 df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
+                
                 lista_pis = sorted(df_pis["PI_Completo"].unique())
+                codigos_nd = sorted(df[col_nd_c].astype(str).str.strip().unique())
 
-                st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
+                st.write(f"**Total de PIs:** {len(lista_pis)} | **Códigos ND (Coluna N):** {len(codigos_nd)}")
 
                 for pi_item in lista_pis:
                     col_lbl, col_sel = st.columns([2, 2])
@@ -995,10 +998,6 @@ if verificar_senha():
                             conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
                         elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
                             conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
-                        elif "OBRA" in p_up or "REFORMA" in p_up:
-                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
-                        elif "TIC" in p_up or "INFORMATICA" in p_up:
-                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
 
                     idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
 
