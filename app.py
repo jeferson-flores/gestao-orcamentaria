@@ -414,7 +414,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (EXPANSÃO BOTÃO "+" E VARIAÇÃO %)
+    # PÁGINA 2: RELATÓRIO EXECUTIVO
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -586,6 +586,16 @@ if verificar_senha():
                 # CÁLCULO DAS SOMAS DOS TOTALIZADORES
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
+                # Função de formatação visual para os DataFrames
+                def formatar_linha(styler):
+                    format_dict = {}
+                    for col in cols_valores:
+                        format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                    for col in mapeamento_var.keys():
+                        format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
+                    styler.format(format_dict)
+                    return styler
+
                 for idx_t, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     is_expanded = tot in st.session_state.tot_expandidos_set
@@ -597,8 +607,8 @@ if verificar_senha():
                         val_tot_dict[col] = val_g
                         somas_totais_gerais[col] += val_g
 
-                    # RENDERIZAÇÃO DA LINHA DO TOTALIZADOR COM BOTÃO ALINHADO
-                    col_btn, col_nome, col_dados = st.columns([0.4, 3.6, 8])
+                    # RENDERIZAÇÃO: BOTÃO À ESQUERDA + TABELA COMPLETA ALINHADA
+                    col_btn, col_tabela = st.columns([0.4, 11.6])
                     
                     with col_btn:
                         sinal = "-" if is_expanded else "+"
@@ -609,30 +619,17 @@ if verificar_senha():
                                 st.session_state.tot_expandidos_set.add(tot)
                             st.rerun()
 
-                    with col_nome:
-                        st.markdown(f"**{tot}**")
+                    with col_tabela:
+                        # Montagem da linha do Totalizador
+                        row_tot = {"Estrutura": tot}
+                        for col in cols_valores:
+                            row_tot[col] = val_tot_dict[col]
 
-                    # Montagem da mini tabela de valores para o Totalizador
-                    row_tot = {"Estrutura": tot}
-                    for col in cols_valores:
-                        row_tot[col] = val_tot_dict[col]
+                        for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                            base = row_tot[v_ant]
+                            row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                    for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                        base = row_tot[v_ant]
-                        row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
-
-                    df_tot_row = pd.DataFrame([row_tot])[cols_ordem_final]
-
-                    with col_dados:
-                        # Formatação visual
-                        def formatar_linha(styler):
-                            format_dict = {}
-                            for col in cols_valores:
-                                format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                            for col in mapeamento_var.keys():
-                                format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
-                            styler.format(format_dict)
-                            return styler
+                        df_tot_row = pd.DataFrame([row_tot])[cols_ordem_final]
 
                         st.dataframe(
                             formatar_linha(df_tot_row.style),
@@ -640,24 +637,22 @@ if verificar_senha():
                             hide_index=True
                         )
 
-                    # SUB-CONTAS (EXIBIDAS APENAS SE EXPANDIDO)
-                    if is_expanded:
-                        linhas_filhas = []
-                        for c in contas_do_tot:
-                            row_conta = {"Estrutura": c}
-                            for col in cols_valores:
-                                row_conta[col] = dict_somas[col].get(c, 0.0)
+                        # SUB-CONTAS DETALHADAS (EXPANDIDO)
+                        if is_expanded:
+                            linhas_filhas = []
+                            for c in contas_do_tot:
+                                row_conta = {"Estrutura": f"↳ {c}"}
+                                for col in cols_valores:
+                                    row_conta[col] = dict_somas[col].get(c, 0.0)
 
-                            for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                                base = row_conta[v_ant]
-                                row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+                                for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                                    base = row_conta[v_ant]
+                                    row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                            linhas_filhas.append(row_conta)
+                                linhas_filhas.append(row_conta)
 
-                        if linhas_filhas:
-                            df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
-                            _, col_indent_filhas = st.columns([0.4, 11.6])
-                            with col_indent_filhas:
+                            if linhas_filhas:
+                                df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
                                 st.dataframe(
                                     formatar_linha(df_filhas.style),
                                     use_container_width=True,
