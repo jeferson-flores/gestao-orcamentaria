@@ -586,7 +586,15 @@ if verificar_senha():
                 # CÁLCULO DAS SOMAS DOS TOTALIZADORES
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                # Função de formatação visual para os DataFrames
+                # Configuração uniforme de largura e alinhamento de colunas para o Streamlit Dataframe
+                column_config_map = {
+                    "Estrutura": st.column_config.Column("Estrutura", width="large")
+                }
+                for col in cols_valores:
+                    column_config_map[col] = st.column_config.NumberColumn(col, format="R$ %,.2f")
+                for col in mapeamento_var.keys():
+                    column_config_map[col] = st.column_config.NumberColumn(col, format="%.2f%%")
+
                 def formatar_linha(styler):
                     format_dict = {}
                     for col in cols_valores:
@@ -607,7 +615,7 @@ if verificar_senha():
                         val_tot_dict[col] = val_g
                         somas_totais_gerais[col] += val_g
 
-                    # ALINHAMENTO PADRONIZADO: Coluna de ação com largura fixa (0.5) para TODAS as linhas
+                    # ALINHAMENTO PADRONIZADO: Mesma proporção [0.5, 11.5] usada em toda a tabela
                     col_btn, col_tabela = st.columns([0.5, 11.5])
                     
                     with col_btn:
@@ -633,6 +641,7 @@ if verificar_senha():
 
                         st.dataframe(
                             formatar_linha(df_tot_row.style),
+                            column_config=column_config_map,
                             use_container_width=True,
                             hide_index=True
                         )
@@ -652,19 +661,20 @@ if verificar_senha():
                             linhas_filhas.append(row_conta)
 
                         if linhas_filhas:
-                            # Mantém o recuo idêntico da coluna de dados para alinhar perfeitamente com o totalizador acima
+                            # Mantém a mesma proporção [0.5, 11.5] para alinhamento uniforme
                             col_vazia, col_tabela_filha = st.columns([0.5, 11.5])
                             with col_tabela_filha:
                                 df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
                                 st.dataframe(
                                     formatar_linha(df_filhas.style),
+                                    column_config=column_config_map,
                                     use_container_width=True,
                                     hide_index=True
                                 )
 
                     st.markdown("<hr style='margin: 2px 0;'/>", unsafe_allow_html=True)
 
-                # LINHA DE TOTAL GERAL
+                # LINHA DE TOTAL GERAL (Formatada com os mesmos pesos de coluna [0.5, 11.5])
                 row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
                 for col in cols_valores:
                     row_tot_geral[col] = somas_totais_gerais[col]
@@ -676,11 +686,16 @@ if verificar_senha():
                 df_tot_geral = pd.DataFrame([row_tot_geral])[cols_ordem_final]
                 
                 st.subheader("🏁 Consolidação Final")
-                st.dataframe(
-                    formatar_linha(df_tot_geral.style),
-                    use_container_width=True,
-                    hide_index=True
-                )
+                
+                # Coluna invisível à esquerda para espelhar a proporção dos botões dos totalizadores [0.5, 11.5]
+                col_espaco, col_tot_final = st.columns([0.5, 11.5])
+                with col_tot_final:
+                    st.dataframe(
+                        formatar_linha(df_tot_geral.style),
+                        column_config=column_config_map,
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
@@ -1041,7 +1056,7 @@ if verificar_senha():
     # CONFIGURAÇÕES VISUAIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "config":
-        st.header("⚙️ Configurações Visuais e Logomarca")
+        st.header("⚙️ Configuração Visuais e Logomarca")
         st.write("Carregue a imagem da logomarca oficial do seu computador. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone (favicon) na aba do navegador.")
 
         c_up, c_prev = st.columns([2, 1])
