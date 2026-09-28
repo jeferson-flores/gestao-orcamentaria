@@ -596,7 +596,7 @@ if verificar_senha():
                     styler.format(format_dict)
                     return styler
 
-for idx_t, tot in enumerate(totalizadores_lista):
+                for idx_t, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     is_expanded = tot in st.session_state.tot_expandidos_set
 
