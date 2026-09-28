@@ -77,14 +77,14 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 
 TOTALIZADORES_PADRAO = [
-    "Total de Infraestrutura e Manutenção Predial",
-    "Total de Serviços Terceirizados e Operacionais",
-    "Total de Tecnologia da Informação e Comunicação",
-    "Total de Assistência Estudantil e RU",
-    "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "Total de Viagens, Eventos e Capacitação",
-    "Total de Equipamentos, Acervo e Logística",
-    "Total de Despesas Operacionais e Encargos Institucionais"
+    "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "G-4.0 Total de Assistência Estudantil e RU",
+    "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
 ]
 
 PLANO_CONTAS_PADRAO = [
@@ -119,41 +119,41 @@ PLANO_CONTAS_PADRAO = [
 ]
 
 MAPA_CONTAS_TOTALIZADORES_PADRAO = {
-    "1.1. Obras, Reformas e Adequações": "Total de Infraestrutura e Manutenção Predial",
-    "1.2. Concessionárias (Energia, Água, Gás)": "Total de Infraestrutura e Manutenção Predial",
-    "1.3. Manutenção Predial e Conservação": "Total de Infraestrutura e Manutenção Predial",
-    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "Total de Infraestrutura e Manutenção Predial",
+    "1.1. Obras, Reformas e Adequações": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.2. Concessionárias (Energia, Água, Gás)": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.3. Manutenção Predial e Conservação": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "G-1.0 Total de Infraestrutura e Manutenção Predial",
     
-    "2.1. Serviços de Vigilância e Portaria": "Total de Serviços Terceirizados e Operacionais",
-    "2.2. Serviços de Limpeza e Higienização": "Total de Serviços Terceirizados e Operacionais",
-    "2.3. Apoio Administrativo e Motoristas": "Total de Serviços Terceirizados e Operacionais",
-    "2.4. Recepção e Serviços Gerais": "Total de Serviços Terceirizados e Operacionais",
+    "2.1. Serviços de Vigilância e Portaria": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.2. Serviços de Limpeza e Higienização": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.3. Apoio Administrativo e Motoristas": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.4. Recepção e Serviços Gerais": "G-2.0 Total de Serviços Terceirizados e Operacionais",
     
-    "3.1. Equipamentos e Infraestrutura de TI": "Total de Tecnologia da Informação e Comunicação",
-    "3.2. Licenças de Software, Sistemas e Nuvem": "Total de Tecnologia da Informação e Comunicação",
-    "3.3. Conectividade, Redes e Telefonia": "Total de Tecnologia da Informação e Comunicação",
+    "3.1. Equipamentos e Infraestrutura de TI": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.2. Licenças de Software, Sistemas e Nuvem": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.3. Conectividade, Redes e Telefonia": "G-3.0 Total de Tecnologia da Informação e Comunicação",
     
-    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "Total de Assistência Estudantil e RU",
-    "4.2. Bolsas de Assistência Estudantil e Permanência": "Total de Assistência Estudantil e RU",
-    "4.3. Moradia Estudantil e Apoio ao Estudante": "Total de Assistência Estudantil e RU",
+    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.2. Bolsas de Assistência Estudantil e Permanência": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.3. Moradia Estudantil e Apoio ao Estudante": "G-4.0 Total de Assistência Estudantil e RU",
     
-    "5.1. Bolsas de Graduação, Pós e Extensão": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.1. Bolsas de Graduação, Pós e Extensão": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
     
-    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "Total de Viagens, Eventos e Capacitação",
-    "6.2. Eventos Acadêmicos, Culturais e Congressos": "Total de Viagens, Eventos e Capacitação",
-    "6.3. Capacitação e Desenvolvimento de Servidores": "Total de Viagens, Eventos e Capacitação",
+    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.2. Eventos Acadêmicos, Culturais e Congressos": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.3. Capacitação e Desenvolvimento de Servidores": "G-6.0 Total de Viagens, Eventos e Capacitação",
     
-    "7.1. Aquisição de Equipamentos e Mobiliário": "Total de Equipamentos, Acervo e Logística",
-    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "Total de Equipamentos, Acervo e Logística",
-    "7.3. Frota e Combustíveis": "Total de Equipamentos, Acervo e Logística",
+    "7.1. Aquisição de Equipamentos e Mobiliário": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.3. Frota e Combustíveis": "G-7.0 Total de Equipamentos, Acervo e Logística",
     
-    "8.1. Material de Expediente e Suprimentos": "Total de Despesas Operacionais e Encargos Institucionais",
-    "8.2. Encargos Institucionais e Impostos": "Total de Despesas Operacionais e Encargos Institucionais",
-    "8.3. Outras Despesas Operacionais": "Total de Despesas Operacionais e Encargos Institucionais",
-    "Sem Classificação": "Total de Despesas Operacionais e Encargos Institucionais"
+    "8.1. Material de Expediente e Suprimentos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.2. Encargos Institucionais e Impostos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "8.3. Outras Despesas Operacionais": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
+    "Sem Classificação": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
 }
 
 UNIDADES_UFSM_PADRAO = [
@@ -639,11 +639,15 @@ if verificar_senha():
 
                         df_tot_row = pd.DataFrame([row_tot])[cols_ordem_final]
 
+                        # Exibe o cabeçalho das colunas apenas na PRIMEIRA linha do primeiro totalizador (idx_t == 0)
+                        ocultar_cabecalho = (idx_t > 0)
+
                         st.dataframe(
                             formatar_linha(df_tot_row.style),
                             column_config=column_config_map,
                             use_container_width=True,
-                            hide_index=True
+                            hide_index=True,
+                            hide_header=ocultar_cabecalho
                         )
 
                     # SUB-CONTAS DETALHADAS (EXPANDIDO)
@@ -669,10 +673,9 @@ if verificar_senha():
                                     formatar_linha(df_filhas.style),
                                     column_config=column_config_map,
                                     use_container_width=True,
-                                    hide_index=True
+                                    hide_index=True,
+                                    hide_header=True
                                 )
-
-                    st.markdown("<hr style='margin: 2px 0;'/>", unsafe_allow_html=True)
 
                 # LINHA DE TOTAL GERAL (Formatada com os mesmos pesos de coluna [0.5, 11.5])
                 row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
@@ -694,7 +697,8 @@ if verificar_senha():
                         formatar_linha(df_tot_geral.style),
                         column_config=column_config_map,
                         use_container_width=True,
-                        hide_index=True
+                        hide_index=True,
+                        hide_header=True
                     )
 
     # -----------------------------------------------------------------------------
@@ -838,7 +842,7 @@ if verificar_senha():
                         st.session_state.totalizadores.remove(tot)
                         for c_k, v_tot in list(st.session_state.mapa_contas_totalizadores.items()):
                             if v_tot == tot:
-                                st.session_state.mapa_contas_totalizadores[c_k] = "Total de Despesas Operacionais e Encargos Institucionais"
+                                st.session_state.mapa_contas_totalizadores[c_k] = "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
                         st.rerun()
 
                     if st.session_state.editando_totalizador == tot:
