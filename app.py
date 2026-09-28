@@ -17,7 +17,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Customização CSS para impressão e menu lateral
+# Customização CSS para impressão, menu lateral e botões do relatório
 st.markdown("""
     <style>
     div[data-testid="stSidebar"] button {
@@ -26,6 +26,12 @@ st.markdown("""
         height: 2.8em;
         font-weight: bold;
         margin-bottom: 4px;
+    }
+
+    /* Estilização para o botão + e - do relatório */
+    div[data-testid="stColumn"] button[kind="secondary"] {
+        padding: 0px !important;
+        line-height: 1 !important;
     }
 
     @media print {
@@ -666,9 +672,9 @@ if verificar_senha():
                     # Linha Principal do Totalizador
                     cols_row = st.columns(larguras_colunas)
                     
-                    # Coluna 0: Botão de Alternar + Nome do Totalizador
-                    c_btn, c_txt = cols_row[0].columns([0.25, 3.5])
-                    btn_symbol = "-" if is_expanded else "+"
+                    # Coluna 0: Botão de Alternar + Nome do Totalizador com ajuste visual para manter os botões bem visíveis
+                    c_btn, c_txt = cols_row[0].columns([0.35, 9.65])
+                    btn_symbol = "➖" if is_expanded else "➕"
                     if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
                         if is_expanded:
                             st.session_state.tot_expandidos_set.remove(tot)
