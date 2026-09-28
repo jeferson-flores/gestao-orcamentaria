@@ -280,6 +280,10 @@ if "dicionario_pis" not in st.session_state:
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
 
+# Controle de expansão individual dos totalizadores
+if "tot_expandidos_set" not in st.session_state:
+    st.session_state.tot_expandidos_set = set()
+
 # Controle de edição inline
 if "editando_unidade" not in st.session_state:
     st.session_state.editando_unidade = None
@@ -410,7 +414,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (EXPANSÃO INDIVIDUAL E VARIAÇÃO %)
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (EXPANSÃO BOTÃO "+" E VARIAÇÃO %)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -515,14 +519,6 @@ if verificar_senha():
                 totalizadores_lista = sorted(st.session_state.totalizadores)
                 contas_lista = sorted(st.session_state.contas_gerenciais)
 
-                # SELEÇÃO INDIVIDUAL DE TOTALIZADORES PARA EXPANDIR
-                tot_expandidos = st.multiselect(
-                    "📂 Selecione o(s) totalizador(es) que deseja expandir:",
-                    options=totalizadores_lista,
-                    default=[],
-                    placeholder="Clique aqui para escolher quais grupos expandir..."
-                )
-
                 if tipo_visao == "Mensal":
                     p0, p1, p2, p3 = periodo_sel, periodo_sel - 1, periodo_sel - 2, periodo_sel - 12
                     
@@ -573,6 +569,33 @@ if verificar_senha():
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
 
+                # BARRA SUPERIOR DE BOTÕES "+" AO LADO DE CADA TOTALIZADOR
+                c_head_tot, c_btn_exp_all = st.columns([3, 1])
+                with c_head_tot:
+                    st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+                with c_btn_exp_all:
+                    if st.button("🔄 Expandir / Recolher Todos"):
+                        if len(st.session_state.tot_expandidos_set) > 0:
+                            st.session_state.tot_expandidos_set.clear()
+                        else:
+                            st.session_state.tot_expandidos_set = set(totalizadores_lista)
+                        st.rerun()
+
+                st.caption("Clique no sinal **[ ➕ ]** ou **[ ➖ ]** ao lado do grupo correspondente para expandir ou recolher as contas subordinadas:")
+
+                # PAINEL DE EXPANSÃO INDIVIDUAL COM BOTÕES NATIVOS PARA CADA TOTALIZADOR
+                cols_b = st.columns(len(totalizadores_lista))
+                for idx_t, tot in enumerate(totalizadores_lista):
+                    is_exp = tot in st.session_state.tot_expandidos_set
+                    sinal = "➖" if is_exp else "➕"
+                    rotulo_curto = tot.split(" ")[0]
+                    if cols_b[idx_t].button(f"{sinal} {rotulo_curto}", key=f"btn_toggle_tot_{idx_t}", help=f"Expandir/Recolher {tot}"):
+                        if is_exp:
+                            st.session_state.tot_expandidos_set.remove(tot)
+                        else:
+                            st.session_state.tot_expandidos_set.add(tot)
+                        st.rerun()
+
                 # CONSTRUÇÃO DAS LINHAS
                 linhas = []
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
@@ -580,7 +603,7 @@ if verificar_senha():
                 for tot in totalizadores_lista:
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     
-                    is_expanded = tot in tot_expandidos
+                    is_expanded = tot in st.session_state.tot_expandidos_set
                     prefixo = "➖ " if is_expanded else "➕ "
                     
                     row_tot = {"Estrutura": f"{prefixo}{tot}"}
@@ -645,16 +668,14 @@ if verificar_senha():
                     styler.map(colorir_variacao, subset=list(mapeamento_var.keys()))
                     return styler
 
-                st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
-
                 # RENDERIZAÇÃO DA TABELA ESTILIZADA
                 st.dataframe(
                     formatar_tabela(df_exibicao.style),
                     use_container_width=True,
                     hide_index=True,
-                    height=500
-                )                
-                
+                    height=520
+                )
+
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
