@@ -595,13 +595,15 @@ if verificar_senha():
                 for col in mapeamento_var.keys():
                     column_config_map[col] = st.column_config.NumberColumn(col, format="%.2f%%")
 
-                def formatar_linha(styler):
+                def formatar_linha(styler, ocultar_cabecalho=False):
                     format_dict = {}
                     for col in cols_valores:
                         format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
                     for col in mapeamento_var.keys():
                         format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
                     styler.format(format_dict)
+                    if ocultar_cabecalho:
+                        styler.hide(axis="columns")
                     return styler
 
                 for idx_t, tot in enumerate(totalizadores_lista):
@@ -643,11 +645,10 @@ if verificar_senha():
                         ocultar_cabecalho = (idx_t > 0)
 
                         st.dataframe(
-                            formatar_linha(df_tot_row.style),
+                            formatar_linha(df_tot_row.style, ocultar_cabecalho=ocultar_cabecalho),
                             column_config=column_config_map,
                             use_container_width=True,
-                            hide_index=True,
-                            hide_header=ocultar_cabecalho
+                            hide_index=True
                         )
 
                     # SUB-CONTAS DETALHADAS (EXPANDIDO)
@@ -670,11 +671,10 @@ if verificar_senha():
                             with col_tabela_filha:
                                 df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
                                 st.dataframe(
-                                    formatar_linha(df_filhas.style),
+                                    formatar_linha(df_filhas.style, ocultar_cabecalho=True),
                                     column_config=column_config_map,
                                     use_container_width=True,
-                                    hide_index=True,
-                                    hide_header=True
+                                    hide_index=True
                                 )
 
                 # LINHA DE TOTAL GERAL (Formatada com os mesmos pesos de coluna [0.5, 11.5])
@@ -694,11 +694,10 @@ if verificar_senha():
                 col_espaco, col_tot_final = st.columns([0.5, 11.5])
                 with col_tot_final:
                     st.dataframe(
-                        formatar_linha(df_tot_geral.style),
+                        formatar_linha(df_tot_geral.style, ocultar_cabecalho=True),
                         column_config=column_config_map,
                         use_container_width=True,
-                        hide_index=True,
-                        hide_header=True
+                        hide_index=True
                     )
 
     # -----------------------------------------------------------------------------
