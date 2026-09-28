@@ -17,7 +17,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Customização CSS (Menu Lateral + Estilo de Impressão)
+# Customização CSS (Menu Lateral, Ajuste Fino de Tabelas/Espaçamento + Impressão)
 st.markdown("""
     <style>
     div[data-testid="stSidebar"] button {
@@ -26,6 +26,21 @@ st.markdown("""
         height: 2.8em;
         font-weight: bold;
         margin-bottom: 4px;
+    }
+
+    /* Remoção de espaços em branco e ajustes de cabeçalhos repetidos */
+    div[data-testid="stDataFrame"] {
+        margin-bottom: -1.2rem !important;
+        padding-bottom: 0px !important;
+    }
+    
+    .element-container {
+        margin-bottom: 0px !important;
+    }
+
+    /* Ocultar cabeçalho das tabelas filhas/subsequentes */
+    .sem-cabecalho div[data-testid="stDataFrame"] thead {
+        display: none !important;
     }
 
     @media print {
@@ -586,7 +601,7 @@ if verificar_senha():
                 # CÁLCULO DAS SOMAS DOS TOTALIZADORES
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                # Configuração uniforme de largura e alinhamento de colunas para o Streamlit Dataframe
+                # Configuração uniforme de largura e alinhamento de colunas
                 column_config_map = {
                     "Estrutura": st.column_config.Column("Estrutura", width="large")
                 }
@@ -595,15 +610,13 @@ if verificar_senha():
                 for col in mapeamento_var.keys():
                     column_config_map[col] = st.column_config.NumberColumn(col, format="%.2f%%")
 
-                def formatar_linha(styler, ocultar_cabecalho=False):
+                def formatar_linha(styler):
                     format_dict = {}
                     for col in cols_valores:
                         format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
                     for col in mapeamento_var.keys():
                         format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
                     styler.format(format_dict)
-                    if ocultar_cabecalho:
-                        styler.hide(axis="columns")
                     return styler
 
                 for idx_t, tot in enumerate(totalizadores_lista):
@@ -617,7 +630,6 @@ if verificar_senha():
                         val_tot_dict[col] = val_g
                         somas_totais_gerais[col] += val_g
 
-                    # ALINHAMENTO PADRONIZADO: Mesma proporção [0.5, 11.5] usada em toda a tabela
                     col_btn, col_tabela = st.columns([0.5, 11.5])
                     
                     with col_btn:
@@ -630,7 +642,6 @@ if verificar_senha():
                             st.rerun()
 
                     with col_tabela:
-                        # Montagem da linha do Totalizador
                         row_tot = {"Estrutura": tot}
                         for col in cols_valores:
                             row_tot[col] = val_tot_dict[col]
@@ -641,15 +652,23 @@ if verificar_senha():
 
                         df_tot_row = pd.DataFrame([row_tot])[cols_ordem_final]
 
-                        # Exibe o cabeçalho das colunas apenas na PRIMEIRA linha do primeiro totalizador (idx_t == 0)
-                        ocultar_cabecalho = (idx_t > 0)
-
-                        st.dataframe(
-                            formatar_linha(df_tot_row.style, ocultar_cabecalho=ocultar_cabecalho),
-                            column_config=column_config_map,
-                            use_container_width=True,
-                            hide_index=True
-                        )
+                        # Exibe o cabeçalho apenas na primeira tabela (idx_t == 0) e esconde nas demais via CSS estático
+                        if idx_t == 0:
+                            st.dataframe(
+                                formatar_linha(df_tot_row.style),
+                                column_config=column_config_map,
+                                use_container_width=True,
+                                hide_index=True
+                            )
+                        else:
+                            st.markdown('<div class="sem-cabecalho">', unsafe_allow_html=True)
+                            st.dataframe(
+                                formatar_linha(df_tot_row.style),
+                                column_config=column_config_map,
+                                use_container_width=True,
+                                hide_index=True
+                            )
+                            st.markdown('</div>', unsafe_allow_html=True)
 
                     # SUB-CONTAS DETALHADAS (EXPANDIDO)
                     if is_expanded:
@@ -666,18 +685,19 @@ if verificar_senha():
                             linhas_filhas.append(row_conta)
 
                         if linhas_filhas:
-                            # Mantém a mesma proporção [0.5, 11.5] para alinhamento uniforme
                             col_vazia, col_tabela_filha = st.columns([0.5, 11.5])
                             with col_tabela_filha:
                                 df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
+                                st.markdown('<div class="sem-cabecalho">', unsafe_allow_html=True)
                                 st.dataframe(
-                                    formatar_linha(df_filhas.style, ocultar_cabecalho=True),
+                                    formatar_linha(df_filhas.style),
                                     column_config=column_config_map,
                                     use_container_width=True,
                                     hide_index=True
                                 )
+                                st.markdown('</div>', unsafe_allow_html=True)
 
-                # LINHA DE TOTAL GERAL (Formatada com os mesmos pesos de coluna [0.5, 11.5])
+                # LINHA DE TOTAL GERAL
                 row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
                 for col in cols_valores:
                     row_tot_geral[col] = somas_totais_gerais[col]
@@ -690,15 +710,16 @@ if verificar_senha():
                 
                 st.subheader("🏁 Consolidação Final")
                 
-                # Coluna invisível à esquerda para espelhar a proporção dos botões dos totalizadores [0.5, 11.5]
                 col_espaco, col_tot_final = st.columns([0.5, 11.5])
                 with col_tot_final:
+                    st.markdown('<div class="sem-cabecalho">', unsafe_allow_html=True)
                     st.dataframe(
-                        formatar_linha(df_tot_geral.style, ocultar_cabecalho=True),
+                        formatar_linha(df_tot_geral.style),
                         column_config=column_config_map,
                         use_container_width=True,
                         hide_index=True
                     )
+                    st.markdown('</div>', unsafe_allow_html=True)
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
