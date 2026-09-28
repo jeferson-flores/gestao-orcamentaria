@@ -413,8 +413,8 @@ if verificar_senha():
                 st.session_state.dados_tg_raw = None
                 st.rerun()
 
-    # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (UNIFICADO SEM REPETIÇÃO DE CABEÇALHOS)
+# -----------------------------------------------------------------------------
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (COM BOTÕES INDIVIDUAIS E SEM BUG DE LOOP)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -541,7 +541,8 @@ if verificar_senha():
                     s3 = df3.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
                     cols_valores = [lbl_0, lbl_1, lbl_2, lbl_3]
-                    cols_ordem_final = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
+                    cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
+                    larguras_colunas = [3.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2, lbl_3: s3}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2), var_3_str: (lbl_0, lbl_3)}
 
@@ -565,26 +566,16 @@ if verificar_senha():
                     s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
                     cols_valores = [lbl_0, lbl_1, lbl_2]
-                    cols_ordem_final = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
+                    cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
+                    larguras_colunas = [3.5, 1.5, 1.5, 1.5, 1.5, 1.5]
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
 
-                # CONTROLE DE EXPANSÃO INTERATIVA
-                st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
-                
-                c_sel_tot_exp, c_btn_exp_all = st.columns([3, 1])
-                with c_sel_tot_exp:
-                    opcoes_exp = ["Nenhum"] + totalizadores_lista
-                    tot_selecionado_toggle = st.selectbox("📂 Expandir/Recolher Grupo na Linha:", opcoes_exp, key="sel_toggle_tot")
-                    if tot_selecionado_toggle != "Nenhum":
-                        if tot_selecionado_toggle in st.session_state.tot_expandidos_set:
-                            st.session_state.tot_expandidos_set.remove(tot_selecionado_toggle)
-                        else:
-                            st.session_state.tot_expandidos_set.add(tot_selecionado_toggle)
-                        st.rerun()
-
+                # CONTROLE GERAL DE EXPANSÃO (TODOS)
+                c_lbl_tit, c_btn_exp_all = st.columns([4, 1])
+                with c_lbl_tit:
+                    st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
                 with c_btn_exp_all:
-                    st.write(" ")
                     if st.button("🔄 Expandir / Recolher Todos", use_container_width=True):
                         if len(st.session_state.tot_expandidos_set) > 0:
                             st.session_state.tot_expandidos_set.clear()
@@ -592,86 +583,144 @@ if verificar_senha():
                             st.session_state.tot_expandidos_set = set(totalizadores_lista)
                         st.rerun()
 
-                st.markdown("---")
+                # ESTILIZAÇÃO CSS DA TABELA NATIVA
+                st.markdown("""
+                    <style>
+                    .row-totalizador {
+                        background-color: #f0f4f8;
+                        font-weight: bold;
+                        border-top: 1px solid #cbd5e1;
+                        border-bottom: 1px solid #cbd5e1;
+                        padding: 6px 0px;
+                        display: flex;
+                        align-items: center;
+                    }
+                    .row-subconta {
+                        background-color: #ffffff;
+                        border-bottom: 1px dashed #e2e8f0;
+                        padding: 4px 0px;
+                        display: flex;
+                        align-items: center;
+                        font-size: 14px;
+                    }
+                    .row-total-geral {
+                        background-color: #003366;
+                        color: white;
+                        font-weight: bold;
+                        padding: 8px 0px;
+                        border-radius: 4px;
+                        margin-top: 8px;
+                    }
+                    div[data-testid="stColumn"] {
+                        padding: 0px 4px !important;
+                    }
+                    </style>
+                """, unsafe_allow_html=True)
 
-                # MONTAGEM DA MATRIZ UNIFICADA DO RELATÓRIO
-                linhas_relatorio = []
+                # RENDERIZAÇÃO DO CABEÇALHO ÚNICO DA TABELA
+                c_hd = st.columns(larguras_colunas)
+                for idx, col_nome in enumerate(cols_cabecalho):
+                    align = "left" if idx == 0 else "right"
+                    c_hd[idx].markdown(f"<div style='text-align: {align}; font-weight: bold; color: #475569; font-size: 13px;'>{col_nome}</div>", unsafe_allow_html=True)
+
+                st.markdown("<hr style='margin: 4px 0px 8px 0px;'>", unsafe_allow_html=True)
+
+                def fmt_moeda(v):
+                    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+                def fmt_percent(v):
+                    if v == 0: return "0,00%"
+                    return f"{v:+.2f}%".replace(".", ",")
+
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                for tot in totalizadores_lista:
+                # RENDERIZAÇÃO LINHA A LINHA (COM BOTÕES INDIVIDUAIS DO LADO DO TOTALIZADOR)
+                for i_tot, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     is_expanded = tot in st.session_state.tot_expandidos_set
 
-                    sinal = "[-] " if is_expanded else "[+] "
-                    row_tot = {"Estrutura Gerencial / Grupo": f"{sinal}{tot}"}
-
+                    # Cálculo das métricas do totalizador
                     val_tot_dict = {}
                     for col in cols_valores:
                         val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
                         val_tot_dict[col] = val_g
-                        row_tot[col] = val_g
                         somas_totais_gerais[col] += val_g
 
+                    vars_tot_dict = {}
                     for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                        base = row_tot[v_ant]
-                        row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+                        base = val_tot_dict[v_ant]
+                        vars_tot_dict[col_var] = ((val_tot_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                    linhas_relatorio.append(row_tot)
+                    # Linha Principal do Totalizador
+                    cols_row = st.columns(larguras_colunas)
+                    
+                    # Coluna 0: Botão de Alternar + Nome do Totalizador
+                    c_btn, c_txt = cols_row[0].columns([0.25, 3.5])
+                    btn_symbol = "➖" if is_expanded else "➕"
+                    if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
+                        if is_expanded:
+                            st.session_state.tot_expandidos_set.remove(tot)
+                        else:
+                            st.session_state.tot_expandidos_set.add(tot)
+                        st.rerun()
 
-                    # Sub-contas alinhadas com recuo (sem criação de novos cabeçalhos)
+                    c_txt.markdown(f"<div style='font-weight: bold; margin-top: 4px;'>{tot}</div>", unsafe_allow_html=True)
+
+                    # Colunas de Valores do Totalizador
+                    idx_col = 1
+                    for col in cols_cabecalho[1:]:
+                        if col in cols_valores:
+                            val_str = fmt_moeda(val_tot_dict[col])
+                        else:
+                            val_str = fmt_percent(vars_tot_dict[col])
+                        
+                        cols_row[idx_col].markdown(f"<div style='text-align: right; font-weight: bold; margin-top: 4px;'>{val_str}</div>", unsafe_allow_html=True)
+                        idx_col += 1
+
+                    # Linhas das Subcontas (Caso esteja expandido)
                     if is_expanded:
-                        for c in contas_do_tot:
-                            row_conta = {"Estrutura Gerencial / Grupo": f"      ↳ {c}"}
-                            for col in cols_valores:
-                                row_conta[col] = dict_somas[col].get(c, 0.0)
+                        for conta in contas_do_tot:
+                            cols_sub = st.columns(larguras_colunas)
+                            cols_sub[0].markdown(f"<div style='padding-left: 28px; color: #334155;'>↳ {conta}</div>", unsafe_allow_html=True)
 
+                            # Valores da Subconta
+                            val_sub_dict = {col: dict_somas[col].get(conta, 0.0) for col in cols_valores}
+                            vars_sub_dict = {}
                             for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                                base = row_conta[v_ant]
-                                row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+                                base = val_sub_dict[v_ant]
+                                vars_sub_dict[col_var] = ((val_sub_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                            linhas_relatorio.append(row_conta)
+                            idx_col_sub = 1
+                            for col in cols_cabecalho[1:]:
+                                if col in cols_valores:
+                                    v_str = fmt_moeda(val_sub_dict[col])
+                                else:
+                                    v_str = fmt_percent(vars_sub_dict[col])
+                                
+                                cols_sub[idx_col_sub].markdown(f"<div style='text-align: right; color: #475569;'>{v_str}</div>", unsafe_allow_html=True)
+                                idx_col_sub += 1
+
+                    st.markdown("<div style='border-bottom: 1px solid #e2e8f0; margin: 2px 0;'></div>", unsafe_allow_html=True)
 
                 # LINHA DE TOTAL GERAL
-                row_tot_geral = {"Estrutura Gerencial / Grupo": "TOTAL GERAL DO RELATÓRIO"}
-                for col in cols_valores:
-                    row_tot_geral[col] = somas_totais_gerais[col]
+                cols_tot_g = st.columns(larguras_colunas)
+                cols_tot_g[0].markdown("<div style='font-weight: bold; color: #003366; font-size: 15px;'>TOTAL GERAL DO RELATÓRIO</div>", unsafe_allow_html=True)
 
+                vars_gerais_dict = {}
                 for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                    base = row_tot_geral[v_ant]
-                    row_tot_geral[col_var] = ((row_tot_geral[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+                    base = somas_totais_gerais[v_ant]
+                    vars_gerais_dict[col_var] = ((somas_totais_gerais[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                linhas_relatorio.append(row_tot_geral)
-
-                # CRIAÇÃO DO DATAFRAME UNIFICADO
-                df_relatorio_final = pd.DataFrame(linhas_relatorio)[cols_ordem_final]
-
-                # FORMATAÇÃO DAS COLUNAS
-                column_config_map = {
-                    "Estrutura Gerencial / Grupo": st.column_config.Column("Estrutura Gerencial / Grupo", width="large")
-                }
-                for col in cols_valores:
-                    column_config_map[col] = st.column_config.NumberColumn(col, format="R$ %,.2f")
-                for col in mapeamento_var.keys():
-                    column_config_map[col] = st.column_config.NumberColumn(col, format="%.2f%%")
-
-                def aplicar_formatacao(styler):
-                    format_dict = {}
-                    for col in cols_valores:
-                        format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                    for col in mapeamento_var.keys():
-                        format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
-                    styler.format(format_dict)
-                    return styler
-
-                # RENDERIZAÇÃO EM TABELA ÚNICA CONTINUA
-                st.dataframe(
-                    aplicar_formatacao(df_relatorio_final.style),
-                    column_config=column_config_map,
-                    use_container_width=True,
-                    hide_index=True,
-                    height=38 * len(df_relatorio_final) + 38
-                )
-
+                idx_col_g = 1
+                for col in cols_cabecalho[1:]:
+                    if col in cols_valores:
+                        v_g_str = fmt_moeda(somas_totais_gerais[col])
+                    else:
+                        v_g_str = fmt_percent(vars_gerais_dict[col])
+                    
+                    cols_tot_g[idx_col_g].markdown(f"<div style='text-align: right; font-weight: bold; color: #003366; font-size: 15px;'>{v_g_str}</div>", unsafe_allow_html=True)
+                    idx_col_g += 1
+                    
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
