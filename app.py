@@ -77,14 +77,14 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 
 TOTALIZADORES_PADRAO = [
-    "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "G-4.0 Total de Assistência Estudantil e RU",
-    "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+    "Total de Infraestrutura e Manutenção Predial",
+    "Total de Serviços Terceirizados e Operacionais",
+    "Total de Tecnologia da Informação e Comunicação",
+    "Total de Assistência Estudantil e RU",
+    "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "Total de Viagens, Eventos e Capacitação",
+    "Total de Equipamentos, Acervo e Logística",
+    "Total de Despesas Operacionais e Encargos Institucionais"
 ]
 
 PLANO_CONTAS_PADRAO = [
@@ -119,41 +119,41 @@ PLANO_CONTAS_PADRAO = [
 ]
 
 MAPA_CONTAS_TOTALIZADORES_PADRAO = {
-    "1.1. Obras, Reformas e Adequações": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.2. Concessionárias (Energia, Água, Gás)": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.3. Manutenção Predial e Conservação": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "G-1.0 Total de Infraestrutura e Manutenção Predial",
+    "1.1. Obras, Reformas e Adequações": "Total de Infraestrutura e Manutenção Predial",
+    "1.2. Concessionárias (Energia, Água, Gás)": "Total de Infraestrutura e Manutenção Predial",
+    "1.3. Manutenção Predial e Conservação": "Total de Infraestrutura e Manutenção Predial",
+    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "Total de Infraestrutura e Manutenção Predial",
     
-    "2.1. Serviços de Vigilância e Portaria": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.2. Serviços de Limpeza e Higienização": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.3. Apoio Administrativo e Motoristas": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.4. Recepção e Serviços Gerais": "G-2.0 Total de Serviços Terceirizados e Operacionais",
+    "2.1. Serviços de Vigilância e Portaria": "Total de Serviços Terceirizados e Operacionais",
+    "2.2. Serviços de Limpeza e Higienização": "Total de Serviços Terceirizados e Operacionais",
+    "2.3. Apoio Administrativo e Motoristas": "Total de Serviços Terceirizados e Operacionais",
+    "2.4. Recepção e Serviços Gerais": "Total de Serviços Terceirizados e Operacionais",
     
-    "3.1. Equipamentos e Infraestrutura de TI": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "3.2. Licenças de Software, Sistemas e Nuvem": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "3.3. Conectividade, Redes e Telefonia": "G-3.0 Total de Tecnologia da Informação e Comunicação",
+    "3.1. Equipamentos e Infraestrutura de TI": "Total de Tecnologia da Informação e Comunicação",
+    "3.2. Licenças de Software, Sistemas e Nuvem": "Total de Tecnologia da Informação e Comunicação",
+    "3.3. Conectividade, Redes e Telefonia": "Total de Tecnologia da Informação e Comunicação",
     
-    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "G-4.0 Total de Assistência Estudantil e RU",
-    "4.2. Bolsas de Assistência Estudantil e Permanência": "G-4.0 Total de Assistência Estudantil e RU",
-    "4.3. Moradia Estudantil e Apoio ao Estudante": "G-4.0 Total de Assistência Estudantil e RU",
+    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "Total de Assistência Estudantil e RU",
+    "4.2. Bolsas de Assistência Estudantil e Permanência": "Total de Assistência Estudantil e RU",
+    "4.3. Moradia Estudantil e Apoio ao Estudante": "Total de Assistência Estudantil e RU",
     
-    "5.1. Bolsas de Graduação, Pós e Extensão": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.1. Bolsas de Graduação, Pós e Extensão": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
+    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
     
-    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "6.2. Eventos Acadêmicos, Culturais e Congressos": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "6.3. Capacitação e Desenvolvimento de Servidores": "G-6.0 Total de Viagens, Eventos e Capacitação",
+    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "Total de Viagens, Eventos e Capacitação",
+    "6.2. Eventos Acadêmicos, Culturais e Congressos": "Total de Viagens, Eventos e Capacitação",
+    "6.3. Capacitação e Desenvolvimento de Servidores": "Total de Viagens, Eventos e Capacitação",
     
-    "7.1. Aquisição de Equipamentos e Mobiliário": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "7.3. Frota e Combustíveis": "G-7.0 Total de Equipamentos, Acervo e Logística",
+    "7.1. Aquisição de Equipamentos e Mobiliário": "Total de Equipamentos, Acervo e Logística",
+    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "Total de Equipamentos, Acervo e Logística",
+    "7.3. Frota e Combustíveis": "Total de Equipamentos, Acervo e Logística",
     
-    "8.1. Material de Expediente e Suprimentos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "8.2. Encargos Institucionais e Impostos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "8.3. Outras Despesas Operacionais": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "Sem Classificação": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+    "8.1. Material de Expediente e Suprimentos": "Total de Despesas Operacionais e Encargos Institucionais",
+    "8.2. Encargos Institucionais e Impostos": "Total de Despesas Operacionais e Encargos Institucionais",
+    "8.3. Outras Despesas Operacionais": "Total de Despesas Operacionais e Encargos Institucionais",
+    "Sem Classificação": "Total de Despesas Operacionais e Encargos Institucionais"
 }
 
 UNIDADES_UFSM_PADRAO = [
@@ -569,60 +569,82 @@ if verificar_senha():
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
 
-                # BARRA SUPERIOR DE BOTÕES "+" AO LADO DE CADA TOTALIZADOR
+                # CABEÇALHO DO DEMONSTRATIVO FINANCEIRO
                 c_head_tot, c_btn_exp_all = st.columns([3, 1])
                 with c_head_tot:
                     st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
                 with c_btn_exp_all:
-                    if st.button("🔄 Expandir / Recolher Todos"):
+                    if st.button("🔄 Expandir / Recolher Todos", use_container_width=True):
                         if len(st.session_state.tot_expandidos_set) > 0:
                             st.session_state.tot_expandidos_set.clear()
                         else:
                             st.session_state.tot_expandidos_set = set(totalizadores_lista)
                         st.rerun()
 
-                st.caption("Clique no sinal **[ ➕ ]** ou **[ ➖ ]** ao lado do grupo correspondente para expandir ou recolher as contas subordinadas:")
+                st.markdown("---")
 
-                # PAINEL DE EXPANSÃO INDIVIDUAL COM BOTÕES NATIVOS PARA CADA TOTALIZADOR
-                cols_b = st.columns(len(totalizadores_lista))
-                for idx_t, tot in enumerate(totalizadores_lista):
-                    is_exp = tot in st.session_state.tot_expandidos_set
-                    sinal = "➖" if is_exp else "➕"
-                    rotulo_curto = tot.split(" ")[0]
-                    if cols_b[idx_t].button(f"{sinal} {rotulo_curto}", key=f"btn_toggle_tot_{idx_t}", help=f"Expandir/Recolher {tot}"):
-                        if is_exp:
-                            st.session_state.tot_expandidos_set.remove(tot)
-                        else:
-                            st.session_state.tot_expandidos_set.add(tot)
-                        st.rerun()
-
-                # CONSTRUÇÃO DAS LINHAS
-                linhas = []
+                # CÁLCULO DAS SOMAS DOS TOTALIZADORES
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                for tot in totalizadores_lista:
+                for idx_t, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                    
                     is_expanded = tot in st.session_state.tot_expandidos_set
-                    prefixo = "➖ " if is_expanded else "➕ "
-                    
-                    row_tot = {"Estrutura": f"{prefixo}{tot}"}
+
+                    # Cálculos das somas do totalizador
+                    val_tot_dict = {}
                     for col in cols_valores:
                         val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
-                        row_tot[col] = val_g
+                        val_tot_dict[col] = val_g
                         somas_totais_gerais[col] += val_g
 
-                    # Calcula as Variações % do Totalizador
+                    # RENDERIZAÇÃO DA LINHA DO TOTALIZADOR COM BOTÃO ALINHADO
+                    col_btn, col_nome, col_dados = st.columns([0.4, 3.6, 8])
+                    
+                    with col_btn:
+                        sinal = "-" if is_expanded else "+"
+                        if st.button(sinal, key=f"btn_toggle_tot_line_{idx_t}", help=f"{'Recolher' if is_expanded else 'Expandir'} {tot}"):
+                            if is_expanded:
+                                st.session_state.tot_expandidos_set.remove(tot)
+                            else:
+                                st.session_state.tot_expandidos_set.add(tot)
+                            st.rerun()
+
+                    with col_nome:
+                        st.markdown(f"**{tot}**")
+
+                    # Montagem da mini tabela de valores para o Totalizador
+                    row_tot = {"Estrutura": tot}
+                    for col in cols_valores:
+                        row_tot[col] = val_tot_dict[col]
+
                     for col_var, (v_atual, v_ant) in mapeamento_var.items():
                         base = row_tot[v_ant]
                         row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                    linhas.append(row_tot)
+                    df_tot_row = pd.DataFrame([row_tot])[cols_ordem_final]
 
-                    # Se o totalizador estiver expandido, insere as contas filhas
+                    with col_dados:
+                        # Formatação visual
+                        def formatar_linha(styler):
+                            format_dict = {}
+                            for col in cols_valores:
+                                format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                            for col in mapeamento_var.keys():
+                                format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
+                            styler.format(format_dict)
+                            return styler
+
+                        st.dataframe(
+                            formatar_linha(df_tot_row.style),
+                            use_container_width=True,
+                            hide_index=True
+                        )
+
+                    # SUB-CONTAS (EXIBIDAS APENAS SE EXPANDIDO)
                     if is_expanded:
+                        linhas_filhas = []
                         for c in contas_do_tot:
-                            row_conta = {"Estrutura": f"      {c}"}
+                            row_conta = {"Estrutura": c}
                             for col in cols_valores:
                                 row_conta[col] = dict_somas[col].get(c, 0.0)
 
@@ -630,7 +652,19 @@ if verificar_senha():
                                 base = row_conta[v_ant]
                                 row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                            linhas.append(row_conta)
+                            linhas_filhas.append(row_conta)
+
+                        if linhas_filhas:
+                            df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
+                            _, col_indent_filhas = st.columns([0.4, 11.6])
+                            with col_indent_filhas:
+                                st.dataframe(
+                                    formatar_linha(df_filhas.style),
+                                    use_container_width=True,
+                                    hide_index=True
+                                )
+
+                    st.markdown("<hr style='margin: 4px 0;'/>", unsafe_allow_html=True)
 
                 # LINHA DE TOTAL GERAL
                 row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
@@ -641,39 +675,13 @@ if verificar_senha():
                     base = row_tot_geral[v_ant]
                     row_tot_geral[col_var] = ((row_tot_geral[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                linhas.append(row_tot_geral)
-
-                df_exibicao = pd.DataFrame(linhas)[cols_ordem_final]
-
-                # FORMATAÇÃO VISUAL E ESTILIZAÇÃO DE CORES DAS VARIAÇÕES %
-                def formatar_tabela(styler):
-                    # Formatação de Números
-                    format_dict = {}
-                    for col in cols_valores:
-                        format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-                    for col in mapeamento_var.keys():
-                        format_dict[col] = lambda v: f"{v:+.2f}%".replace(".", ",") if v != 0 else "0,00%"
-
-                    styler.format(format_dict)
-
-                    # Função de cor para Variação Percentual
-                    def colorir_variacao(val):
-                        if isinstance(val, (int, float)):
-                            if val > 0.01:
-                                return 'color: #2e7d32; font-weight: bold; background-color: #e8f5e9' # Verde
-                            elif val < -0.01:
-                                return 'color: #c62828; font-weight: bold; background-color: #ffebee' # Vermelho
-                        return 'color: #666666;' # Neutro/Cinza
-
-                    styler.map(colorir_variacao, subset=list(mapeamento_var.keys()))
-                    return styler
-
-                # RENDERIZAÇÃO DA TABELA ESTILIZADA
+                df_tot_geral = pd.DataFrame([row_tot_geral])[cols_ordem_final]
+                
+                st.subheader("🏁 Consolidação Final")
                 st.dataframe(
-                    formatar_tabela(df_exibicao.style),
+                    formatar_linha(df_tot_geral.style),
                     use_container_width=True,
-                    hide_index=True,
-                    height=520
+                    hide_index=True
                 )
 
     # -----------------------------------------------------------------------------
@@ -817,7 +825,7 @@ if verificar_senha():
                         st.session_state.totalizadores.remove(tot)
                         for c_k, v_tot in list(st.session_state.mapa_contas_totalizadores.items()):
                             if v_tot == tot:
-                                st.session_state.mapa_contas_totalizadores[c_k] = "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
+                                st.session_state.mapa_contas_totalizadores[c_k] = "Total de Despesas Operacionais e Encargos Institucionais"
                         st.rerun()
 
                     if st.session_state.editando_totalizador == tot:
