@@ -344,12 +344,17 @@ if verificar_senha():
 
     st.sidebar.markdown("---")
 
-    # MÓDULOS DE OPERAÇÃO E CONSULTA
+    # MÓDULOS DE OPERAÇÃO E CARGA
     if st.sidebar.button("📁 1. Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
-    if st.sidebar.button("📊 2. Relatório Executivo", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+    st.sidebar.markdown("---")
+
+    # SEÇÃO DE RELATÓRIOS
+    st.sidebar.subheader("📊 Relatórios")
+
+    if st.sidebar.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
         st.session_state.pagina_atual = "relatorio"
         st.rerun()
 
@@ -413,8 +418,8 @@ if verificar_senha():
                 st.session_state.dados_tg_raw = None
                 st.rerun()
 
-# -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO (COM BOTÕES INDIVIDUAIS E SEM BUG DE LOOP)
+    # -----------------------------------------------------------------------------
+    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -427,7 +432,7 @@ if verificar_senha():
             st.markdown(f"""
                 <div class="titulo-impressao">
                     <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
-                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - RELATÓRIO EXECUTIVO ORÇAMENTÁRIO</h4>
+                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - EXECUÇÃO ORÇAMENTÁRIA</h4>
                     <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
                 </div>
             """, unsafe_allow_html=True)
@@ -574,7 +579,7 @@ if verificar_senha():
                 # CONTROLE GERAL DE EXPANSÃO (TODOS)
                 c_lbl_tit, c_btn_exp_all = st.columns([4, 1])
                 with c_lbl_tit:
-                    st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+                    st.subheader(f"📋 Execução Orçamentária Comparativa ({tipo_visao})")
                 with c_btn_exp_all:
                     if st.button("🔄 Expandir / Recolher Todos", use_container_width=True):
                         if len(st.session_state.tot_expandidos_set) > 0:
@@ -628,13 +633,20 @@ if verificar_senha():
                 def fmt_moeda(v):
                     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-                def fmt_percent(v):
-                    if v == 0: return "0,00%"
-                    return f"{v:+.2f}%".replace(".", ",")
+                def fmt_percent_html(v):
+                    if v == 0:
+                        color = "#64748b" # Cinza neutro
+                    elif v > 0:
+                        color = "#dc2626" # Vermelho para aumento de despesa
+                    else:
+                        color = "#2563eb" # Azul para redução de despesa
+                    
+                    val_str = f"{v:+.2f}%".replace(".", ",")
+                    return f"<span style='color: {color}; font-weight: bold;'>{val_str}</span>"
 
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                # RENDERIZAÇÃO LINHA A LINHA (COM BOTÕES INDIVIDUAIS DO LADO DO TOTALIZADOR)
+                # RENDERIZAÇÃO LINHA A LINHA
                 for i_tot, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     is_expanded = tot in st.session_state.tot_expandidos_set
@@ -656,7 +668,7 @@ if verificar_senha():
                     
                     # Coluna 0: Botão de Alternar + Nome do Totalizador
                     c_btn, c_txt = cols_row[0].columns([0.25, 3.5])
-                    btn_symbol = "➖" if is_expanded else "➕"
+                    btn_symbol = "-" if is_expanded else "+"
                     if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
                         if is_expanded:
                             st.session_state.tot_expandidos_set.remove(tot)
@@ -672,7 +684,7 @@ if verificar_senha():
                         if col in cols_valores:
                             val_str = fmt_moeda(val_tot_dict[col])
                         else:
-                            val_str = fmt_percent(vars_tot_dict[col])
+                            val_str = fmt_percent_html(vars_tot_dict[col])
                         
                         cols_row[idx_col].markdown(f"<div style='text-align: right; font-weight: bold; margin-top: 4px;'>{val_str}</div>", unsafe_allow_html=True)
                         idx_col += 1
@@ -695,7 +707,7 @@ if verificar_senha():
                                 if col in cols_valores:
                                     v_str = fmt_moeda(val_sub_dict[col])
                                 else:
-                                    v_str = fmt_percent(vars_sub_dict[col])
+                                    v_str = fmt_percent_html(vars_sub_dict[col])
                                 
                                 cols_sub[idx_col_sub].markdown(f"<div style='text-align: right; color: #475569;'>{v_str}</div>", unsafe_allow_html=True)
                                 idx_col_sub += 1
@@ -716,7 +728,7 @@ if verificar_senha():
                     if col in cols_valores:
                         v_g_str = fmt_moeda(somas_totais_gerais[col])
                     else:
-                        v_g_str = fmt_percent(vars_gerais_dict[col])
+                        v_g_str = fmt_percent_html(vars_gerais_dict[col])
                     
                     cols_tot_g[idx_col_g].markdown(f"<div style='text-align: right; font-weight: bold; color: #003366; font-size: 15px;'>{v_g_str}</div>", unsafe_allow_html=True)
                     idx_col_g += 1
