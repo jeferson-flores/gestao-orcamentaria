@@ -17,7 +17,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Customização CSS (Menu Lateral, Ajuste Fino de Tabelas/Espaçamento + Impressão)
+# Customização CSS para impressão e menu lateral
 st.markdown("""
     <style>
     div[data-testid="stSidebar"] button {
@@ -26,21 +26,6 @@ st.markdown("""
         height: 2.8em;
         font-weight: bold;
         margin-bottom: 4px;
-    }
-
-    /* Remoção de espaços em branco e ajustes de cabeçalhos repetidos */
-    div[data-testid="stDataFrame"] {
-        margin-bottom: -1.2rem !important;
-        padding-bottom: 0px !important;
-    }
-    
-    .element-container {
-        margin-bottom: 0px !important;
-    }
-
-    /* Ocultar cabeçalho das tabelas filhas/subsequentes */
-    .sem-cabecalho div[data-testid="stDataFrame"] thead {
-        display: none !important;
     }
 
     @media print {
@@ -429,7 +414,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO EXECUTIVO
+    # PÁGINA 2: RELATÓRIO EXECUTIVO (UNIFICADO SEM REPETIÇÃO DE CABEÇALHOS)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -556,7 +541,7 @@ if verificar_senha():
                     s3 = df3.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
                     cols_valores = [lbl_0, lbl_1, lbl_2, lbl_3]
-                    cols_ordem_final = ["Estrutura", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
+                    cols_ordem_final = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2, lbl_3: s3}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2), var_3_str: (lbl_0, lbl_3)}
 
@@ -580,15 +565,26 @@ if verificar_senha():
                     s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
                     cols_valores = [lbl_0, lbl_1, lbl_2]
-                    cols_ordem_final = ["Estrutura", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
+                    cols_ordem_final = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
 
-                # CABEÇALHO DO DEMONSTRATIVO FINANCEIRO
-                c_head_tot, c_btn_exp_all = st.columns([3, 1])
-                with c_head_tot:
-                    st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+                # CONTROLE DE EXPANSÃO INTERATIVA
+                st.subheader(f"📋 Demonstrativo Financeiro Comparativo ({tipo_visao})")
+                
+                c_sel_tot_exp, c_btn_exp_all = st.columns([3, 1])
+                with c_sel_tot_exp:
+                    opcoes_exp = ["Nenhum"] + totalizadores_lista
+                    tot_selecionado_toggle = st.selectbox("📂 Expandir/Recolher Grupo na Linha:", opcoes_exp, key="sel_toggle_tot")
+                    if tot_selecionado_toggle != "Nenhum":
+                        if tot_selecionado_toggle in st.session_state.tot_expandidos_set:
+                            st.session_state.tot_expandidos_set.remove(tot_selecionado_toggle)
+                        else:
+                            st.session_state.tot_expandidos_set.add(tot_selecionado_toggle)
+                        st.rerun()
+
                 with c_btn_exp_all:
+                    st.write(" ")
                     if st.button("🔄 Expandir / Recolher Todos", use_container_width=True):
                         if len(st.session_state.tot_expandidos_set) > 0:
                             st.session_state.tot_expandidos_set.clear()
@@ -598,19 +594,67 @@ if verificar_senha():
 
                 st.markdown("---")
 
-                # CÁLCULO DAS SOMAS DOS TOTALIZADORES
+                # MONTAGEM DA MATRIZ UNIFICADA DO RELATÓRIO
+                linhas_relatorio = []
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                # Configuração uniforme de largura e alinhamento de colunas
+                for tot in totalizadores_lista:
+                    contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
+                    is_expanded = tot in st.session_state.tot_expandidos_set
+
+                    sinal = "[-] " if is_expanded else "[+] "
+                    row_tot = {"Estrutura Gerencial / Grupo": f"{sinal}{tot}"}
+
+                    val_tot_dict = {}
+                    for col in cols_valores:
+                        val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
+                        val_tot_dict[col] = val_g
+                        row_tot[col] = val_g
+                        somas_totais_gerais[col] += val_g
+
+                    for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                        base = row_tot[v_ant]
+                        row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
+                    linhas_relatorio.append(row_tot)
+
+                    # Sub-contas alinhadas com recuo (sem criação de novos cabeçalhos)
+                    if is_expanded:
+                        for c in contas_do_tot:
+                            row_conta = {"Estrutura Gerencial / Grupo": f"      ↳ {c}"}
+                            for col in cols_valores:
+                                row_conta[col] = dict_somas[col].get(c, 0.0)
+
+                            for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                                base = row_conta[v_ant]
+                                row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
+                            linhas_relatorio.append(row_conta)
+
+                # LINHA DE TOTAL GERAL
+                row_tot_geral = {"Estrutura Gerencial / Grupo": "TOTAL GERAL DO RELATÓRIO"}
+                for col in cols_valores:
+                    row_tot_geral[col] = somas_totais_gerais[col]
+
+                for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                    base = row_tot_geral[v_ant]
+                    row_tot_geral[col_var] = ((row_tot_geral[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
+                linhas_relatorio.append(row_tot_geral)
+
+                # CRIAÇÃO DO DATAFRAME UNIFICADO
+                df_relatorio_final = pd.DataFrame(linhas_relatorio)[cols_ordem_final]
+
+                # FORMATAÇÃO DAS COLUNAS
                 column_config_map = {
-                    "Estrutura": st.column_config.Column("Estrutura", width="large")
+                    "Estrutura Gerencial / Grupo": st.column_config.Column("Estrutura Gerencial / Grupo", width="large")
                 }
                 for col in cols_valores:
                     column_config_map[col] = st.column_config.NumberColumn(col, format="R$ %,.2f")
                 for col in mapeamento_var.keys():
                     column_config_map[col] = st.column_config.NumberColumn(col, format="%.2f%%")
 
-                def formatar_linha(styler):
+                def aplicar_formatacao(styler):
                     format_dict = {}
                     for col in cols_valores:
                         format_dict[col] = lambda v: f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -619,107 +663,14 @@ if verificar_senha():
                     styler.format(format_dict)
                     return styler
 
-                for idx_t, tot in enumerate(totalizadores_lista):
-                    contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                    is_expanded = tot in st.session_state.tot_expandidos_set
-
-                    # Cálculos das somas do totalizador
-                    val_tot_dict = {}
-                    for col in cols_valores:
-                        val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
-                        val_tot_dict[col] = val_g
-                        somas_totais_gerais[col] += val_g
-
-                    col_btn, col_tabela = st.columns([0.5, 11.5])
-                    
-                    with col_btn:
-                        sinal = "➖" if is_expanded else "➕"
-                        if st.button(sinal, key=f"btn_toggle_tot_line_{idx_t}", help=f"{'Recolher' if is_expanded else 'Expandir'} {tot}"):
-                            if is_expanded:
-                                st.session_state.tot_expandidos_set.remove(tot)
-                            else:
-                                st.session_state.tot_expandidos_set.add(tot)
-                            st.rerun()
-
-                    with col_tabela:
-                        row_tot = {"Estrutura": tot}
-                        for col in cols_valores:
-                            row_tot[col] = val_tot_dict[col]
-
-                        for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                            base = row_tot[v_ant]
-                            row_tot[col_var] = ((row_tot[v_atual] - base) / base * 100.0) if base > 0 else 0.0
-
-                        df_tot_row = pd.DataFrame([row_tot])[cols_ordem_final]
-
-                        # Exibe o cabeçalho apenas na primeira tabela (idx_t == 0) e esconde nas demais via CSS estático
-                        if idx_t == 0:
-                            st.dataframe(
-                                formatar_linha(df_tot_row.style),
-                                column_config=column_config_map,
-                                use_container_width=True,
-                                hide_index=True
-                            )
-                        else:
-                            st.markdown('<div class="sem-cabecalho">', unsafe_allow_html=True)
-                            st.dataframe(
-                                formatar_linha(df_tot_row.style),
-                                column_config=column_config_map,
-                                use_container_width=True,
-                                hide_index=True
-                            )
-                            st.markdown('</div>', unsafe_allow_html=True)
-
-                    # SUB-CONTAS DETALHADAS (EXPANDIDO)
-                    if is_expanded:
-                        linhas_filhas = []
-                        for c in contas_do_tot:
-                            row_conta = {"Estrutura": f"↳ {c}"}
-                            for col in cols_valores:
-                                row_conta[col] = dict_somas[col].get(c, 0.0)
-
-                            for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                                base = row_conta[v_ant]
-                                row_conta[col_var] = ((row_conta[v_atual] - base) / base * 100.0) if base > 0 else 0.0
-
-                            linhas_filhas.append(row_conta)
-
-                        if linhas_filhas:
-                            col_vazia, col_tabela_filha = st.columns([0.5, 11.5])
-                            with col_tabela_filha:
-                                df_filhas = pd.DataFrame(linhas_filhas)[cols_ordem_final]
-                                st.markdown('<div class="sem-cabecalho">', unsafe_allow_html=True)
-                                st.dataframe(
-                                    formatar_linha(df_filhas.style),
-                                    column_config=column_config_map,
-                                    use_container_width=True,
-                                    hide_index=True
-                                )
-                                st.markdown('</div>', unsafe_allow_html=True)
-
-                # LINHA DE TOTAL GERAL
-                row_tot_geral = {"Estrutura": "TOTAL GERAL DO RELATÓRIO"}
-                for col in cols_valores:
-                    row_tot_geral[col] = somas_totais_gerais[col]
-
-                for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                    base = row_tot_geral[v_ant]
-                    row_tot_geral[col_var] = ((row_tot_geral[v_atual] - base) / base * 100.0) if base > 0 else 0.0
-
-                df_tot_geral = pd.DataFrame([row_tot_geral])[cols_ordem_final]
-                
-                st.subheader("🏁 Consolidação Final")
-                
-                col_espaco, col_tot_final = st.columns([0.5, 11.5])
-                with col_tot_final:
-                    st.markdown('<div class="sem-cabecalho">', unsafe_allow_html=True)
-                    st.dataframe(
-                        formatar_linha(df_tot_geral.style),
-                        column_config=column_config_map,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                    st.markdown('</div>', unsafe_allow_html=True)
+                # RENDERIZAÇÃO EM TABELA ÚNICA CONTINUA
+                st.dataframe(
+                    aplicar_formatacao(df_relatorio_final.style),
+                    column_config=column_config_map,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=38 * len(df_relatorio_final) + 38
+                )
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
