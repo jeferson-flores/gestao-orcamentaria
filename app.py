@@ -28,7 +28,6 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* Estilização para o botão + e - do relatório */
     div[data-testid="stColumn"] button[kind="secondary"] {
         padding: 0px !important;
         line-height: 1 !important;
@@ -286,11 +285,9 @@ if "dicionario_pis" not in st.session_state:
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
 
-# Controle de expansão individual dos totalizadores
 if "tot_expandidos_set" not in st.session_state:
     st.session_state.tot_expandidos_set = set()
 
-# Controle de edição inline
 if "editando_unidade" not in st.session_state:
     st.session_state.editando_unidade = None
 
@@ -350,14 +347,11 @@ if verificar_senha():
 
     st.sidebar.markdown("---")
 
-    # MÓDULOS DE OPERAÇÃO E CARGA
     if st.sidebar.button("📁 1. Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
     st.sidebar.markdown("---")
-
-    # SEÇÃO DE RELATÓRIOS
     st.sidebar.subheader("📊 Relatórios")
 
     if st.sidebar.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
@@ -365,8 +359,6 @@ if verificar_senha():
         st.rerun()
 
     st.sidebar.markdown("---")
-    
-    # SEÇÃO DE CONFIGURAÇÕES
     st.sidebar.subheader("⚙️ Configurações")
 
     if st.sidebar.button("🏛️ Configuração de Unidades", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades" else "secondary"):
@@ -465,16 +457,22 @@ if verificar_senha():
             col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
             col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
 
+            # AJUSTE 1: Filtro de RP flexibilizado para incluir registros válidos sem excluir dados do CCSH
             mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
             df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
 
             df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
-            df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).map(
-                lambda x: st.session_state.mapa_ugs.get(x.strip(), "Encargos Gerais da UFSM / Outros")
+            
+            # AJUSTE 2: Mapeamento sanitizado de UGs com fallback
+            df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).str.strip().map(
+                lambda x: st.session_state.mapa_ugs.get(x, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in x or "HUMANA" in x else "Encargos Gerais da UFSM / Outros")
             )
+            
             df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
+            
+            # AJUSTE 3: Atribuição garantida para PIs não classificados
             df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
-                lambda x: st.session_state.dicionario_pis.get(x, "Sem Classificação")
+                lambda x: st.session_state.dicionario_pis.get(x, "8.3. Outras Despesas Operacionais")
             )
 
             df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
@@ -582,7 +580,6 @@ if verificar_senha():
                     dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
                     mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
 
-                # CONTROLE GERAL DE EXPANSÃO (TODOS)
                 c_lbl_tit, c_btn_exp_all = st.columns([4, 1])
                 with c_lbl_tit:
                     st.subheader(f"📋 Execução Orçamentária Comparativa ({tipo_visao})")
@@ -594,7 +591,6 @@ if verificar_senha():
                             st.session_state.tot_expandidos_set = set(totalizadores_lista)
                         st.rerun()
 
-                # ESTILIZAÇÃO CSS DA TABELA NATIVA
                 st.markdown("""
                     <style>
                     .row-totalizador {
@@ -628,7 +624,6 @@ if verificar_senha():
                     </style>
                 """, unsafe_allow_html=True)
 
-                # RENDERIZAÇÃO DO CABEÇALHO ÚNICO DA TABELA
                 c_hd = st.columns(larguras_colunas)
                 for idx, col_nome in enumerate(cols_cabecalho):
                     align = "left" if idx == 0 else "right"
@@ -641,23 +636,21 @@ if verificar_senha():
 
                 def fmt_percent_html(v):
                     if v == 0:
-                        color = "#64748b" # Cinza neutro
+                        color = "#64748b"
                     elif v > 0:
-                        color = "#dc2626" # Vermelho para aumento de despesa
+                        color = "#dc2626"
                     else:
-                        color = "#2563eb" # Azul para redução de despesa
+                        color = "#2563eb"
                     
                     val_str = f"{v:+.2f}%".replace(".", ",")
                     return f"<span style='color: {color}; font-weight: bold;'>{val_str}</span>"
 
                 somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                # RENDERIZAÇÃO LINHA A LINHA
                 for i_tot, tot in enumerate(totalizadores_lista):
                     contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
                     is_expanded = tot in st.session_state.tot_expandidos_set
 
-                    # Cálculo das métricas do totalizador
                     val_tot_dict = {}
                     for col in cols_valores:
                         val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
@@ -669,10 +662,8 @@ if verificar_senha():
                         base = val_tot_dict[v_ant]
                         vars_tot_dict[col_var] = ((val_tot_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
 
-                    # Linha Principal do Totalizador
                     cols_row = st.columns(larguras_colunas)
                     
-                    # Coluna 0: Botão de Alternar + Nome do Totalizador com ajuste visual para manter os botões bem visíveis
                     c_btn, c_txt = cols_row[0].columns([0.35, 9.65])
                     btn_symbol = "➖" if is_expanded else "➕"
                     if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
@@ -684,7 +675,6 @@ if verificar_senha():
 
                     c_txt.markdown(f"<div style='font-weight: bold; margin-top: 4px;'>{tot}</div>", unsafe_allow_html=True)
 
-                    # Colunas de Valores do Totalizador
                     idx_col = 1
                     for col in cols_cabecalho[1:]:
                         if col in cols_valores:
@@ -695,13 +685,11 @@ if verificar_senha():
                         cols_row[idx_col].markdown(f"<div style='text-align: right; font-weight: bold; margin-top: 4px;'>{val_str}</div>", unsafe_allow_html=True)
                         idx_col += 1
 
-                    # Linhas das Subcontas (Caso esteja expandido)
                     if is_expanded:
                         for conta in contas_do_tot:
                             cols_sub = st.columns(larguras_colunas)
                             cols_sub[0].markdown(f"<div style='padding-left: 28px; color: #334155;'>↳ {conta}</div>", unsafe_allow_html=True)
 
-                            # Valores da Subconta
                             val_sub_dict = {col: dict_somas[col].get(conta, 0.0) for col in cols_valores}
                             vars_sub_dict = {}
                             for col_var, (v_atual, v_ant) in mapeamento_var.items():
@@ -720,7 +708,6 @@ if verificar_senha():
 
                     st.markdown("<div style='border-bottom: 1px solid #e2e8f0; margin: 2px 0;'></div>", unsafe_allow_html=True)
 
-                # LINHA DE TOTAL GERAL
                 cols_tot_g = st.columns(larguras_colunas)
                 cols_tot_g[0].markdown("<div style='font-weight: bold; color: #003366; font-size: 15px;'>TOTAL GERAL DO RELATÓRIO</div>", unsafe_allow_html=True)
 
@@ -824,7 +811,7 @@ if verificar_senha():
                 c_ug, c_sel = st.columns([2, 2])
                 c_ug.write(f"🏢 **{ug_item}**")
                 
-                def_val = st.session_state.mapa_ugs.get(ug_item, "Encargos Gerais da UFSM / Outros")
+                def_val = st.session_state.mapa_ugs.get(ug_item, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in ug_item or "HUMANA" in ug_item else "Encargos Gerais da UFSM / Outros")
                 if def_val not in st.session_state.unidades_consolidadas:
                     st.session_state.unidades_consolidadas.append(def_val)
 
@@ -852,7 +839,6 @@ if verificar_senha():
             "🏷️ Mapeamento de PIs"
         ])
 
-        # TAB 0: CADASTRO DE TOTALIZADORES
         with tab_t0:
             col_add_t, col_list_t = st.columns([1, 2])
 
@@ -901,7 +887,6 @@ if verificar_senha():
                                 st.session_state.editando_totalizador = None
                                 st.rerun()
 
-        # TAB 1: CADASTRO DE CONTAS GERENCIAIS
         with tab_c1:
             col_add, col_list = st.columns([1, 2])
 
@@ -934,7 +919,7 @@ if verificar_senha():
                             del st.session_state.mapa_contas_totalizadores[conta]
                         for pi_k, val in list(st.session_state.dicionario_pis.items()):
                             if val == conta:
-                                st.session_state.dicionario_pis[pi_k] = "Sem Classificação"
+                                st.session_state.dicionario_pis[pi_k] = "8.3. Outras Despesas Operacionais"
                         st.rerun()
 
                     if st.session_state.editando_conta == conta:
@@ -957,7 +942,6 @@ if verificar_senha():
                                 st.session_state.editando_conta = None
                                 st.rerun()
 
-        # TAB 2: VINCULAÇÃO DE CONTAS AOS TOTALIZADORES
         with tab_c2:
             st.subheader("Associação das Contas Gerenciais nos Totalizadores")
             st.write("Defina a qual Totalizador (Grupo Gerencial) cada Conta pertence:")
@@ -980,7 +964,6 @@ if verificar_senha():
                 )
                 st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
 
-        # TAB 3: MAPEAMENTO DE PIs
         with tab_c3:
             st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
 
@@ -1003,8 +986,8 @@ if verificar_senha():
                     col_lbl, col_sel = st.columns([2, 2])
                     col_lbl.write(f"📌 **{pi_item}**")
                     
-                    conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "Sem Classificação")
-                    if conta_sugerida == "Sem Classificação":
+                    conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "8.3. Outras Despesas Operacionais")
+                    if conta_sugerida == "8.3. Outras Despesas Operacionais":
                         p_up = pi_item.upper()
                         if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
                             conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
