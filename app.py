@@ -375,31 +375,33 @@ if verificar_senha():
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📊 Relatórios")
+    # Grupo Relatórios (Inicia recolhido)
+    with st.sidebar.expander("📊 Relatórios", expanded=False):
+        if st.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+            st.session_state.pagina_atual = "relatorio"
+            st.rerun()
 
-    if st.sidebar.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
-        st.session_state.pagina_atual = "relatorio"
-        st.rerun()
+    # Grupo Configurações (Inicia recolhido)
+    with st.sidebar.expander("⚙️ Configurações", expanded=False):
+        if st.button("📌 Cadastro de Unidades Consolidadas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
+            st.session_state.pagina_atual = "unidades_consolidadas"
+            st.rerun()
 
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("⚙️ Configurações")
+        if st.button("🔗 Mapeamento de UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "mapeamento_ugs" else "secondary"):
+            st.session_state.pagina_atual = "mapeamento_ugs"
+            st.rerun()
 
-    if st.sidebar.button("🏛️ Configuração de Unidades", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades" else "secondary"):
-        st.session_state.pagina_atual = "unidades"
-        st.rerun()
+        if st.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+            st.session_state.pagina_atual = "contas"
+            st.rerun()
 
-    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
-        st.session_state.pagina_atual = "contas"
-        st.rerun()
+        if st.button("👤 Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
+            st.session_state.pagina_atual = "usuarios"
+            st.rerun()
 
-    if st.sidebar.button("👤 Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
-        st.session_state.pagina_atual = "usuarios"
-        st.rerun()
-
-    if st.sidebar.button("🎨 Configuração Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
-        st.session_state.pagina_atual = "config"
-        st.rerun()
+        if st.button("🎨 Configuração Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
+            st.session_state.pagina_atual = "config"
+            st.rerun()
 
     st.sidebar.markdown("---")
 
@@ -411,7 +413,7 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 1: CARGA DA PLANILHA (PASSO 3 IMPLEMENTADO)
+    # PÁGINA 1: CARGA DA PLANILHA
     # -----------------------------------------------------------------------------
     if st.session_state.pagina_atual == "carga":
         st.header("📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase")
@@ -474,7 +476,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA (PASSO 4 IMPLEMENTADO)
+    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -494,7 +496,6 @@ if verificar_senha():
 
         st.markdown("---")
 
-        # PASSO 4: Chave para escolher entre a fonte em memória ou SQL no Supabase
         fonte_dados = st.radio("📡 Fonte dos Dados do Relatório:", ["Banco de Dados Supabase (Nuvem / SQL)", "Planilha em Memória (Upload Local)"], horizontal=True)
 
         if fonte_dados == "Banco de Dados Supabase (Nuvem / SQL)":
@@ -831,103 +832,104 @@ if verificar_senha():
                         idx_col_g += 1
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE UNIDADES E UGs
+    # CONFIGURAÇÃO DE UNIDADES CONSOLIDADAS (SEPARADO)
     # -----------------------------------------------------------------------------
-    elif st.session_state.pagina_atual == "unidades":
-        st.header("⚙️ Configuração de Unidades Organizacionais & Mapeamento de UGs")
-        st.write("Gestão das Unidades Institucionais e alocação de UGs da planilha.")
+    elif st.session_state.pagina_atual == "unidades_consolidadas":
+        st.header("📌 Cadastro de Unidades Consolidadas")
+        st.write("Gestão das Unidades Institucionais.")
 
-        tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento de UGs (Colunas F/G)"])
-
-        with tab1:
-            col_u1, col_u2 = st.columns([1, 2])
-            
-            with col_u1:
-                st.subheader("Adicionar Nova Unidade")
-                nova_u = st.text_input("Nome da Unidade Consolidada:")
-                if st.button("➕ Adicionar Unidade", use_container_width=True):
-                    if nova_u and nova_u not in st.session_state.unidades_consolidadas:
-                        st.session_state.unidades_consolidadas.append(nova_u)
-                        st.success(f"Unidade '{nova_u}' cadastrada!")
-                        st.rerun()
-
-            with col_u2:
-                st.subheader(f"Unidades Cadastradas ({len(st.session_state.unidades_consolidadas)})")
-                
-                for idx, unidade in enumerate(st.session_state.unidades_consolidadas):
-                    c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
-                    c_txt.write(f"• **{unidade}**")
-                    
-                    if c_btn_edit.button("✏️", key=f"edit_u_{idx}", help="Alterar nome da Unidade"):
-                        st.session_state.editando_unidade = unidade
-                        st.rerun()
-
-                    if c_btn_del.button("🗑️", key=f"del_u_{idx}", help="Excluir Unidade"):
-                        st.session_state.unidades_consolidadas.remove(unidade)
-                        for ug_k, val in list(st.session_state.mapa_ugs.items()):
-                            if val == unidade:
-                                st.session_state.mapa_ugs[ug_k] = "Encargos Gerais da UFSM / Outros"
-                        st.rerun()
-
-                    if st.session_state.editando_unidade == unidade:
-                        with st.container():
-                            c_in, c_save, c_canc = st.columns([4, 1, 1])
-                            novo_nome_u = c_in.text_input("Novo nome:", value=unidade, key=f"inp_u_{idx}")
-                            if c_save.button("Salvar", key=f"save_u_{idx}"):
-                                if novo_nome_u and novo_nome_u != unidade:
-                                    st.session_state.unidades_consolidadas[idx] = novo_nome_u
-                                    for ug_k, val in st.session_state.mapa_ugs.items():
-                                        if val == unidade:
-                                            st.session_state.mapa_ugs[ug_k] = novo_nome_u
-                                    st.success("Unidade alterada com sucesso!")
-                                st.session_state.editando_unidade = None
-                                st.rerun()
-
-                            if c_canc.button("Cancelar", key=f"canc_u_{idx}"):
-                                st.session_state.editando_unidade = None
-                                st.rerun()
-
-        with tab2:
-            st.subheader("Alocação de Unidades Gestoras (UGs SIAFI -> Unidade Consolidada)")
-            
-            ugs_para_mapear = set(st.session_state.mapa_ugs.keys())
-
-            if st.session_state.dados_tg_raw is not None:
-                df_raw = st.session_state.dados_tg_raw
-                cols = list(df_raw.columns)
-                col_ug_nom = cols[6] if len(cols) > 6 else cols[0]
-                ugs_planilha = df_raw[col_ug_nom].dropna().unique()
-                for ug_p in ugs_planilha:
-                    ugs_para_mapear.add(str(ug_p).strip())
-
-            st.write(f"**Total de UGs identificadas:** {len(ugs_para_mapear)}")
-
-            col_b1, col_b2 = st.columns([2, 1])
-            with col_b1:
-                st.caption("Associe cada UG do SIAFI/Tesouro Gerencial a uma das Unidades Consolidadas:")
-            with col_b2:
-                if st.button("Restaurar Mapeamento Padrão"):
-                    st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
-                    st.success("Mapeamento restaurado!")
+        col_u1, col_u2 = st.columns([1, 2])
+        
+        with col_u1:
+            st.subheader("Adicionar Nova Unidade")
+            nova_u = st.text_input("Nome da Unidade Consolidada:")
+            if st.button("➕ Adicionar Unidade", use_container_width=True):
+                if nova_u and nova_u not in st.session_state.unidades_consolidadas:
+                    st.session_state.unidades_consolidadas.append(nova_u)
+                    st.success(f"Unidade '{nova_u}' cadastrada!")
                     st.rerun()
 
-            for ug_item in sorted(list(ugs_para_mapear)):
-                c_ug, c_sel = st.columns([2, 2])
-                c_ug.write(f"🏢 **{ug_item}**")
+        with col_u2:
+            st.subheader(f"Unidades Cadastradas ({len(st.session_state.unidades_consolidadas)})")
+            
+            for idx, unidade in enumerate(st.session_state.unidades_consolidadas):
+                c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                c_txt.write(f"• **{unidade}**")
                 
-                def_val = st.session_state.mapa_ugs.get(ug_item, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in ug_item or "HUMANA" in ug_item else "Encargos Gerais da UFSM / Outros")
-                if def_val not in st.session_state.unidades_consolidadas:
-                    st.session_state.unidades_consolidadas.append(def_val)
+                if c_btn_edit.button("✏️", key=f"edit_u_{idx}", help="Alterar nome da Unidade"):
+                    st.session_state.editando_unidade = unidade
+                    st.rerun()
 
-                idx_u = st.session_state.unidades_consolidadas.index(def_val)
+                if c_btn_del.button("🗑️️", key=f"del_u_{idx}", help="Excluir Unidade"):
+                    st.session_state.unidades_consolidadas.remove(unidade)
+                    for ug_k, val in list(st.session_state.mapa_ugs.items()):
+                        if val == unidade:
+                            st.session_state.mapa_ugs[ug_k] = "Encargos Gerais da UFSM / Outros"
+                    st.rerun()
 
-                nova_aloc = c_sel.selectbox(
-                    "Alocar para:",
-                    st.session_state.unidades_consolidadas,
-                    index=idx_u,
-                    key=f"ug_map_{ug_item}"
-                )
-                st.session_state.mapa_ugs[ug_item] = nova_aloc
+                if st.session_state.editando_unidade == unidade:
+                    with st.container():
+                        c_in, c_save, c_canc = st.columns([4, 1, 1])
+                        novo_nome_u = c_in.text_input("Novo nome:", value=unidade, key=f"inp_u_{idx}")
+                        if c_save.button("Salvar", key=f"save_u_{idx}"):
+                            if novo_nome_u and novo_nome_u != unidade:
+                                st.session_state.unidades_consolidadas[idx] = novo_nome_u
+                                for ug_k, val in st.session_state.mapa_ugs.items():
+                                    if val == unidade:
+                                        st.session_state.mapa_ugs[ug_k] = novo_nome_u
+                                st.success("Unidade alterada com sucesso!")
+                            st.session_state.editando_unidade = None
+                            st.rerun()
+
+                        if c_canc.button("Cancelar", key=f"canc_u_{idx}"):
+                            st.session_state.editando_unidade = None
+                            st.rerun()
+
+    # -----------------------------------------------------------------------------
+    # MAPEAMENTO DE UGs (SEPARADO)
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "mapeamento_ugs":
+        st.header("🔗 Mapeamento de UGs (Colunas F/G)")
+        st.write("Alocação de Unidades Gestoras (UGs SIAFI -> Unidade Consolidada).")
+
+        ugs_para_mapear = set(st.session_state.mapa_ugs.keys())
+
+        if st.session_state.dados_tg_raw is not None:
+            df_raw = st.session_state.dados_tg_raw
+            cols = list(df_raw.columns)
+            col_ug_nom = cols[6] if len(cols) > 6 else cols[0]
+            ugs_planilha = df_raw[col_ug_nom].dropna().unique()
+            for ug_p in ugs_planilha:
+                ugs_para_mapear.add(str(ug_p).strip())
+
+        st.write(f"**Total de UGs identificadas:** {len(ugs_para_mapear)}")
+
+        col_b1, col_b2 = st.columns([2, 1])
+        with col_b1:
+            st.caption("Associe cada UG do SIAFI/Tesouro Gerencial a uma das Unidades Consolidadas:")
+        with col_b2:
+            if st.button("Restaurar Mapeamento Padrão"):
+                st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
+                st.success("Mapeamento restaurado!")
+                st.rerun()
+
+        for ug_item in sorted(list(ugs_para_mapear)):
+            c_ug, c_sel = st.columns([2, 2])
+            c_ug.write(f"🏢 **{ug_item}**")
+            
+            def_val = st.session_state.mapa_ugs.get(ug_item, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in ug_item or "HUMANA" in ug_item else "Encargos Gerais da UFSM / Outros")
+            if def_val not in st.session_state.unidades_consolidadas:
+                st.session_state.unidades_consolidadas.append(def_val)
+
+            idx_u = st.session_state.unidades_consolidadas.index(def_val)
+
+            nova_aloc = c_sel.selectbox(
+                "Alocar para:",
+                st.session_state.unidades_consolidadas,
+                index=idx_u,
+                key=f"ug_map_{ug_item}"
+            )
+            st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs
