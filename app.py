@@ -68,6 +68,85 @@ def excluir_ug_banco(ug_id: int):
     executar_comando_sql(query, {"ug_id": ug_id})
 
 # -----------------------------------------------------------------------------
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_NATUREZA_DESPESA_DETALHADA
+# -----------------------------------------------------------------------------
+def buscar_ndd_banco():
+    try:
+        query = "SELECT id, codigo_ndd, descricao, grupo_despesa, ativo, criado_em FROM public.tb_natureza_despesa_detalhada ORDER BY codigo_ndd ASC;"
+        return executar_consulta_sql(query)
+    except Exception as e:
+        st.error(f"Erro ao consultar tb_natureza_despesa_detalhada: {e}")
+        return pd.DataFrame()
+
+def inserir_ndd_banco(codigo_ndd: str, descricao: str, grupo_despesa: str, ativo: bool):
+    query = """
+    INSERT INTO public.tb_natureza_despesa_detalhada (codigo_ndd, descricao, grupo_despesa, ativo)
+    VALUES (:codigo_ndd, :descricao, :grupo_despesa, :ativo);
+    """
+    executar_comando_sql(query, {"codigo_ndd": codigo_ndd, "descricao": descricao, "grupo_despesa": grupo_despesa, "ativo": ativo})
+
+def atualizar_ndd_banco(ndd_id: int, codigo_ndd: str, descricao: str, grupo_despesa: str, ativo: bool):
+    query = """
+    UPDATE public.tb_natureza_despesa_detalhada
+    SET codigo_ndd = :codigo_ndd, descricao = :descricao, grupo_despesa = :grupo_despesa, ativo = :ativo
+    WHERE id = :ndd_id;
+    """
+    executar_comando_sql(query, {"ndd_id": ndd_id, "codigo_ndd": codigo_ndd, "descricao": descricao, "grupo_despesa": grupo_despesa, "ativo": ativo})
+
+def excluir_ndd_banco(ndd_id: int):
+    query = "DELETE FROM public.tb_natureza_despesa_detalhada WHERE id = :ndd_id;"
+    executar_comando_sql(query, {"ndd_id": ndd_id})
+
+# -----------------------------------------------------------------------------
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_CONTAS_GERENCIAIS
+# -----------------------------------------------------------------------------
+def buscar_contas_gerenciais_banco():
+    try:
+        query = """
+        SELECT c.id, c.codigo_conta, c.nome_conta, c.ndd_id, c.ativo, c.nivel, c.criado_em,
+               n.codigo_ndd, n.descricao as descricao_ndd
+        FROM public.tb_contas_gerenciais c
+        LEFT JOIN public.tb_natureza_despesa_detalhada n ON c.ndd_id = n.id
+        ORDER BY c.codigo_conta ASC;
+        """
+        return executar_consulta_sql(query)
+    except Exception as e:
+        st.error(f"Erro ao consultar tb_contas_gerenciais: {e}")
+        return pd.DataFrame()
+
+def inserir_conta_gerencial_banco(codigo_conta: str, nome_conta: str, ndd_id: int, ativo: bool, nivel: str):
+    query = """
+    INSERT INTO public.tb_contas_gerenciais (codigo_conta, nome_conta, ndd_id, ativo, nivel)
+    VALUES (:codigo_conta, :nome_conta, :ndd_id, :ativo, :nivel);
+    """
+    executar_comando_sql(query, {
+        "codigo_conta": codigo_conta,
+        "nome_conta": nome_conta,
+        "ndd_id": ndd_id if ndd_id else None,
+        "ativo": ativo,
+        "nivel": nivel
+    })
+
+def atualizar_conta_gerencial_banco(conta_id: int, codigo_conta: str, nome_conta: str, ndd_id: int, ativo: bool, nivel: str):
+    query = """
+    UPDATE public.tb_contas_gerenciais
+    SET codigo_conta = :codigo_conta, nome_conta = :nome_conta, ndd_id = :ndd_id, ativo = :ativo, nivel = :nivel
+    WHERE id = :conta_id;
+    """
+    executar_comando_sql(query, {
+        "conta_id": conta_id,
+        "codigo_conta": codigo_conta,
+        "nome_conta": nome_conta,
+        "ndd_id": ndd_id if ndd_id else None,
+        "ativo": ativo,
+        "nivel": nivel
+    })
+
+def excluir_conta_gerencial_banco(conta_id: int):
+    query = "DELETE FROM public.tb_contas_gerenciais WHERE id = :conta_id;"
+    executar_comando_sql(query, {"conta_id": conta_id})
+
+# -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
@@ -144,86 +223,6 @@ st.markdown("""
 # -----------------------------------------------------------------------------
 # 2. BANCO DE DADOS/ESTRUTURAS PADRÃO
 # -----------------------------------------------------------------------------
-
-TOTALIZADORES_PADRAO = [
-    "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "G-4.0 Total de Assistência Estudantil e RU",
-    "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
-]
-
-PLANO_CONTAS_PADRAO = [
-    "1.1. Obras, Reformas e Adequações",
-    "1.2. Concessionárias (Energia, Água, Gás)",
-    "1.3. Manutenção Predial e Conservação",
-    "1.4. Conservação de Áreas Verdes e Limpeza Urbana",
-    "2.1. Serviços de Vigilância e Portaria",
-    "2.2. Serviços de Limpeza e Higienização",
-    "2.3. Apoio Administrativo e Motoristas",
-    "2.4. Recepção e Serviços Gerais",
-    "3.1. Equipamentos e Infraestrutura de TI",
-    "3.2. Licenças de Software, Sistemas e Nuvem",
-    "3.3. Conectividade, Redes e Telefonia",
-    "4.1. Restaurante Universitário (RU) - Insumos e Operação",
-    "4.2. Bolsas de Assistência Estudantil e Permanência",
-    "4.3. Moradia Estudantil e Apoio ao Estudante",
-    "5.1. Bolsas de Graduação, Pós e Extensão",
-    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa",
-    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação",
-    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)",
-    "6.1. Passagens e Diárias (Nacionais e Internacionais)",
-    "6.2. Eventos Acadêmicos, Culturais e Congressos",
-    "6.3. Capacitação e Desenvolvimento de Servidores",
-    "7.1. Aquisição de Equipamentos e Mobiliário",
-    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)",
-    "7.3. Frota e Combustíveis",
-    "8.1. Material de Expediente e Suprimentos",
-    "8.2. Encargos Institucionais e Impostos",
-    "8.3. Outras Despesas Operacionais",
-    "Sem Classificação"
-]
-
-MAPA_CONTAS_TOTALIZADORES_PADRAO = {
-    "1.1. Obras, Reformas e Adequações": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.2. Concessionárias (Energia, Água, Gás)": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.3. Manutenção Predial e Conservação": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    "1.4. Conservação de Áreas Verdes e Limpeza Urbana": "G-1.0 Total de Infraestrutura e Manutenção Predial",
-    
-    "2.1. Serviços de Vigilância e Portaria": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.2. Serviços de Limpeza e Higienização": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.3. Apoio Administrativo e Motoristas": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    "2.4. Recepção e Serviços Gerais": "G-2.0 Total de Serviços Terceirizados e Operacionais",
-    
-    "3.1. Equipamentos e Infraestrutura de TI": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "3.2. Licenças de Software, Sistemas e Nuvem": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    "3.3. Conectividade, Redes e Telefonia": "G-3.0 Total de Tecnologia da Informação e Comunicação",
-    
-    "4.1. Restaurante Universitário (RU) - Insumos e Operação": "G-4.0 Total de Assistência Estudantil e RU",
-    "4.2. Bolsas de Assistência Estudantil e Permanência": "G-4.0 Total de Assistência Estudantil e RU",
-    "4.3. Moradia Estudantil e Apoio ao Estudante": "G-4.0 Total de Assistência Estudantil e RU",
-    
-    "5.1. Bolsas de Graduação, Pós e Extensão": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.2. Material Didático, de Laboratório e Insumos de Pesquisa": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.3. Fomento a Projetos de Pesquisa, Extensão e Inovação": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    "5.4. Unidades Especializadas (HVU, Fazenda, Colégios)": "G-5.0 Total de Ensino, Pesquisa, Extensão e Unidades Especializadas",
-    
-    "6.1. Passagens e Diárias (Nacionais e Internacionais)": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "6.2. Eventos Acadêmicos, Culturais e Congressos": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    "6.3. Capacitação e Desenvolvimento de Servidores": "G-6.0 Total de Viagens, Eventos e Capacitação",
-    
-    "7.1. Aquisição de Equipamentos e Mobiliário": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "7.2. Biblioteca (Livros, Periódicos e Bases Científicas)": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    "7.3. Frota e Combustíveis": "G-7.0 Total de Equipamentos, Acervo e Logística",
-    
-    "8.1. Material de Expediente e Suprimentos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "8.2. Encargos Institucionais e Impostos": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "8.3. Outras Despesas Operacionais": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais",
-    "Sem Classificação": "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
-}
 
 UNIDADES_UFSM_PADRAO = [
     "PRA - Pró-Reitoria de Administração",
@@ -322,15 +321,6 @@ USUARIOS_PADRAO = [
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "carga"
 
-if "totalizadores" not in st.session_state:
-    st.session_state.totalizadores = TOTALIZADORES_PADRAO.copy()
-
-if "contas_gerenciais" not in st.session_state:
-    st.session_state.contas_gerenciais = PLANO_CONTAS_PADRAO.copy()
-
-if "mapa_contas_totalizadores" not in st.session_state:
-    st.session_state.mapa_contas_totalizadores = MAPA_CONTAS_TOTALIZADORES_PADRAO.copy()
-
 if "unidades_consolidadas" not in st.session_state:
     st.session_state.unidades_consolidadas = UNIDADES_UFSM_PADRAO.copy()
 
@@ -355,11 +345,11 @@ if "tot_expandidos_set" not in st.session_state:
 if "editando_unidade_id" not in st.session_state:
     st.session_state.editando_unidade_id = None
 
-if "editando_conta" not in st.session_state:
-    st.session_state.editando_conta = None
+if "editando_conta_id" not in st.session_state:
+    st.session_state.editando_conta_id = None
 
-if "editando_totalizador" not in st.session_state:
-    st.session_state.editando_totalizador = None
+if "editando_ndd_id" not in st.session_state:
+    st.session_state.editando_ndd_id = None
 
 # -----------------------------------------------------------------------------
 # 3. AUTENTICAÇÃO
@@ -431,7 +421,7 @@ if verificar_senha():
             st.session_state.pagina_atual = "mapeamento_ugs"
             st.rerun()
 
-        if st.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+        if st.button("🏷️ Contas Gerenciais", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
             st.session_state.pagina_atual = "contas"
             st.rerun()
 
@@ -469,9 +459,6 @@ if verificar_senha():
                 else:
                     df = pd.read_excel(arquivo)
                 
-                # -----------------------------------------------------------------------------
-                # PASSO 2: ATUALIZE O TRATAMENTO NO APP.PY
-                # -----------------------------------------------------------------------------
                 colunas = list(df.columns)
 
                 def buscar_col(termos, default_idx):
@@ -553,16 +540,16 @@ if verificar_senha():
                     try:
                         query_relatorio = f"""
                         SELECT 
-                            COALESCE(m.grupo_categoria, 'G-8.0 Total de Despesas Operacionais e Encargos Institucionais') AS "Categoria",
-                            COALESCE(m.subtotal_agrupador, e.natureza_despesa_detalhada) AS "Agrupador",
+                            COALESCE(cg.nivel, 'S/N') AS "Nível / Grupo",
+                            COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
                             SUM(CASE WHEN e.exercicio = {ano_ant_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior",
                             SUM(CASE WHEN e.exercicio = {ano_atual_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Atual"
                         FROM tb_execucao_despesa e
-                        LEFT JOIN tb_mapeamento_contas m 
-                               ON e.natureza_despesa_detalhada = m.natureza_despesa_detalhada
+                        LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                        LEFT JOIN tb_contas_gerenciais cg ON ndd.id = cg.ndd_id
                         WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel})
-                        GROUP BY "Categoria", "Agrupador"
-                        ORDER BY "Categoria", "Agrupador";
+                        GROUP BY "Nível / Grupo", "Conta Gerencial"
+                        ORDER BY "Nível / Grupo", "Conta Gerencial";
                         """
                         
                         df_relatorio_sql = executar_consulta_sql(query_relatorio)
@@ -620,7 +607,7 @@ if verificar_senha():
                 df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
                 
                 df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
-                    lambda x: st.session_state.dicionario_pis.get(x, "8.3. Outras Despesas Operacionais")
+                    lambda x: st.session_state.dicionario_pis.get(x, "Outras Despesas Operacionais")
                 )
 
                 df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
@@ -673,8 +660,13 @@ if verificar_senha():
                 st.markdown("---")
 
                 if periodo_sel is not None:
-                    totalizadores_lista = sorted(st.session_state.totalizadores)
-                    contas_lista = sorted(st.session_state.contas_gerenciais)
+                    # Busca a lista de contas diretamente da tabela no Supabase para montar a hierarquia
+                    df_contas_cg = buscar_contas_gerenciais_banco()
+                    
+                    if not df_contas_cg.empty:
+                        niveis_lista = sorted(df_contas_cg["nivel"].dropna().unique().tolist())
+                    else:
+                        niveis_lista = ["Nível 1", "Nível 2"]
 
                     if tipo_visao == "Mensal":
                         p0, p1, p2, p3 = periodo_sel, periodo_sel - 1, periodo_sel - 2, periodo_sel - 12
@@ -698,7 +690,7 @@ if verificar_senha():
                         s3 = df3.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
                         cols_valores = [lbl_0, lbl_1, lbl_2, lbl_3]
-                        cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
+                        cols_cabecalho = ["Estrutura Gerencial / Nível", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
                         larguras_colunas = [3.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]
                         dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2, lbl_3: s3}
                         mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2), var_3_str: (lbl_0, lbl_3)}
@@ -723,7 +715,7 @@ if verificar_senha():
                         s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
 
                         cols_valores = [lbl_0, lbl_1, lbl_2]
-                        cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
+                        cols_cabecalho = ["Estrutura Gerencial / Nível", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
                         larguras_colunas = [3.5, 1.5, 1.5, 1.5, 1.5, 1.5]
                         dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
                         mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
@@ -736,41 +728,8 @@ if verificar_senha():
                             if len(st.session_state.tot_expandidos_set) > 0:
                                 st.session_state.tot_expandidos_set.clear()
                             else:
-                                st.session_state.tot_expandidos_set = set(totalizadores_lista)
+                                st.session_state.tot_expandidos_set = set(niveis_lista)
                             st.rerun()
-
-                    st.markdown("""
-                        <style>
-                        .row-totalizador {
-                            background-color: #f0f4f8;
-                            font-weight: bold;
-                            border-top: 1px solid #cbd5e1;
-                            border-bottom: 1px solid #cbd5e1;
-                            padding: 6px 0px;
-                            display: flex;
-                            align-items: center;
-                        }
-                        .row-subconta {
-                            background-color: #ffffff;
-                            border-bottom: 1px dashed #e2e8f0;
-                            padding: 4px 0px;
-                            display: flex;
-                            align-items: center;
-                            font-size: 14px;
-                        }
-                        .row-total-geral {
-                            background-color: #003366;
-                            color: white;
-                            font-weight: bold;
-                            padding: 8px 0px;
-                            border-radius: 4px;
-                            margin-top: 8px;
-                        }
-                        div[data-testid="stColumn"] {
-                            padding: 0px 4px !important;
-                        }
-                        </style>
-                    """, unsafe_allow_html=True)
 
                     c_hd = st.columns(larguras_colunas)
                     for idx, col_nome in enumerate(cols_cabecalho):
@@ -795,13 +754,16 @@ if verificar_senha():
 
                     somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                    for i_tot, tot in enumerate(totalizadores_lista):
-                        contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                        is_expanded = tot in st.session_state.tot_expandidos_set
+                    for i_niv, nivel_val in enumerate(niveis_lista):
+                        contas_do_nivel = []
+                        if not df_contas_cg.empty:
+                            contas_do_nivel = df_contas_cg[df_contas_cg["nivel"] == nivel_val]["nome_conta"].dropna().tolist()
+
+                        is_expanded = nivel_val in st.session_state.tot_expandidos_set
 
                         val_tot_dict = {}
                         for col in cols_valores:
-                            val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
+                            val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_nivel])
                             val_tot_dict[col] = val_g
                             somas_totais_gerais[col] += val_g
 
@@ -814,14 +776,14 @@ if verificar_senha():
                         
                         c_btn, c_txt = cols_row[0].columns([0.35, 9.65])
                         btn_symbol = "➖" if is_expanded else "➕"
-                        if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
+                        if c_btn.button(btn_symbol, key=f"btn_toggle_niv_{i_niv}", help=f"Expandir/Recolher Nível {nivel_val}"):
                             if is_expanded:
-                                st.session_state.tot_expandidos_set.remove(tot)
+                                st.session_state.tot_expandidos_set.remove(nivel_val)
                             else:
-                                st.session_state.tot_expandidos_set.add(tot)
+                                st.session_state.tot_expandidos_set.add(nivel_val)
                             st.rerun()
 
-                        c_txt.markdown(f"<div style='font-weight: bold; margin-top: 4px;'>{tot}</div>", unsafe_allow_html=True)
+                        c_txt.markdown(f"<div style='font-weight: bold; margin-top: 4px;'>Nível {nivel_val}</div>", unsafe_allow_html=True)
 
                         idx_col = 1
                         for col in cols_cabecalho[1:]:
@@ -834,7 +796,7 @@ if verificar_senha():
                             idx_col += 1
 
                         if is_expanded:
-                            for conta in contas_do_tot:
+                            for conta in contas_do_nivel:
                                 cols_sub = st.columns(larguras_colunas)
                                 cols_sub[0].markdown(f"<div style='padding-left: 28px; color: #334155;'>↳ {conta}</div>", unsafe_allow_html=True)
 
@@ -906,7 +868,6 @@ if verificar_senha():
                                 sigla=sigla_input.strip() if sigla_input else None,
                                 ativa=ativa_input
                             )
-                            # Sincroniza também com a sessão local se houver nome ou sigla
                             rotulo_u = f"{sigla_input.strip()} - {nome_input.strip()}" if sigla_input and nome_input else nome_input or codigo_input
                             if rotulo_u not in st.session_state.unidades_consolidadas:
                                 st.session_state.unidades_consolidadas.append(rotulo_u)
@@ -947,7 +908,6 @@ if verificar_senha():
                         except Exception as e:
                             st.error(f"Erro ao excluir UG: {e}")
 
-                    # Formulário inline de Edição
                     if st.session_state.editando_unidade_id == ug_id:
                         with st.container():
                             st.markdown("---")
@@ -1026,189 +986,233 @@ if verificar_senha():
             st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs
+    # CONTAS GERENCIAIS E NATUREZA DE DESPESA DETALHADA
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & PIs")
-        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento dos PIs.")
+        st.header("⚙️ Gestão de Contas Gerenciais & NDD")
+        st.write("Gerencie o cadastro de Contas Gerenciais, a estrutura por níveis e o cadastro de Natureza de Despesa Detalhada (NDD).")
 
-        tab_t0, tab_c1, tab_c2, tab_c3 = st.tabs([
-            "📊 Cadastro de Totalizadores", 
+        tab_cg, tab_ndd = st.tabs([
             "📌 Cadastro de Contas Gerenciais", 
-            "🔗 Vinculação de Contas aos Totalizadores", 
-            "🏷️ Mapeamento de PIs"
+            "🏷️ Natureza de Despesa Detalhada (NDD)"
         ])
 
-        with tab_t0:
-            col_add_t, col_list_t = st.columns([1, 2])
+        # TAB 1: CONTAS GERENCIAIS
+        with tab_cg:
+            df_cg = buscar_contas_gerenciais_banco()
+            df_ndd_cad = buscar_ndd_banco()
 
-            with col_add_t:
-                st.subheader("Adicionar Totalizador")
-                novo_totalizador = st.text_input("Nome do Totalizador/Grupo:")
-                if st.button("➕ Adicionar Totalizador", use_container_width=True):
-                    if novo_totalizador and novo_totalizador not in st.session_state.totalizadores:
-                        st.session_state.totalizadores.append(novo_totalizador)
-                        st.success(f"Totalizador '{novo_totalizador}' adicionado!")
-                        st.rerun()
+            col_add_cg, col_list_cg = st.columns([1, 2])
 
-            with col_list_t:
-                st.subheader(f"Totalizadores Cadastrados ({len(st.session_state.totalizadores)})")
-                
-                for idx, tot in enumerate(st.session_state.totalizadores):
-                    c_nome, c_edit, c_del = st.columns([5, 1, 1])
-                    c_nome.write(f"• **{tot}**")
+            with col_add_cg:
+                st.subheader("➕ Nova Conta Gerencial")
+                with st.form("form_add_cg", clear_on_submit=True):
+                    codigo_conta_in = st.text_input("Código da Conta * (Único):", placeholder="Ex: 1.1")
+                    nome_conta_in = st.text_input("Nome da Conta:", placeholder="Ex: Obras e Reformas")
+                    nivel_in = st.text_input("Nível:", placeholder="Ex: 1, 2, 3...")
                     
-                    if c_edit.button("✏️", key=f"edit_tot_{idx}", help="Alterar nome do Totalizador"):
-                        st.session_state.editando_totalizador = tot
-                        st.rerun()
-
-                    if c_del.button("🗑️", key=f"del_tot_{idx}", help="Excluir Totalizador"):
-                        st.session_state.totalizadores.remove(tot)
-                        for c_k, v_tot in list(st.session_state.mapa_contas_totalizadores.items()):
-                            if v_tot == tot:
-                                st.session_state.mapa_contas_totalizadores[c_k] = "G-8.0 Total de Despesas Operacionais e Encargos Institucionais"
-                        st.rerun()
-
-                    if st.session_state.editando_totalizador == tot:
-                        with st.container():
-                            c_in, c_save, c_canc = st.columns([4, 1, 1])
-                            novo_nome_tot = c_in.text_input("Novo nome:", value=tot, key=f"inp_tot_{idx}")
-                            if c_save.button("Salvar", key=f"save_tot_{idx}"):
-                                if novo_nome_tot and novo_nome_tot != tot:
-                                    st.session_state.totalizadores[idx] = novo_nome_tot
-                                    for c_k, v_tot in st.session_state.mapa_contas_totalizadores.items():
-                                        if v_tot == tot:
-                                            st.session_state.mapa_contas_totalizadores[c_k] = novo_nome_tot
-                                    st.success("Totalizador alterado com sucesso!")
-                                st.session_state.editando_totalizador = None
-                                st.rerun()
-
-                            if c_canc.button("Cancelar", key=f"canc_tot_{idx}"):
-                                st.session_state.editando_totalizador = None
-                                st.rerun()
-
-        with tab_c1:
-            col_add, col_list = st.columns([1, 2])
-
-            with col_add:
-                st.subheader("Adicionar Nova Conta")
-                nova_conta = st.text_input("Nome/Código da Conta:")
-                tot_para_conta = st.selectbox("Associar ao Totalizador:", st.session_state.totalizadores)
-
-                if st.button("➕ Adicionar Conta", use_container_width=True):
-                    if nova_conta and nova_conta not in st.session_state.contas_gerenciais:
-                        st.session_state.contas_gerenciais.append(nova_conta)
-                        st.session_state.mapa_contas_totalizadores[nova_conta] = tot_para_conta
-                        st.success(f"Conta '{nova_conta}' adicionada e associada ao '{tot_para_conta}'!")
-                        st.rerun()
-
-            with col_list:
-                st.subheader(f"Plano de Contas Ativo ({len(st.session_state.contas_gerenciais)})")
-                
-                for idx, conta in enumerate(st.session_state.contas_gerenciais):
-                    c_nome, c_edit, c_del = st.columns([5, 1, 1])
-                    c_nome.write(f"• **{conta}**")
+                    options_ndd = {row["id"]: f"{row['codigo_ndd']} - {row['descricao']}" for _, row in df_ndd_cad.iterrows()} if not df_ndd_cad.empty else {}
+                    options_ndd_keys = [None] + list(options_ndd.keys())
                     
-                    if c_edit.button("✏️", key=f"edit_c_{idx}", help="Alterar nome da Conta"):
-                        st.session_state.editando_conta = conta
-                        st.rerun()
-
-                    if c_del.button("🗑️", key=f"del_c_{idx}", help="Excluir Conta"):
-                        st.session_state.contas_gerenciais.remove(conta)
-                        if conta in st.session_state.mapa_contas_totalizadores:
-                            del st.session_state.mapa_contas_totalizadores[conta]
-                        for pi_k, val in list(st.session_state.dicionario_pis.items()):
-                            if val == conta:
-                                st.session_state.dicionario_pis[pi_k] = "8.3. Outras Despesas Operacionais"
-                        st.rerun()
-
-                    if st.session_state.editando_conta == conta:
-                        with st.container():
-                            c_in, c_save, c_canc = st.columns([4, 1, 1])
-                            novo_nome_c = c_in.text_input("Novo nome:", value=conta, key=f"inp_c_{idx}")
-                            if c_save.button("Salvar", key=f"save_c_{idx}"):
-                                if novo_nome_c and novo_nome_c != conta:
-                                    st.session_state.contas_gerenciais[idx] = novo_nome_c
-                                    if conta in st.session_state.mapa_contas_totalizadores:
-                                        st.session_state.mapa_contas_totalizadores[novo_nome_c] = st.session_state.mapa_contas_totalizadores.pop(conta)
-                                    for pi_k, val in st.session_state.dicionario_pis.items():
-                                        if val == conta:
-                                            st.session_state.dicionario_pis[pi_k] = novo_nome_c
-                                    st.success("Conta alterada com sucesso!")
-                                st.session_state.editando_conta = None
-                                st.rerun()
-
-                            if c_canc.button("Cancelar", key=f"canc_c_{idx}"):
-                                st.session_state.editando_conta = None
-                                st.rerun()
-
-        with tab_c2:
-            st.subheader("Associação das Contas Gerenciais nos Totalizadores")
-            st.write("Defina a qual Totalizador (Grupo Gerencial) cada Conta pertence:")
-
-            for conta_item in st.session_state.contas_gerenciais:
-                col_lbl_c, col_sel_tot = st.columns([2, 2])
-                col_lbl_c.write(f"🏷️️ **{conta_item}**")
-
-                tot_atual = st.session_state.mapa_contas_totalizadores.get(conta_item, st.session_state.totalizadores[0])
-                if tot_atual not in st.session_state.totalizadores:
-                    tot_atual = st.session_state.totalizadores[0]
-
-                idx_t = st.session_state.totalizadores.index(tot_atual)
-
-                novo_tot_ass = col_sel_tot.selectbox(
-                    "Totalizador / Grupo:",
-                    st.session_state.totalizadores,
-                    index=idx_t,
-                    key=f"sel_tot_for_{conta_item}"
-                )
-                st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
-
-        with tab_c3:
-            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
-
-            if st.session_state.dados_tg_raw is None:
-                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs e realizar o mapeamento.")
-            else:
-                df = st.session_state.dados_tg_raw
-                colunas = list(df.columns)
-                
-                col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
-                col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
-
-                df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
-                df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
-                lista_pis = sorted(df_pis["PI_Completo"].unique())
-
-                st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
-
-                for pi_item in lista_pis:
-                    col_lbl, col_sel = st.columns([2, 2])
-                    col_lbl.write(f"📌 **{pi_item}**")
-                    
-                    conta_sugerida = st.session_state.dicionario_pis.get(pi_item, "8.3. Outras Despesas Operacionais")
-                    if conta_sugerida == "8.3. Outras Despesas Operacionais":
-                        p_up = pi_item.upper()
-                        if "RU" in p_up or "RESTAURANTE" in p_up or "ALIMENT" in p_up:
-                            conta_sugerida = "4.1. Restaurante Universitário (RU) - Insumos e Operação"
-                        elif "BOLSA" in p_up or "ASSIST" in p_up:
-                            conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
-                        elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
-                            conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
-                        elif "OBRA" in p_up or "REFORMA" in p_up:
-                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
-                        elif "TIC" in p_up or "INFORMATICA" in p_up:
-                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
-
-                    idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
-
-                    nova_ass = col_sel.selectbox(
-                        "Associar à Conta:",
-                        st.session_state.contas_gerenciais,
-                        index=idx_def,
-                        key=f"sel_pi_{pi_item}"
+                    ndd_sel_id = st.selectbox(
+                        "Vincular à NDD:",
+                        options=options_ndd_keys,
+                        format_func=lambda x: "Nenhuma (Sem NDD)" if x is None else options_ndd.get(x, "")
                     )
-                    st.session_state.dicionario_pis[pi_item] = nova_ass
+                    
+                    ativo_in = st.checkbox("Conta Ativa", value=True)
+                    
+                    btn_save_cg = st.form_submit_button("Salvar Conta Gerencial", use_container_width=True, type="primary")
+
+                    if btn_save_cg:
+                        if not codigo_conta_in.strip():
+                            st.error("O campo 'Código da Conta' é obrigatório.")
+                        else:
+                            try:
+                                inserir_conta_gerencial_banco(
+                                    codigo_conta=codigo_conta_in.strip(),
+                                    nome_conta=nome_conta_in.strip() if nome_conta_in else None,
+                                    ndd_id=ndd_sel_id,
+                                    ativo=ativo_in,
+                                    nivel=nivel_in.strip() if nivel_in else None
+                                )
+                                st.success(f"Conta '{codigo_conta_in}' inserida com sucesso!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao inserir conta gerencial: {e}")
+
+            with col_list_cg:
+                st.subheader(f"Contas Gerenciais Cadastradas ({len(df_cg)})")
+                
+                if df_cg.empty:
+                    st.info("Nenhuma Conta Gerencial cadastrada no banco de dados.")
+                else:
+                    for idx, row in df_cg.iterrows():
+                        c_id = row["id"]
+                        c_cod = row["codigo_conta"]
+                        c_nome = row["nome_conta"] if pd.notna(row["nome_conta"]) else ""
+                        c_niv = row["nivel"] if pd.notna(row["nivel"]) else "S/N"
+                        c_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+                        ndd_code = row["codigo_ndd"] if pd.notna(row["codigo_ndd"]) else ""
+
+                        status_icon = "🟢" if c_ativo else "🔴"
+                        lbl_ndd = f" | NDD: {ndd_code}" if ndd_code else ""
+                        disp_str = f"{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv}{lbl_ndd})*"
+
+                        c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                        c_txt.markdown(disp_str)
+
+                        if c_btn_edit.button("✏️", key=f"edit_cg_btn_{c_id}", help="Editar Conta"):
+                            st.session_state.editando_conta_id = c_id
+                            st.rerun()
+
+                        if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_id}", help="Excluir Conta"):
+                            try:
+                                excluir_conta_gerencial_banco(c_id)
+                                st.success("Conta Gerencial excluída!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao excluir conta: {e}")
+
+                        # Formulário inline de edição
+                        if st.session_state.editando_conta_id == c_id:
+                            with st.container():
+                                st.markdown("---")
+                                st.markdown(f"**Editando Conta Gerencial ID: {c_id}**")
+                                
+                                e_cod = st.text_input("Código:", value=str(c_cod), key=f"edit_cg_cod_{c_id}")
+                                e_nome = st.text_input("Nome:", value=c_nome, key=f"edit_cg_nome_{c_id}")
+                                e_niv = st.text_input("Nível:", value=str(c_niv), key=f"edit_cg_niv_{c_id}")
+                                
+                                cur_ndd_id = row["ndd_id"] if pd.notna(row["ndd_id"]) else None
+                                idx_ndd = options_ndd_keys.index(cur_ndd_id) if cur_ndd_id in options_ndd_keys else 0
+
+                                e_ndd_id = st.selectbox(
+                                    "NDD Vinculada:",
+                                    options=options_ndd_keys,
+                                    index=idx_ndd,
+                                    format_func=lambda x: "Nenhuma (Sem NDD)" if x is None else options_ndd.get(x, ""),
+                                    key=f"edit_cg_ndd_{c_id}"
+                                )
+                                e_ativo = st.checkbox("Ativo", value=c_ativo, key=f"edit_cg_ativo_{c_id}")
+
+                                c_save, c_canc = st.columns(2)
+                                if c_save.button("💾 Salvar", key=f"save_cg_btn_{c_id}", type="primary"):
+                                    try:
+                                        atualizar_conta_gerencial_banco(
+                                            conta_id=c_id,
+                                            codigo_conta=e_cod.strip(),
+                                            nome_conta=e_nome.strip() if e_nome else None,
+                                            ndd_id=e_ndd_id,
+                                            ativo=e_ativo,
+                                            nivel=e_niv.strip() if e_niv else None
+                                        )
+                                        st.session_state.editando_conta_id = None
+                                        st.success("Conta Gerencial atualizada com sucesso!")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Erro ao atualizar conta: {e}")
+
+                                if c_canc.button("Cancelar", key=f"canc_cg_btn_{c_id}"):
+                                    st.session_state.editando_conta_id = None
+                                    st.rerun()
+                                st.markdown("---")
+
+        # TAB 2: NATUREZA DE DESPESA DETALHADA (NDD)
+        with tab_ndd:
+            df_ndd = buscar_ndd_banco()
+
+            col_add_ndd, col_list_ndd = st.columns([1, 2])
+
+            with col_add_ndd:
+                st.subheader("➕ Nova NDD")
+                with st.form("form_add_ndd", clear_on_submit=True):
+                    cod_ndd_in = st.text_input("Código NDD * (Único):", placeholder="Ex: 33903001")
+                    desc_ndd_in = st.text_input("Descrição:", placeholder="Ex: Combustíveis e Lubrificantes")
+                    grupo_despesa_in = st.text_input("Grupo de Despesa:", placeholder="Ex: Material de Consumo")
+                    ativo_ndd_in = st.checkbox("NDD Ativa", value=True)
+
+                    btn_save_ndd = st.form_submit_button("Salvar NDD", use_container_width=True, type="primary")
+
+                    if btn_save_ndd:
+                        if not cod_ndd_in.strip():
+                            st.error("O campo 'Código NDD' é obrigatório.")
+                        else:
+                            try:
+                                inserir_ndd_banco(
+                                    codigo_ndd=cod_ndd_in.strip(),
+                                    descricao=desc_ndd_in.strip(),
+                                    grupo_despesa=grupo_despesa_in.strip() if grupo_despesa_in else None,
+                                    ativo=ativo_ndd_in
+                                )
+                                st.success(f"NDD '{cod_ndd_in}' salva com sucesso!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao salvar NDD (Verifique se o código é único): {e}")
+
+            with col_list_ndd:
+                st.subheader(f"NDDs Cadastradas ({len(df_ndd)})")
+
+                if df_ndd.empty:
+                    st.info("Nenhuma Natureza de Despesa Detalhada cadastrada.")
+                else:
+                    for idx, row in df_ndd.iterrows():
+                        n_id = row["id"]
+                        n_cod = row["codigo_ndd"]
+                        n_desc = row["descricao"] if pd.notna(row["descricao"]) else ""
+                        n_grp = row["grupo_despesa"] if pd.notna(row["grupo_despesa"]) else ""
+                        n_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+
+                        status_ic = "🟢" if n_ativo else "🔴"
+                        lbl_grp = f" *(Grupo: {n_grp})*" if n_grp else ""
+                        disp_ndd = f"{status_ic} **[{n_cod}]** {n_desc}{lbl_grp}"
+
+                        c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                        c_txt.markdown(disp_ndd)
+
+                        if c_btn_edit.button("✏️", key=f"edit_ndd_btn_{n_id}", help="Editar NDD"):
+                            st.session_state.editando_ndd_id = n_id
+                            st.rerun()
+
+                        if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_id}", help="Excluir NDD"):
+                            try:
+                                excluir_ndd_banco(n_id)
+                                st.success("NDD excluída com sucesso!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Erro ao excluir NDD: {e}")
+
+                        # Formulário inline de edição NDD
+                        if st.session_state.editando_ndd_id == n_id:
+                            with st.container():
+                                st.markdown("---")
+                                st.markdown(f"**Editando NDD ID: {n_id}**")
+
+                                e_ndd_cod = st.text_input("Código NDD:", value=str(n_cod), key=f"edit_ndd_cod_{n_id}")
+                                e_ndd_desc = st.text_input("Descrição:", value=n_desc, key=f"edit_ndd_desc_{n_id}")
+                                e_ndd_grp = st.text_input("Grupo de Despesa:", value=n_grp, key=f"edit_ndd_grp_{n_id}")
+                                e_ndd_ativo = st.checkbox("Ativo", value=n_ativo, key=f"edit_ndd_ativo_{n_id}")
+
+                                c_save, c_canc = st.columns(2)
+                                if c_save.button("💾 Salvar", key=f"save_ndd_btn_{n_id}", type="primary"):
+                                    try:
+                                        atualizar_ndd_banco(
+                                            ndd_id=n_id,
+                                            codigo_ndd=e_ndd_cod.strip(),
+                                            descricao=e_ndd_desc.strip(),
+                                            grupo_despesa=e_ndd_grp.strip() if e_ndd_grp else None,
+                                            ativo=e_ndd_ativo
+                                        )
+                                        st.session_state.editando_ndd_id = None
+                                        st.success("NDD alterada com sucesso!")
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"Erro ao atualizar NDD: {e}")
+
+                                if c_canc.button("Cancelar", key=f"canc_ndd_btn_{n_id}"):
+                                    st.session_state.editando_ndd_id = None
+                                    st.rerun()
+                                st.markdown("---")
 
     # -----------------------------------------------------------------------------
     # CADASTRO DE USUÁRIOS
