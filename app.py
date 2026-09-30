@@ -469,41 +469,44 @@ if verificar_senha():
                 else:
                     df = pd.read_excel(arquivo)
                 
+                # -----------------------------------------------------------------------------
+                # PASSO 2: ATUALIZE O TRATAMENTO NO APP.PY
+                # -----------------------------------------------------------------------------
+                colunas = list(df.columns)
+
+                def buscar_col(termos, default_idx):
+                    for col in colunas:
+                        for t in termos:
+                            if t.lower() in str(col).lower():
+                                return col
+                    return colunas[default_idx] if len(colunas) > default_idx else colunas[0]
+
+                col_ex = buscar_col(["exercício", "exercicio", "ano"], 0)
+                col_mes = buscar_col(["mês", "mes", "competência", "periodo"], 1)
+                col_ug = buscar_col(["ug", "unidade gestora"], 6 if len(colunas) > 6 else 0)
+                col_nd = buscar_col(["natureza de despesa detalhada", "nd", "código nd", "codigo nd"], 11 if len(colunas) > 11 else 0)
+                col_desc_nd = buscar_col(["descrição nd", "descricao nd", "nome nd"], 12 if len(colunas) > 12 else 0)
+                col_val = buscar_col(["valor", "liquidado", "pago", "executado"], -1)
+
+                df_tratado = pd.DataFrame()
+                df_tratado["exercicio"] = pd.to_numeric(df[col_ex], errors="coerce").fillna(datetime.now().year).astype(int)
+                df_tratado["mes_competencia"] = pd.to_datetime(df[col_mes].astype(str), errors="coerce").dt.month.fillna(1).astype(int)
+                df_tratado["ug_responsavel"] = df[col_ug].astype(str).str.strip()
+                df_tratado["natureza_despesa_detalhada"] = df[col_nd].astype(str).str.strip()
+                df_tratado["descricao_nd"] = df[col_desc_nd].astype(str).str.strip()
+                df_tratado["valor_liquidado"] = df[col_val].apply(converter_valor)
+
                 st.session_state.dados_tg_raw = df
-                st.success(f"Arquivo carregado com sucesso! {len(df):,} linhas identificadas na memória.")
-                st.dataframe(df.head(5), use_container_width=True)
+                st.success(f"Arquivo carregado e tratado com sucesso! {len(df_tratado):,} linhas identificadas na memória.")
+                st.dataframe(df_tratado.head(5), use_container_width=True)
 
                 st.markdown("---")
                 st.subheader("🚀 PASSO 3: Exportação e Carga Massiva para o Supabase")
                 st.caption("Grave esta planilha na tabela `tb_execucao_despesa` do seu banco de dados na nuvem Supabase.")
 
                 if st.button("🚀 Gravar Dados no Supabase", type="primary"):
-                    with st.spinner("Mapeando colunas e enviando lotes de dados para o Supabase..."):
-                        colunas = list(df.columns)
-
-                        def buscar_col(termos, default_idx):
-                            for col in colunas:
-                                for t in termos:
-                                    if t.lower() in str(col).lower():
-                                        return col
-                            return colunas[default_idx] if len(colunas) > default_idx else colunas[0]
-
-                        col_ex = buscar_col(["exercício", "exercicio", "ano"], 0)
-                        col_mes = buscar_col(["mês", "mes", "competência", "periodo"], 1)
-                        col_ug = buscar_col(["ug", "unidade gestora"], 6 if len(colunas) > 6 else 0)
-                        col_nd = buscar_col(["natureza de despesa detalhada", "nd", "código nd", "codigo nd"], 11 if len(colunas) > 11 else 0)
-                        col_desc_nd = buscar_col(["descrição nd", "descricao nd", "nome nd"], 12 if len(colunas) > 12 else 0)
-                        col_val = buscar_col(["valor", "liquidado", "pago", "executado"], -1)
-
-                        df_supa = pd.DataFrame()
-                        df_supa["exercicio"] = pd.to_numeric(df[col_ex], errors="coerce").fillna(datetime.now().year).astype(int)
-                        df_supa["mes_competencia"] = pd.to_datetime(df[col_mes].astype(str), errors="coerce").dt.month.fillna(1).astype(int)
-                        df_supa["ug_responsavel"] = df[col_ug].astype(str).str.strip()
-                        df_supa["natureza_despesa_detalhada"] = df[col_nd].astype(str).str.strip()
-                        df_supa["descricao_nd"] = df[col_desc_nd].astype(str).str.strip()
-                        df_supa["valor_liquidado"] = df[col_val].apply(converter_valor)
-
-                        carregar_dados_para_supabase(df_supa, "tb_execucao_despesa")
+                    with st.spinner("Enviando lotes de dados para o Supabase..."):
+                        carregar_dados_para_supabase(df_tratado, "tb_execucao_despesa")
                         st.success("🎉 Carga concluída com sucesso no banco de dados Supabase!")
 
             except Exception as e:
@@ -1145,7 +1148,7 @@ if verificar_senha():
 
             for conta_item in st.session_state.contas_gerenciais:
                 col_lbl_c, col_sel_tot = st.columns([2, 2])
-                col_lbl_c.write(f"🏷️ **{conta_item}**")
+                col_lbl_c.write(f"🏷️️ **{conta_item}**")
 
                 tot_atual = st.session_state.mapa_contas_totalizadores.get(conta_item, st.session_state.totalizadores[0])
                 if tot_atual not in st.session_state.totalizadores:
