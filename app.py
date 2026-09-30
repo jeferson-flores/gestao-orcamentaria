@@ -27,6 +27,46 @@ def executar_consulta_sql(query: str) -> pd.DataFrame:
     engine = get_db_engine()
     return pd.read_sql_query(query, con=engine)
 
+def executar_comando_sql(query: str, params: dict = None):
+    engine = get_db_engine()
+    with engine.begin() as conn:
+        if params:
+            from sqlalchemy import text
+            conn.execute(text(query), params)
+        else:
+            from sqlalchemy import text
+            conn.execute(text(query))
+
+# -----------------------------------------------------------------------------
+# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS
+# -----------------------------------------------------------------------------
+def buscar_ugs_banco():
+    try:
+        query = "SELECT id, codigo, nome, sigla, ativa, criado_em FROM public.tb_ugs ORDER BY codigo ASC;"
+        return executar_consulta_sql(query)
+    except Exception as e:
+        st.error(f"Erro ao consultar tb_ugs no Supabase: {e}")
+        return pd.DataFrame()
+
+def inserir_ug_banco(codigo: str, nome: str, sigla: str, ativa: bool):
+    query = """
+    INSERT INTO public.tb_ugs (codigo, nome, sigla, ativa)
+    VALUES (:codigo, :nome, :sigla, :ativa);
+    """
+    executar_comando_sql(query, {"codigo": codigo, "nome": nome, "sigla": sigla, "ativa": ativa})
+
+def atualizar_ug_banco(ug_id: int, codigo: str, nome: str, sigla: str, ativa: bool):
+    query = """
+    UPDATE public.tb_ugs
+    SET codigo = :codigo, nome = :nome, sigla = :sigla, ativa = :ativa
+    WHERE id = :ug_id;
+    """
+    executar_comando_sql(query, {"ug_id": ug_id, "codigo": codigo, "nome": nome, "sigla": sigla, "ativa": ativa})
+
+def excluir_ug_banco(ug_id: int):
+    query = "DELETE FROM public.tb_ugs WHERE id = :ug_id;"
+    executar_comando_sql(query, {"ug_id": ug_id})
+
 # -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO
 # -----------------------------------------------------------------------------
@@ -312,8 +352,8 @@ if "dados_tg_raw" not in st.session_state:
 if "tot_expandidos_set" not in st.session_state:
     st.session_state.tot_expandidos_set = set()
 
-if "editando_unidade" not in st.session_state:
-    st.session_state.editando_unidade = None
+if "editando_unidade_id" not in st.session_state:
+    st.session_state.editando_unidade_id = None
 
 if "editando_conta" not in st.session_state:
     st.session_state.editando_conta = None
@@ -375,15 +415,15 @@ if verificar_senha():
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
-    # Grupo Relatórios (Inicia recolhido)
+    # Grupo Relatórios
     with st.sidebar.expander("📊 Relatórios", expanded=False):
         if st.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
             st.session_state.pagina_atual = "relatorio"
             st.rerun()
 
-    # Grupo Configurações (Inicia recolhido)
+    # Grupo Configurações
     with st.sidebar.expander("⚙️ Configurações", expanded=False):
-        if st.button("📌 Cadastro de Unidades Consolidadas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
+        if st.button("📌 Cadastro de Unidades Gestoras (UGs)", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
             st.session_state.pagina_atual = "unidades_consolidadas"
             st.rerun()
 
@@ -832,58 +872,109 @@ if verificar_senha():
                         idx_col_g += 1
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE UNIDADES CONSOLIDADAS (SEPARADO)
+    # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
-        st.header("📌 Cadastro de Unidades Consolidadas")
-        st.write("Gestão das Unidades Institucionais.")
+        st.header("📌 Cadastro de Unidades Gestoras (UGs)")
+        st.write("Gestão das Unidades cadastradas no banco de dados (`public.tb_ugs`).")
+
+        df_ugs = buscar_ugs_banco()
 
         col_u1, col_u2 = st.columns([1, 2])
         
         with col_u1:
-            st.subheader("Adicionar Nova Unidade")
-            nova_u = st.text_input("Nome da Unidade Consolidada:")
-            if st.button("➕ Adicionar Unidade", use_container_width=True):
-                if nova_u and nova_u not in st.session_state.unidades_consolidadas:
-                    st.session_state.unidades_consolidadas.append(nova_u)
-                    st.success(f"Unidade '{nova_u}' cadastrada!")
-                    st.rerun()
+            st.subheader("➕ Adicionar Nova UG")
+            with st.form("form_add_ug", clear_on_submit=True):
+                codigo_input = st.text_input("Código da UG * (Único):", placeholder="Ex: 153164")
+                nome_input = st.text_input("Nome da UG:", placeholder="Ex: Pró-Reitoria de Administração")
+                sigla_input = st.text_input("Sigla:", placeholder="Ex: PRA")
+                ativa_input = st.checkbox("UG Ativa", value=True)
+                
+                btn_salvar = st.form_submit_button("Salvar UG", use_container_width=True, type="primary")
+
+                if btn_salvar:
+                    if not codigo_input.strip():
+                        st.error("O campo 'Código' é obrigatório.")
+                    else:
+                        try:
+                            inserir_ug_banco(
+                                codigo=codigo_input.strip(),
+                                nome=nome_input.strip() if nome_input else None,
+                                sigla=sigla_input.strip() if sigla_input else None,
+                                ativa=ativa_input
+                            )
+                            # Sincroniza também com a sessão local se houver nome ou sigla
+                            rotulo_u = f"{sigla_input.strip()} - {nome_input.strip()}" if sigla_input and nome_input else nome_input or codigo_input
+                            if rotulo_u not in st.session_state.unidades_consolidadas:
+                                st.session_state.unidades_consolidadas.append(rotulo_u)
+                            
+                            st.success(f"UG '{codigo_input}' cadastrada com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar UG (Verifique se o código é único): {e}")
 
         with col_u2:
-            st.subheader(f"Unidades Cadastradas ({len(st.session_state.unidades_consolidadas)})")
+            st.subheader(f"Unidades Cadastradas ({len(df_ugs)})")
             
-            for idx, unidade in enumerate(st.session_state.unidades_consolidadas):
-                c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
-                c_txt.write(f"• **{unidade}**")
-                
-                if c_btn_edit.button("✏️", key=f"edit_u_{idx}", help="Alterar nome da Unidade"):
-                    st.session_state.editando_unidade = unidade
-                    st.rerun()
+            if df_ugs.empty:
+                st.info("Nenhuma UG cadastrada na tabela `public.tb_ugs`.")
+            else:
+                for idx, row in df_ugs.iterrows():
+                    ug_id = row["id"]
+                    ug_cod = row["codigo"]
+                    ug_nome = row["nome"] if pd.notna(row["nome"]) else ""
+                    ug_sigla = row["sigla"] if pd.notna(row["sigla"]) else ""
+                    ug_ativa = bool(row["ativa"]) if pd.notna(row["ativa"]) else True
 
-                if c_btn_del.button("🗑️️", key=f"del_u_{idx}", help="Excluir Unidade"):
-                    st.session_state.unidades_consolidadas.remove(unidade)
-                    for ug_k, val in list(st.session_state.mapa_ugs.items()):
-                        if val == unidade:
-                            st.session_state.mapa_ugs[ug_k] = "Encargos Gerais da UFSM / Outros"
-                    st.rerun()
+                    status_str = "🟢" if ug_ativa else "🔴"
+                    display_text = f"{status_str} **[{ug_cod}]** {ug_sigla} - {ug_nome}".strip(" -")
 
-                if st.session_state.editando_unidade == unidade:
-                    with st.container():
-                        c_in, c_save, c_canc = st.columns([4, 1, 1])
-                        novo_nome_u = c_in.text_input("Novo nome:", value=unidade, key=f"inp_u_{idx}")
-                        if c_save.button("Salvar", key=f"save_u_{idx}"):
-                            if novo_nome_u and novo_nome_u != unidade:
-                                st.session_state.unidades_consolidadas[idx] = novo_nome_u
-                                for ug_k, val in st.session_state.mapa_ugs.items():
-                                    if val == unidade:
-                                        st.session_state.mapa_ugs[ug_k] = novo_nome_u
-                                st.success("Unidade alterada com sucesso!")
-                            st.session_state.editando_unidade = None
+                    c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                    c_txt.markdown(display_text)
+                    
+                    if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_id}", help="Alterar dados da UG"):
+                        st.session_state.editando_unidade_id = ug_id
+                        st.rerun()
+
+                    if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_id}", help="Excluir UG"):
+                        try:
+                            excluir_ug_banco(ug_id)
+                            st.success(f"UG [{ug_cod}] excluída com sucesso!")
                             st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao excluir UG: {e}")
 
-                        if c_canc.button("Cancelar", key=f"canc_u_{idx}"):
-                            st.session_state.editando_unidade = None
-                            st.rerun()
+                    # Formulário inline de Edição
+                    if st.session_state.editando_unidade_id == ug_id:
+                        with st.container():
+                            st.markdown("---")
+                            st.markdown(f"**Editando UG Cod: {ug_cod}**")
+                            
+                            edit_cod = st.text_input("Código:", value=str(ug_cod), key=f"edit_cod_{ug_id}")
+                            edit_nome = st.text_input("Nome:", value=ug_nome, key=f"edit_nome_{ug_id}")
+                            edit_sigla = st.text_input("Sigla:", value=ug_sigla, key=f"edit_sigla_{ug_id}")
+                            edit_ativa = st.checkbox("Ativa", value=ug_ativa, key=f"edit_ativa_{ug_id}")
+
+                            c_save, c_canc = st.columns(2)
+                            if c_save.button("💾 Salvar Alterações", key=f"save_ug_btn_{ug_id}", type="primary"):
+                                try:
+                                    atualizar_ug_banco(
+                                        ug_id=ug_id,
+                                        codigo=edit_cod.strip(),
+                                        nome=edit_nome.strip() if edit_nome else None,
+                                        sigla=edit_sigla.strip() if edit_sigla else None,
+                                        ativa=edit_ativa
+                                    )
+                                    st.session_state.editando_unidade_id = None
+                                    st.success("Unidade alterada com sucesso!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao atualizar UG: {e}")
+
+                            if c_canc.button("Cancelar", key=f"canc_ug_btn_{ug_id}"):
+                                st.session_state.editando_unidade_id = None
+                                st.rerun()
+                            st.markdown("---")
 
     # -----------------------------------------------------------------------------
     # MAPEAMENTO DE UGs (SEPARADO)
