@@ -2,6 +2,30 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+from sqlalchemy import create_engine
+from supabase import create_client, Client
+
+# -----------------------------------------------------------------------------
+# CONEXÃO E BANCO DE DADOS SUPABASE (SECRETS STREAMLIT)
+# -----------------------------------------------------------------------------
+@st.cache_resource
+def get_supabase_client() -> Client:
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
+
+@st.cache_resource
+def get_db_engine():
+    db_url = st.secrets["DATABASE_URL"]
+    return create_engine(db_url)
+
+def carregar_dados_para_supabase(df: pd.DataFrame, nome_tabela: str = "tb_execucao_despesa"):
+    engine = get_db_engine()
+    df.to_sql(nome_tabela, con=engine, if_exists="append", index=False, chunksize=2000)
+
+def executar_consulta_sql(query: str) -> pd.DataFrame:
+    engine = get_db_engine()
+    return pd.read_sql_query(query, con=engine)
 
 # -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO
@@ -193,27 +217,60 @@ UNIDADES_UFSM_PADRAO = [
     "Encargos Gerais da UFSM / Outros"
 ]
 
-# Mapeamento alterado para aceitar Códigos de UG (Coluna F) além de nomes
 MAPA_UGS_PADRAO = {
-    "153164": "PRA - Pró-Reitoria de Administração",
-    "153165": "PROPLAN - Pró-Reitoria de Planejamento",
-    "153166": "PROGRAD - Pró-Reitoria de Graduação",
-    "153167": "PRPGP - Pró-Reitoria de Pós-Graduação e Pesquisa",
-    "153168": "PRE - Pró-Reitoria de Extensão",
-    "153169": "PRAE - Pró-Reitoria de Assuntos Estudantis",
-    "153170": "PROINFRA - Pró-Reitoria de Infraestrutura",
-    "153171": "CCSH - Centro de Ciências Sociais e Humanas",
-    "153172": "CT - Centro de Tecnologia",
-    "153173": "CCR - Centro de Ciências Rurais",
-    "153174": "CCS - Centro de Ciências da Saúde",
-    "153175": "CCNE - Centro de Ciências Naturais e Exatas",
-    "153176": "CAL - Centro de Artes e Letras",
-    "153177": "CE - Centro de Educação",
-    "153178": "CEFD - Centro de Educação Física e Desportos",
     "REITORIA DA UFSM": "Reitoria e Gabinete do Reitor",
+    "GABINETE DO REITOR": "Reitoria e Gabinete do Reitor",
+    "AUDITORIA INTERNA": "Reitoria e Gabinete do Reitor",
+    "CORREGEDORIA SETORIAL DA UFSM": "Reitoria e Gabinete do Reitor",
+    "COORDENADORIA DE COMUNICACAO SOCIAL": "Reitoria e Gabinete do Reitor",
+    "EDITORA UFSM": "Reitoria e Gabinete do Reitor",
     "PRO-REITORIA DE ADMINISTRACAO DA UFSM": "PRA - Pró-Reitoria de Administração",
+    "ALMOXARIFADO CENTRAL DA UFSM": "PRA - Pró-Reitoria de Administração",
+    "UFSM-DEPARTAMENTO DE MATERIAL E PATRIMONIO": "PRA - Pró-Reitoria de Administração",
+    "DEPARTAMENTO DE CONTABILIDADE E FINANCAS": "PRA - Pró-Reitoria de Administração",
+    "SERVICOS DE TRANSPORTES E OFICINAS/UFSM": "PRA - Pró-Reitoria de Administração",
+    "SETOR DE IMPORTACAOES DA UFSM": "PRA - Pró-Reitoria de Administração",
     "PRO-REITORIA DE PLANEJAMENTO DA UFSM": "PROPLAN - Pró-Reitoria de Planejamento",
+    "COORDENADORIA DE PLANEJAMENTO INFORMACIONAL": "PROPLAN - Pró-Reitoria de Planejamento",
+    "PRO-REITORIA DE GRADUACAO DA UFSM": "PROGRAD - Pró-Reitoria de Graduação",
+    "DEPARTAMENTO DE REGISTRO E CONTROLE ACADEMICO": "PROGRAD - Pró-Reitoria de Graduação",
+    "PRO-REITORIA DE POS-GRADUACAO E PESQUISA-UFSM": "PRPGP - Pró-Reitoria de Pós-Graduação e Pesquisa",
+    "PRO-REITORIA DE EXTENSAO DA UFSM": "PRE - Pró-Reitoria de Extensão",
+    "PRO-REITORIA DE INOVACAO E EMPREENDEDORISMO": "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
+    "AGENCIA DE INOVACAO E TRANSFERENCIA DE TECNOLOGIA": "INOVA - Pró-Reitoria de Inovação e Empreendedorismo",
+    "PROGEP": "PROGEP - Pró-Reitoria de Gestão de Pessoas",
+    "PRO REITORIA DE GESTAO DE PESSOAS": "PROGEP - Pró-Reitoria de Gestão de Pessoas",
+    "PRO-REITORIA DE ASSUNTOS ESTUDANTIS DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO - CAMPUS PM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO - CAMPUS FW": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "RESTAURANTE UNIVERSITARIO - CAMPUS CACH.SUL": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "SECRET. APOIO ADMIN. - PRAE": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "COORDENADORIA DE ACOES EDUCACIONAIS DA UFSM": "PRAE - Pró-Reitoria de Assuntos Estudantis",
+    "PRO-REITORIA DE INFRAESTRUTURA - UFSM": "PROINFRA - Pró-Reitoria de Infraestrutura",
+    "PRO-REITORIA DE INFRAESTRUTURA - PROINFRA": "PROINFRA - Pró-Reitoria de Infraestrutura",
+    "DIRETORIA DE GESTAO AMBIENTAL": "DGA - Diretoria de Gestão Ambiental",
+    "CENTRO DE PROCESSAMENTO DE DADOS DA UFSM": "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "LABORATORIO DE MANUTENCAO DE INFORMATICA UFSM": "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "DIRETORIA DE TI": "DTI / CPD - Diretoria de TI / Processamento de Dados",
+    "DIRETORIA DE RELACOES INTERNACIONAIS": "DRI - Diretoria de Relações Internacionais",
+    "CENTRO DE ARTES E LETRAS DA UFSM": "CAL - Centro de Artes e Letras",
+    "CENTRO DE CIENCIAS NATURAIS E EXATAS DA UFSM": "CCNE - Centro de Ciências Naturais e Exatas",
+    "CENTRO DE CIENCIAS RURAIS DA UFSM": "CCR - Centro de Ciências Rurais",
+    "CENTRO DE CIENCIAS DA SAUDE DA UFSM": "CCS - Centro de Ciências da Saúde",
     "CENTRO DE CIENCIAS SOCIAIS E HUMANAS DA UFSM": "CCSH - Centro de Ciências Sociais e Humanas",
+    "CENTRO EDUCACAO DA UFSM": "CE - Centro de Educação",
+    "CENTRO DE EDUCACAO FISICA E DESPORTOS DA UFSM": "CEFD - Centro de Educação Física e Desportos",
+    "CENTRO DE TECNOLOGIA DA UFSM": "CT - Centro de Tecnologia",
+    "COLEGIO POLITECNICO DA UFSM": "Colégio Politécnico da UFSM",
+    "COLEGIO TECNICO INDUSTRIAL DA UFSM": "CTISM - Colégio Técnico Industrial de Santa Maria",
+    "CAMPUS DA UFSM EM FREDERICO WESTPHALEN": "Campus Frederico Westphalen",
+    "CAMPUS DA UFSM EM PALMEIRAS DAS MISSOES": "Campus Palmeira das Missões",
+    "CAMPUS DA UFSM EM CACHOEIRA DO SUL": "Campus Cachoeira do Sul",
+    "ESPACO MULTIDISC. PESQ E EXTENS SILV MARTINS": "Campus Silveira Martins",
+    "HOSPITAL DE CLINICAS VETERINARIAS DA UFSM": "Hospital Veterinário / HVU",
+    "FAZENDA ESCOLA DA UFSM": "CCR - Centro de Ciências Rurais",
+    "ENCARGOS GERAIS DA UFSM": "Encargos Gerais da UFSM / Outros"
 }
 
 USUARIOS_PADRAO = [
@@ -332,7 +389,7 @@ if verificar_senha():
         st.session_state.pagina_atual = "unidades"
         st.rerun()
 
-    if st.sidebar.button("🏷️ Configuração de Contas & PIs / NDs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+    if st.sidebar.button("🏷️ Configuração de Contas & PIs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
         st.session_state.pagina_atual = "contas"
         st.rerun()
 
@@ -354,11 +411,11 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 1: CARGA DA PLANILHA
+    # PÁGINA 1: CARGA DA PLANILHA (PASSO 3 IMPLEMENTADO)
     # -----------------------------------------------------------------------------
     if st.session_state.pagina_atual == "carga":
-        st.header("📁 Carga do Relatório do Tesouro Gerencial")
-        st.write("Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx ou .csv).")
+        st.header("📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase")
+        st.write("Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx ou .csv) para carregar na memória ou gravar na nuvem Supabase.")
 
         arquivo = st.file_uploader("Selecione o arquivo da UFSM", type=["csv", "xlsx"])
 
@@ -371,20 +428,53 @@ if verificar_senha():
                     df = pd.read_excel(arquivo)
                 
                 st.session_state.dados_tg_raw = df
-                st.success(f"Arquivo carregado com sucesso! {len(df):,} linhas identificadas.")
+                st.success(f"Arquivo carregado com sucesso! {len(df):,} linhas identificadas na memória.")
                 st.dataframe(df.head(5), use_container_width=True)
 
+                st.markdown("---")
+                st.subheader("🚀 PASSO 3: Exportação e Carga Massiva para o Supabase")
+                st.caption("Grave esta planilha na tabela `tb_execucao_despesa` do seu banco de dados na nuvem Supabase.")
+
+                if st.button("🚀 Gravar Dados no Supabase", type="primary"):
+                    with st.spinner("Mapeando colunas e enviando lotes de dados para o Supabase..."):
+                        colunas = list(df.columns)
+
+                        def buscar_col(termos, default_idx):
+                            for col in colunas:
+                                for t in termos:
+                                    if t.lower() in str(col).lower():
+                                        return col
+                            return colunas[default_idx] if len(colunas) > default_idx else colunas[0]
+
+                        col_ex = buscar_col(["exercício", "exercicio", "ano"], 0)
+                        col_mes = buscar_col(["mês", "mes", "competência", "periodo"], 1)
+                        col_ug = buscar_col(["ug", "unidade gestora"], 6 if len(colunas) > 6 else 0)
+                        col_nd = buscar_col(["natureza de despesa detalhada", "nd", "código nd", "codigo nd"], 11 if len(colunas) > 11 else 0)
+                        col_desc_nd = buscar_col(["descrição nd", "descricao nd", "nome nd"], 12 if len(colunas) > 12 else 0)
+                        col_val = buscar_col(["valor", "liquidado", "pago", "executado"], -1)
+
+                        df_supa = pd.DataFrame()
+                        df_supa["exercicio"] = pd.to_numeric(df[col_ex], errors="coerce").fillna(datetime.now().year).astype(int)
+                        df_supa["mes_competencia"] = pd.to_datetime(df[col_mes].astype(str), errors="coerce").dt.month.fillna(1).astype(int)
+                        df_supa["ug_responsavel"] = df[col_ug].astype(str).str.strip()
+                        df_supa["natureza_despesa_detalhada"] = df[col_nd].astype(str).str.strip()
+                        df_supa["descricao_nd"] = df[col_desc_nd].astype(str).str.strip()
+                        df_supa["valor_liquidado"] = df[col_val].apply(converter_valor)
+
+                        carregar_dados_para_supabase(df_supa, "tb_execucao_despesa")
+                        st.success("🎉 Carga concluída com sucesso no banco de dados Supabase!")
+
             except Exception as e:
-                st.error(f"Erro ao ler o arquivo: {e}")
+                st.error(f"Erro ao ler/enviar o arquivo: {e}")
 
         elif st.session_state.dados_tg_raw is not None:
-            st.info("Já existe uma planilha carregada na memória do sistema.")
+            st.info("Já existe uma planilha carregada na memória local do sistema.")
             if st.button("Remover e Enviar Nova Planilha"):
                 st.session_state.dados_tg_raw = None
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA
+    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA (PASSO 4 IMPLEMENTADO)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -404,331 +494,350 @@ if verificar_senha():
 
         st.markdown("---")
 
-        if st.session_state.dados_tg_raw is None:
-            st.info("👋 Por favor, faça a carga do arquivo na aba **'1. Carga da Planilha'** para acessar os relatórios.")
+        # PASSO 4: Chave para escolher entre a fonte em memória ou SQL no Supabase
+        fonte_dados = st.radio("📡 Fonte dos Dados do Relatório:", ["Banco de Dados Supabase (Nuvem / SQL)", "Planilha em Memória (Upload Local)"], horizontal=True)
+
+        if fonte_dados == "Banco de Dados Supabase (Nuvem / SQL)":
+            st.subheader("📊 Demonstrativo Financeiro Comparativo (Consulta SQL Directa do Supabase)")
+            
+            c_a1, c_a2 = st.columns(2)
+            ano_atual_sel = c_a1.number_input("Ano Atual:", value=datetime.now().year, step=1)
+            ano_ant_sel = c_a2.number_input("Ano Comparativo:", value=datetime.now().year - 1, step=1)
+
+            if st.button("🔍 Executar Consulta SQL no Supabase", type="primary"):
+                with st.spinner("Buscando e processando dados diretamente do Supabase..."):
+                    try:
+                        query_relatorio = f"""
+                        SELECT 
+                            COALESCE(m.grupo_categoria, 'G-8.0 Total de Despesas Operacionais e Encargos Institucionais') AS "Categoria",
+                            COALESCE(m.subtotal_agrupador, e.natureza_despesa_detalhada) AS "Agrupador",
+                            SUM(CASE WHEN e.exercicio = {ano_ant_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior",
+                            SUM(CASE WHEN e.exercicio = {ano_atual_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Atual"
+                        FROM tb_execucao_despesa e
+                        LEFT JOIN tb_mapeamento_contas m 
+                               ON e.natureza_despesa_detalhada = m.natureza_despesa_detalhada
+                        WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel})
+                        GROUP BY "Categoria", "Agrupador"
+                        ORDER BY "Categoria", "Agrupador";
+                        """
+                        
+                        df_relatorio_sql = executar_consulta_sql(query_relatorio)
+
+                        if df_relatorio_sql.empty:
+                            st.warning("Nenhum registro encontrado no Supabase para os anos selecionados.")
+                        else:
+                            df_relatorio_sql['Variação (%)'] = (
+                                (df_relatorio_sql['Ano Atual'] - df_relatorio_sql['Ano Anterior']) 
+                                / df_relatorio_sql['Ano Anterior'].replace(0, float('nan'))
+                            ) * 100.0
+
+                            st.dataframe(
+                                df_relatorio_sql.style.format({
+                                    'Ano Anterior': 'R$ {:,.2f}',
+                                    'Ano Atual': 'R$ {:,.2f}',
+                                    'Variação (%)': '{:+.2f}%'
+                                }),
+                                use_container_width=True
+                            )
+
+                    except Exception as e:
+                        st.error(f"Erro ao consultar o Supabase: {e}")
+
         else:
-            df = st.session_state.dados_tg_raw.copy()
-            colunas = list(df.columns)
+            if st.session_state.dados_tg_raw is None:
+                st.info("👋 Por favor, faça a carga do arquivo na aba **'1. Carga da Planilha'** para acessar os relatórios.")
+            else:
+                df = st.session_state.dados_tg_raw.copy()
+                colunas = list(df.columns)
 
-            def encontrar_coluna(termos_busca, indice_padrao):
-                for col in colunas:
-                    for termo in termos_busca:
-                        if termo.lower() in str(col).lower():
-                            return col
-                return colunas[indice_padrao] if len(colunas) > indice_padrao else colunas[0]
+                def encontrar_coluna(termos_busca, indice_padrao):
+                    for col in colunas:
+                        for termo in termos_busca:
+                            if termo.lower() in str(col).lower():
+                                return col
+                    return colunas[indice_padrao] if len(colunas) > indice_padrao else colunas[0]
 
-            col_mes_ref = encontrar_coluna(["mês", "mes", "referencia", "referência", "período", "periodo"], 1)
-            col_resultado_lei = encontrar_coluna(["resultado", "lei", "rp", "fonte"], 2)
-            
-            # PRIORIZAÇÃO DE CÓDIGOS EM DETRIMENTO DA DESCRIÇÃO TEXTUAL
-            col_ug_cod = encontrar_coluna(["código ug", "codigo ug", "cod ug", "ug código"], 5 if len(colunas)>5 else 0)
-            col_ug_nome = encontrar_coluna(["ug", "unidade gestora", "nome ug", "gestora"], 6 if len(colunas)>6 else 0)
-            
-            col_nd_cod = encontrar_coluna(["código natureza", "codigo natureza", "cod nd", "natureza código", "código nd"], 13 if len(colunas)>13 else 0)
-            col_nd_nome = encontrar_coluna(["natureza de despesa", "natureza despesa", "nome nd"], 14 if len(colunas)>14 else 0)
-            
-            col_pi_cod = encontrar_coluna(["código pi", "codigo pi", "pi"], 11 if len(colunas)>11 else 0)
-            col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
-            col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
+                col_mes_ref = encontrar_coluna(["mês", "mes", "referencia", "referência", "período", "periodo"], 1)
+                col_resultado_lei = encontrar_coluna(["resultado", "lei", "rp", "fonte"], 2)
+                col_ug_nome = encontrar_coluna(["ug", "unidade gestora", "nome ug", "gestora"], 6 if len(colunas)>6 else 0)
+                col_pi_cod = encontrar_coluna(["código pi", "codigo pi", "pi"], 11 if len(colunas)>11 else 0)
+                col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
+                col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
 
-            # Filtro de RP
-            mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
-            df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
+                mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
+                df_disc = df[mascara_lei].copy() if mascara_lei.sum() > 0 else df.copy()
 
-            df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
-            
-            # TRATAMENTO DA UNIDADE VIA CÓDIGO (COLUNA F) COM FALLBACK PARA NOME (COLUNA G)
-            def extrair_unidade(row):
-                cod_ug = str(row[col_ug_cod]).strip() if pd.notna(row[col_ug_cod]) else ""
-                nome_ug = str(row[col_ug_nome]).strip() if pd.notna(row[col_ug_nome]) else ""
+                df_disc["Valor_Tratado"] = df_disc[col_valor].apply(converter_valor)
                 
-                if cod_ug in st.session_state.mapa_ugs:
-                    return st.session_state.mapa_ugs[cod_ug]
-                if nome_ug in st.session_state.mapa_ugs:
-                    return st.session_state.mapa_ugs[nome_ug]
+                df_disc["Unidade_Consolidada"] = df_disc[col_ug_nome].astype(str).str.strip().map(
+                    lambda x: st.session_state.mapa_ugs.get(x, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in x or "HUMANA" in x else "Encargos Gerais da UFSM / Outros")
+                )
                 
-                if "SOCIAL" in nome_ug.upper() or "HUMANA" in nome_ug.upper() or "CCSH" in nome_ug.upper():
-                    return "CCSH - Centro de Ciências Sociais e Humanas"
-                return "Encargos Gerais da UFSM / Outros"
-
-            df_disc["Unidade_Consolidada"] = df_disc.apply(extrair_unidade, axis=1)
-            
-            # TRATAMENTO DO ITEM POR CÓDIGO DA ND (COLUNA N) OU PI
-            df_disc["ND_Cod"] = df_disc[col_nd_cod].astype(str).str.strip()
-            df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
-            
-            def mapear_conta(row):
-                pi_comp = row["PI_Completo"]
-                nd_c = row["ND_Cod"]
+                df_disc["PI_Completo"] = df_disc[col_pi_cod].astype(str).str.strip() + " - " + df_disc[col_pi_nome].astype(str).str.strip()
                 
-                if pi_comp in st.session_state.dicionario_pis:
-                    return st.session_state.dicionario_pis[pi_comp]
-                if nd_c in st.session_state.dicionario_pis:
-                    return st.session_state.dicionario_pis[nd_c]
+                df_disc["Conta_Gerencial"] = df_disc["PI_Completo"].map(
+                    lambda x: st.session_state.dicionario_pis.get(x, "8.3. Outras Despesas Operacionais")
+                )
+
+                df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
+                if df_disc["Data_Ref"].isna().all():
+                    df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref].astype(str), format='%m/%Y', errors='coerce')
+
+                df_disc["Ano_Mes"] = df_disc["Data_Ref"].dt.to_period("M")
+
+                meses_siglas = {
+                    1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
+                    7: "JUL", 8: "AGO", 9: "SET", 10: "OUT", 11: "NOV", 12: "DEZ"
+                }
                 
-                return "8.3. Outras Despesas Operacionais"
+                def fmt_mmm_aaaa(periodo):
+                    if pd.isna(periodo): return ""
+                    return f"{meses_siglas[periodo.month]}/{periodo.year}"
 
-            df_disc["Conta_Gerencial"] = df_disc.apply(mapear_conta, axis=1)
+                # CONTROLES DE FILTRO
+                c_flag, c_unid, c_mes, c_imp = st.columns([1.5, 2, 2, 1])
 
-            df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref], errors='coerce', dayfirst=True)
-            if df_disc["Data_Ref"].isna().all():
-                df_disc["Data_Ref"] = pd.to_datetime(df_disc[col_mes_ref].astype(str), format='%m/%Y', errors='coerce')
+                with c_flag:
+                    tipo_visao = st.radio("📌 Visão do Relatório:", ["Mensal", "Anual"], horizontal=True)
 
-            df_disc["Ano_Mes"] = df_disc["Data_Ref"].dt.to_period("M")
+                with c_unid:
+                    lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
+                    unidade_selecionada = st.selectbox("🏛️ Unidade:", lista_unidades_select)
 
-            meses_siglas = {
-                1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
-                7: "JUL", 8: "AGO", 9: "SET", 10: "OUT", 11: "NOV", 12: "DEZ"
-            }
-            
-            def fmt_mmm_aaaa(periodo):
-                if pd.isna(periodo): return ""
-                return f"{meses_siglas[periodo.month]}/{periodo.year}"
+                df_filtrado_unidade = df_disc.copy()
+                if unidade_selecionada != "--- TOTAL DA UFSM ---":
+                    df_filtrado_unidade = df_filtrado_unidade[df_filtrado_unidade["Unidade_Consolidada"] == unidade_selecionada]
 
-            # CONTROLES DE FILTRO
-            c_flag, c_unid, c_mes, c_imp = st.columns([1.5, 2, 2, 1])
-
-            with c_flag:
-                tipo_visao = st.radio("📌 Visão do Relatório:", ["Mensal", "Anual"], horizontal=True)
-
-            with c_unid:
-                lista_unidades_select = ["--- TOTAL DA UFSM ---"] + sorted(st.session_state.unidades_consolidadas)
-                unidade_selecionada = st.selectbox("🏛️ Unidade:", lista_unidades_select)
-
-            df_filtrado_unidade = df_disc.copy()
-            if unidade_selecionada != "--- TOTAL DA UFSM ---":
-                df_filtrado_unidade = df_filtrado_unidade[df_filtrado_unidade["Unidade_Consolidada"] == unidade_selecionada]
-
-            periodos_disponiveis = sorted([p for p in df_filtrado_unidade["Ano_Mes"].dropna().unique()], reverse=True)
-            
-            with c_mes:
-                if periodos_disponiveis:
-                    periodo_sel = st.selectbox(
-                        "📅 Mês de Referência:", 
-                        periodos_disponiveis, 
-                        format_func=fmt_mmm_aaaa
-                    )
-                else:
-                    periodo_sel = None
-                    st.warning("Nenhuma data válida encontrada na planilha.")
-
-            with c_imp:
-                st.write(" ")
-                if st.button("🖨️ Imprimir / PDF", type="primary", use_container_width=True):
-                    st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
-
-            st.markdown("---")
-
-            if periodo_sel is not None:
-                totalizadores_lista = sorted(st.session_state.totalizadores)
-                contas_lista = sorted(st.session_state.contas_gerenciais)
-
-                if tipo_visao == "Mensal":
-                    p0, p1, p2, p3 = periodo_sel, periodo_sel - 1, periodo_sel - 2, periodo_sel - 12
-                    
-                    lbl_0 = f"{fmt_mmm_aaaa(p0)} (R$)"
-                    lbl_1 = f"{fmt_mmm_aaaa(p1)} (R$)"
-                    var_1_str = f"Var. % ({fmt_mmm_aaaa(p0)} vs {fmt_mmm_aaaa(p1)})"
-                    lbl_2 = f"{fmt_mmm_aaaa(p2)} (R$)"
-                    var_2_str = f"Var. % ({fmt_mmm_aaaa(p1)} vs {fmt_mmm_aaaa(p2)})"
-                    lbl_3 = f"{fmt_mmm_aaaa(p3)} (R$)"
-                    var_3_str = f"Var. % ({fmt_mmm_aaaa(p0)} vs {fmt_mmm_aaaa(p3)})"
-
-                    df0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p0]
-                    df1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p1]
-                    df2 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p2]
-                    df3 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p3]
-
-                    s0 = df0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    s1 = df1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    s3 = df3.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-
-                    cols_valores = [lbl_0, lbl_1, lbl_2, lbl_3]
-                    cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
-                    larguras_colunas = [3.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]
-                    dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2, lbl_3: s3}
-                    mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2), var_3_str: (lbl_0, lbl_3)}
-
-                else:
-                    ano_atual, mes_ref_num = periodo_sel.year, periodo_sel.month
-                    ano_1, ano_2 = ano_atual - 1, ano_atual - 2
-                    sigla_mes = meses_siglas[mes_ref_num]
-
-                    lbl_0 = f"JAN-{sigla_mes}/{ano_atual} (R$)"
-                    lbl_1 = f"JAN-{sigla_mes}/{ano_1} (R$)"
-                    var_1_str = f"Var. % ({ano_atual} vs {ano_1})"
-                    lbl_2 = f"JAN-{sigla_mes}/{ano_2} (R$)"
-                    var_2_str = f"Var. % ({ano_1} vs {ano_2})"
-
-                    df0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
-                    df1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
-                    df2 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_2) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
-
-                    s0 = df0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    s1 = df1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-                    s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
-
-                    cols_valores = [lbl_0, lbl_1, lbl_2]
-                    cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
-                    larguras_colunas = [3.5, 1.5, 1.5, 1.5, 1.5, 1.5]
-                    dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
-                    mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
-
-                c_lbl_tit, c_btn_exp_all = st.columns([4, 1])
-                with c_lbl_tit:
-                    st.subheader(f"📋 Execução Orçamentária Comparativa ({tipo_visao})")
-                with c_btn_exp_all:
-                    if st.button("🔄 Expandir / Recolher Todos", use_container_width=True):
-                        if len(st.session_state.tot_expandidos_set) > 0:
-                            st.session_state.tot_expandidos_set.clear()
-                        else:
-                            st.session_state.tot_expandidos_set = set(totalizadores_lista)
-                        st.rerun()
-
-                st.markdown("""
-                    <style>
-                    .row-totalizador {
-                        background-color: #f0f4f8;
-                        font-weight: bold;
-                        border-top: 1px solid #cbd5e1;
-                        border-bottom: 1px solid #cbd5e1;
-                        padding: 6px 0px;
-                        display: flex;
-                        align-items: center;
-                    }
-                    .row-subconta {
-                        background-color: #ffffff;
-                        border-bottom: 1px dashed #e2e8f0;
-                        padding: 4px 0px;
-                        display: flex;
-                        align-items: center;
-                        font-size: 14px;
-                    }
-                    .row-total-geral {
-                        background-color: #003366;
-                        color: white;
-                        font-weight: bold;
-                        padding: 8px 0px;
-                        border-radius: 4px;
-                        margin-top: 8px;
-                    }
-                    div[data-testid="stColumn"] {
-                        padding: 0px 4px !important;
-                    }
-                    </style>
-                """, unsafe_allow_html=True)
-
-                c_hd = st.columns(larguras_colunas)
-                for idx, col_nome in enumerate(cols_cabecalho):
-                    align = "left" if idx == 0 else "right"
-                    c_hd[idx].markdown(f"<div style='text-align: {align}; font-weight: bold; color: #475569; font-size: 13px;'>{col_nome}</div>", unsafe_allow_html=True)
-
-                st.markdown("<hr style='margin: 4px 0px 8px 0px;'>", unsafe_allow_html=True)
-
-                def fmt_moeda(v):
-                    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-                def fmt_percent_html(v):
-                    if v == 0:
-                        color = "#64748b"
-                    elif v > 0:
-                        color = "#dc2626"
+                periodos_disponiveis = sorted([p for p in df_filtrado_unidade["Ano_Mes"].dropna().unique()], reverse=True)
+                
+                with c_mes:
+                    if periodos_disponiveis:
+                        periodo_sel = st.selectbox(
+                            "📅 Mês de Referência:", 
+                            periodos_disponiveis, 
+                            format_func=fmt_mmm_aaaa
+                        )
                     else:
-                        color = "#2563eb"
-                    
-                    val_str = f"{v:+.2f}%".replace(".", ",")
-                    return f"<span style='color: {color}; font-weight: bold;'>{val_str}</span>"
+                        periodo_sel = None
+                        st.warning("Nenhuma data válida encontrada na planilha.")
 
-                somas_totais_gerais = {col: 0.0 for col in cols_valores}
+                with c_imp:
+                    st.write(" ")
+                    if st.button("🖨️ Imprimir / PDF", type="primary", use_container_width=True):
+                        st.components.v1.html("<script>window.parent.print();</script>", height=0, width=0)
 
-                for i_tot, tot in enumerate(totalizadores_lista):
-                    contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
-                    is_expanded = tot in st.session_state.tot_expandidos_set
+                st.markdown("---")
 
-                    val_tot_dict = {}
-                    for col in cols_valores:
-                        val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
-                        val_tot_dict[col] = val_g
-                        somas_totais_gerais[col] += val_g
+                if periodo_sel is not None:
+                    totalizadores_lista = sorted(st.session_state.totalizadores)
+                    contas_lista = sorted(st.session_state.contas_gerenciais)
 
-                    vars_tot_dict = {}
-                    for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                        base = val_tot_dict[v_ant]
-                        vars_tot_dict[col_var] = ((val_tot_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+                    if tipo_visao == "Mensal":
+                        p0, p1, p2, p3 = periodo_sel, periodo_sel - 1, periodo_sel - 2, periodo_sel - 12
+                        
+                        lbl_0 = f"{fmt_mmm_aaaa(p0)} (R$)"
+                        lbl_1 = f"{fmt_mmm_aaaa(p1)} (R$)"
+                        var_1_str = f"Var. % ({fmt_mmm_aaaa(p0)} vs {fmt_mmm_aaaa(p1)})"
+                        lbl_2 = f"{fmt_mmm_aaaa(p2)} (R$)"
+                        var_2_str = f"Var. % ({fmt_mmm_aaaa(p1)} vs {fmt_mmm_aaaa(p2)})"
+                        lbl_3 = f"{fmt_mmm_aaaa(p3)} (R$)"
+                        var_3_str = f"Var. % ({fmt_mmm_aaaa(p0)} vs {fmt_mmm_aaaa(p3)})"
 
-                    cols_row = st.columns(larguras_colunas)
-                    
-                    c_btn, c_txt = cols_row[0].columns([0.35, 9.65])
-                    btn_symbol = "➖" if is_expanded else "➕"
-                    if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
-                        if is_expanded:
-                            st.session_state.tot_expandidos_set.remove(tot)
+                        df0 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p0]
+                        df1 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p1]
+                        df2 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p2]
+                        df3 = df_filtrado_unidade[df_filtrado_unidade["Ano_Mes"] == p3]
+
+                        s0 = df0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                        s1 = df1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                        s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                        s3 = df3.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+
+                        cols_valores = [lbl_0, lbl_1, lbl_2, lbl_3]
+                        cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str, lbl_3, var_3_str]
+                        larguras_colunas = [3.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2]
+                        dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2, lbl_3: s3}
+                        mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2), var_3_str: (lbl_0, lbl_3)}
+
+                    else:
+                        ano_atual, mes_ref_num = periodo_sel.year, periodo_sel.month
+                        ano_1, ano_2 = ano_atual - 1, ano_atual - 2
+                        sigla_mes = meses_siglas[mes_ref_num]
+
+                        lbl_0 = f"JAN-{sigla_mes}/{ano_atual} (R$)"
+                        lbl_1 = f"JAN-{sigla_mes}/{ano_1} (R$)"
+                        var_1_str = f"Var. % ({ano_atual} vs {ano_1})"
+                        lbl_2 = f"JAN-{sigla_mes}/{ano_2} (R$)"
+                        var_2_str = f"Var. % ({ano_1} vs {ano_2})"
+
+                        df0 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_atual) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                        df1 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_1) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+                        df2 = df_filtrado_unidade[(df_filtrado_unidade["Ano_Mes"].dt.year == ano_2) & (df_filtrado_unidade["Ano_Mes"].dt.month <= mes_ref_num)]
+
+                        s0 = df0.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                        s1 = df1.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+                        s2 = df2.groupby("Conta_Gerencial")["Valor_Tratado"].sum().to_dict()
+
+                        cols_valores = [lbl_0, lbl_1, lbl_2]
+                        cols_cabecalho = ["Estrutura Gerencial / Grupo", lbl_0, lbl_1, var_1_str, lbl_2, var_2_str]
+                        larguras_colunas = [3.5, 1.5, 1.5, 1.5, 1.5, 1.5]
+                        dict_somas = {lbl_0: s0, lbl_1: s1, lbl_2: s2}
+                        mapeamento_var = {var_1_str: (lbl_0, lbl_1), var_2_str: (lbl_1, lbl_2)}
+
+                    c_lbl_tit, c_btn_exp_all = st.columns([4, 1])
+                    with c_lbl_tit:
+                        st.subheader(f"📋 Execução Orçamentária Comparativa ({tipo_visao})")
+                    with c_btn_exp_all:
+                        if st.button("🔄 Expandir / Recolher Todos", use_container_width=True):
+                            if len(st.session_state.tot_expandidos_set) > 0:
+                                st.session_state.tot_expandidos_set.clear()
+                            else:
+                                st.session_state.tot_expandidos_set = set(totalizadores_lista)
+                            st.rerun()
+
+                    st.markdown("""
+                        <style>
+                        .row-totalizador {
+                            background-color: #f0f4f8;
+                            font-weight: bold;
+                            border-top: 1px solid #cbd5e1;
+                            border-bottom: 1px solid #cbd5e1;
+                            padding: 6px 0px;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .row-subconta {
+                            background-color: #ffffff;
+                            border-bottom: 1px dashed #e2e8f0;
+                            padding: 4px 0px;
+                            display: flex;
+                            align-items: center;
+                            font-size: 14px;
+                        }
+                        .row-total-geral {
+                            background-color: #003366;
+                            color: white;
+                            font-weight: bold;
+                            padding: 8px 0px;
+                            border-radius: 4px;
+                            margin-top: 8px;
+                        }
+                        div[data-testid="stColumn"] {
+                            padding: 0px 4px !important;
+                        }
+                        </style>
+                    """, unsafe_allow_html=True)
+
+                    c_hd = st.columns(larguras_colunas)
+                    for idx, col_nome in enumerate(cols_cabecalho):
+                        align = "left" if idx == 0 else "right"
+                        c_hd[idx].markdown(f"<div style='text-align: {align}; font-weight: bold; color: #475569; font-size: 13px;'>{col_nome}</div>", unsafe_allow_html=True)
+
+                    st.markdown("<hr style='margin: 4px 0px 8px 0px;'>", unsafe_allow_html=True)
+
+                    def fmt_moeda(v):
+                        return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+                    def fmt_percent_html(v):
+                        if v == 0:
+                            color = "#64748b"
+                        elif v > 0:
+                            color = "#dc2626"
                         else:
-                            st.session_state.tot_expandidos_set.add(tot)
-                        st.rerun()
+                            color = "#2563eb"
+                        
+                        val_str = f"{v:+.2f}%".replace(".", ",")
+                        return f"<span style='color: {color}; font-weight: bold;'>{val_str}</span>"
 
-                    c_txt.markdown(f"<div style='font-weight: bold; margin-top: 4px;'>{tot}</div>", unsafe_allow_html=True)
+                    somas_totais_gerais = {col: 0.0 for col in cols_valores}
 
-                    idx_col = 1
+                    for i_tot, tot in enumerate(totalizadores_lista):
+                        contas_do_tot = [c for c in contas_lista if st.session_state.mapa_contas_totalizadores.get(c) == tot]
+                        is_expanded = tot in st.session_state.tot_expandidos_set
+
+                        val_tot_dict = {}
+                        for col in cols_valores:
+                            val_g = sum([dict_somas[col].get(c, 0.0) for c in contas_do_tot])
+                            val_tot_dict[col] = val_g
+                            somas_totais_gerais[col] += val_g
+
+                        vars_tot_dict = {}
+                        for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                            base = val_tot_dict[v_ant]
+                            vars_tot_dict[col_var] = ((val_tot_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
+                        cols_row = st.columns(larguras_colunas)
+                        
+                        c_btn, c_txt = cols_row[0].columns([0.35, 9.65])
+                        btn_symbol = "➖" if is_expanded else "➕"
+                        if c_btn.button(btn_symbol, key=f"btn_toggle_{i_tot}", help=f"Expandir/Recolher {tot}"):
+                            if is_expanded:
+                                st.session_state.tot_expandidos_set.remove(tot)
+                            else:
+                                st.session_state.tot_expandidos_set.add(tot)
+                            st.rerun()
+
+                        c_txt.markdown(f"<div style='font-weight: bold; margin-top: 4px;'>{tot}</div>", unsafe_allow_html=True)
+
+                        idx_col = 1
+                        for col in cols_cabecalho[1:]:
+                            if col in cols_valores:
+                                val_str = fmt_moeda(val_tot_dict[col])
+                            else:
+                                val_str = fmt_percent_html(vars_tot_dict[col])
+                            
+                            cols_row[idx_col].markdown(f"<div style='text-align: right; font-weight: bold; margin-top: 4px;'>{val_str}</div>", unsafe_allow_html=True)
+                            idx_col += 1
+
+                        if is_expanded:
+                            for conta in contas_do_tot:
+                                cols_sub = st.columns(larguras_colunas)
+                                cols_sub[0].markdown(f"<div style='padding-left: 28px; color: #334155;'>↳ {conta}</div>", unsafe_allow_html=True)
+
+                                val_sub_dict = {col: dict_somas[col].get(conta, 0.0) for col in cols_valores}
+                                vars_sub_dict = {}
+                                for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                                    base = val_sub_dict[v_ant]
+                                    vars_sub_dict[col_var] = ((val_sub_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
+                                idx_col_sub = 1
+                                for col in cols_cabecalho[1:]:
+                                    if col in cols_valores:
+                                        v_str = fmt_moeda(val_sub_dict[col])
+                                    else:
+                                        v_str = fmt_percent_html(vars_sub_dict[col])
+                                    
+                                    cols_sub[idx_col_sub].markdown(f"<div style='text-align: right; color: #475569;'>{v_str}</div>", unsafe_allow_html=True)
+                                    idx_col_sub += 1
+
+                        st.markdown("<div style='border-bottom: 1px solid #e2e8f0; margin: 2px 0;'></div>", unsafe_allow_html=True)
+
+                    cols_tot_g = st.columns(larguras_colunas)
+                    cols_tot_g[0].markdown("<div style='font-weight: bold; color: #003366; font-size: 15px;'>TOTAL GERAL DO RELATÓRIO</div>", unsafe_allow_html=True)
+
+                    vars_gerais_dict = {}
+                    for col_var, (v_atual, v_ant) in mapeamento_var.items():
+                        base = somas_totais_gerais[v_ant]
+                        vars_gerais_dict[col_var] = ((somas_totais_gerais[v_atual] - base) / base * 100.0) if base > 0 else 0.0
+
+                    idx_col_g = 1
                     for col in cols_cabecalho[1:]:
                         if col in cols_valores:
-                            val_str = fmt_moeda(val_tot_dict[col])
+                            v_g_str = fmt_moeda(somas_totais_gerais[col])
                         else:
-                            val_str = fmt_percent_html(vars_tot_dict[col])
+                            v_g_str = fmt_percent_html(vars_gerais_dict[col])
                         
-                        cols_row[idx_col].markdown(f"<div style='text-align: right; font-weight: bold; margin-top: 4px;'>{val_str}</div>", unsafe_allow_html=True)
-                        idx_col += 1
-
-                    if is_expanded:
-                        for conta in contas_do_tot:
-                            cols_sub = st.columns(larguras_colunas)
-                            cols_sub[0].markdown(f"<div style='padding-left: 28px; color: #334155;'>↳ {conta}</div>", unsafe_allow_html=True)
-
-                            val_sub_dict = {col: dict_somas[col].get(conta, 0.0) for col in cols_valores}
-                            vars_sub_dict = {}
-                            for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                                base = val_sub_dict[v_ant]
-                                vars_sub_dict[col_var] = ((val_sub_dict[v_atual] - base) / base * 100.0) if base > 0 else 0.0
-
-                            idx_col_sub = 1
-                            for col in cols_cabecalho[1:]:
-                                if col in cols_valores:
-                                    v_str = fmt_moeda(val_sub_dict[col])
-                                else:
-                                    v_str = fmt_percent_html(vars_sub_dict[col])
-                                
-                                cols_sub[idx_col_sub].markdown(f"<div style='text-align: right; color: #475569;'>{v_str}</div>", unsafe_allow_html=True)
-                                idx_col_sub += 1
-
-                    st.markdown("<div style='border-bottom: 1px solid #e2e8f0; margin: 2px 0;'></div>", unsafe_allow_html=True)
-
-                cols_tot_g = st.columns(larguras_colunas)
-                cols_tot_g[0].markdown("<div style='font-weight: bold; color: #003366; font-size: 15px;'>TOTAL GERAL DO RELATÓRIO</div>", unsafe_allow_html=True)
-
-                vars_gerais_dict = {}
-                for col_var, (v_atual, v_ant) in mapeamento_var.items():
-                    base = somas_totais_gerais[v_ant]
-                    vars_gerais_dict[col_var] = ((somas_totais_gerais[v_atual] - base) / base * 100.0) if base > 0 else 0.0
-
-                idx_col_g = 1
-                for col in cols_cabecalho[1:]:
-                    if col in cols_valores:
-                        v_g_str = fmt_moeda(somas_totais_gerais[col])
-                    else:
-                        v_g_str = fmt_percent_html(vars_gerais_dict[col])
-                    
-                    cols_tot_g[idx_col_g].markdown(f"<div style='text-align: right; font-weight: bold; color: #003366; font-size: 15px;'>{v_g_str}</div>", unsafe_allow_html=True)
-                    idx_col_g += 1
+                        cols_tot_g[idx_col_g].markdown(f"<div style='text-align: right; font-weight: bold; color: #003366; font-size: 15px;'>{v_g_str}</div>", unsafe_allow_html=True)
+                        idx_col_g += 1
 
     # -----------------------------------------------------------------------------
     # CONFIGURAÇÃO DE UNIDADES E UGs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades":
-        st.header("⚙️ Configuração de Unidades Organizacionais & Mapeamento de UGs (Por Código/Nome)")
-        st.write("Gestão das Unidades Institucionais e alocação das Unidades Gestoras (UG) da planilha.")
+        st.header("⚙️ Configuração de Unidades Organizacionais & Mapeamento de UGs")
+        st.write("Gestão das Unidades Institucionais e alocação de UGs da planilha.")
 
-        tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento por Código de UG (Coluna F) / Nome (Coluna G)"])
+        tab1, tab2 = st.tabs(["📌 Cadastro de Unidades Consolidadas", "🔗 Mapeamento de UGs (Colunas F/G)"])
 
         with tab1:
             col_u1, col_u2 = st.columns([1, 2])
@@ -779,28 +888,23 @@ if verificar_senha():
                                 st.rerun()
 
         with tab2:
-            st.subheader("Alocação por Código / Nome de UG SIAFI -> Unidade Consolidada")
+            st.subheader("Alocação de Unidades Gestoras (UGs SIAFI -> Unidade Consolidada)")
             
             ugs_para_mapear = set(st.session_state.mapa_ugs.keys())
 
             if st.session_state.dados_tg_raw is not None:
                 df_raw = st.session_state.dados_tg_raw
                 cols = list(df_raw.columns)
-                col_ug_c = cols[5] if len(cols) > 5 else cols[0]
-                col_ug_n = cols[6] if len(cols) > 6 else cols[0]
-                
-                # Pega tanto os códigos (Coluna F) quanto os nomes se necessário
-                for _, row in df_raw.iterrows():
-                    c_val = str(row[col_ug_c]).strip() if pd.notna(row[col_ug_c]) else ""
-                    n_val = str(row[col_ug_n]).strip() if pd.notna(row[col_ug_n]) else ""
-                    if c_val: ugs_para_mapear.add(c_val)
-                    elif n_val: ugs_para_mapear.add(n_val)
+                col_ug_nom = cols[6] if len(cols) > 6 else cols[0]
+                ugs_planilha = df_raw[col_ug_nom].dropna().unique()
+                for ug_p in ugs_planilha:
+                    ugs_para_mapear.add(str(ug_p).strip())
 
-            st.write(f"**Total de Chaves de UG identificadas:** {len(ugs_para_mapear)}")
+            st.write(f"**Total de UGs identificadas:** {len(ugs_para_mapear)}")
 
             col_b1, col_b2 = st.columns([2, 1])
             with col_b1:
-                st.caption("Associe cada Código/Nome de UG SIAFI a uma Unidade Consolidada:")
+                st.caption("Associe cada UG do SIAFI/Tesouro Gerencial a uma das Unidades Consolidadas:")
             with col_b2:
                 if st.button("Restaurar Mapeamento Padrão"):
                     st.session_state.mapa_ugs = MAPA_UGS_PADRAO.copy()
@@ -809,9 +913,9 @@ if verificar_senha():
 
             for ug_item in sorted(list(ugs_para_mapear)):
                 c_ug, c_sel = st.columns([2, 2])
-                c_ug.write(f"🏢 UG: **{ug_item}**")
+                c_ug.write(f"🏢 **{ug_item}**")
                 
-                def_val = st.session_state.mapa_ugs.get(ug_item, "Encargos Gerais da UFSM / Outros")
+                def_val = st.session_state.mapa_ugs.get(ug_item, "CCSH - Centro de Ciências Sociais e Humanas" if "SOCIAL" in ug_item or "HUMANA" in ug_item else "Encargos Gerais da UFSM / Outros")
                 if def_val not in st.session_state.unidades_consolidadas:
                     st.session_state.unidades_consolidadas.append(def_val)
 
@@ -826,17 +930,17 @@ if verificar_senha():
                 st.session_state.mapa_ugs[ug_item] = nova_aloc
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs/NDs
+    # CONFIGURAÇÃO DE CONTAS, TOTALIZADORES & MAPEAMENTO DE PIs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & Códigos ND/PI")
-        st.write("Gerencie totalizadores, plano de contas, vinculação de contas e mapeamento por código.")
+        st.header("⚙️ Configuração de Totalizadores, Contas Gerenciais & PIs")
+        st.write("Gerencie totalizadores, plano de contas, vinculação de contas nos totalizadores e mapeamento dos PIs.")
 
         tab_t0, tab_c1, tab_c2, tab_c3 = st.tabs([
             "📊 Cadastro de Totalizadores", 
             "📌 Cadastro de Contas Gerenciais", 
             "🔗 Vinculação de Contas aos Totalizadores", 
-            "🏷️ Mapeamento de PIs / Códigos ND"
+            "🏷️ Mapeamento de PIs"
         ])
 
         with tab_t0:
@@ -965,25 +1069,22 @@ if verificar_senha():
                 st.session_state.mapa_contas_totalizadores[conta_item] = novo_tot_ass
 
         with tab_c3:
-            st.subheader("Mapeamento por Código (PI / Código ND -> Conta Gerencial)")
+            st.subheader("Mapeamento de Planos Internos (PI SIAFI -> Conta Gerencial)")
 
             if st.session_state.dados_tg_raw is None:
-                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os códigos de PI/ND e realizar o mapeamento.")
+                st.warning("⚠️ Carregue a planilha na aba '1. Carga da Planilha' para listar os PIs e realizar o mapeamento.")
             else:
                 df = st.session_state.dados_tg_raw
                 colunas = list(df.columns)
                 
                 col_pi_cod = colunas[11] if len(colunas) > 11 else colunas[0]
                 col_pi_nome = colunas[12] if len(colunas) > 12 else col_pi_cod
-                col_nd_c = colunas[13] if len(colunas) > 13 else colunas[0]
 
                 df_pis = df[[col_pi_cod, col_pi_nome]].drop_duplicates().dropna()
                 df_pis["PI_Completo"] = df_pis[col_pi_cod].astype(str).str.strip() + " - " + df_pis[col_pi_nome].astype(str).str.strip()
-                
                 lista_pis = sorted(df_pis["PI_Completo"].unique())
-                codigos_nd = sorted(df[col_nd_c].astype(str).str.strip().unique())
 
-                st.write(f"**Total de PIs:** {len(lista_pis)} | **Códigos ND (Coluna N):** {len(codigos_nd)}")
+                st.write(f"**Total de PIs únicos identificados na planilha:** {len(lista_pis)}")
 
                 for pi_item in lista_pis:
                     col_lbl, col_sel = st.columns([2, 2])
@@ -998,6 +1099,10 @@ if verificar_senha():
                             conta_sugerida = "4.2. Bolsas de Assistência Estudantil e Permanência"
                         elif "ENERGIA" in p_up or "AGUA" in p_up or "GAS" in p_up:
                             conta_sugerida = "1.2. Concessionárias (Energia, Água, Gás)"
+                        elif "OBRA" in p_up or "REFORMA" in p_up:
+                            conta_sugerida = "1.1. Obras, Reformas e Adequações"
+                        elif "TIC" in p_up or "INFORMATICA" in p_up:
+                            conta_sugerida = "3.1. Equipamentos e Infraestrutura de TI"
 
                     idx_def = st.session_state.contas_gerenciais.index(conta_sugerida) if conta_sugerida in st.session_state.contas_gerenciais else 0
 
