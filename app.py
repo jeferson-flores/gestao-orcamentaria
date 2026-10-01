@@ -38,7 +38,7 @@ def executar_comando_sql(query: str, params: dict = None):
             conn.execute(text(query))
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS (AJUSTADAS)
+# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS
 # -----------------------------------------------------------------------------
 def buscar_ugs_banco():
     try:
@@ -104,53 +104,49 @@ def excluir_ndd_banco(ndd_id: int):
     executar_comando_sql(query, {"ndd_id": ndd_id})
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA PUBLIC.TB_CONTAS_GERENCIAIS
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_CONTAS_GERENCIAIS (AJUSTADAS)
 # -----------------------------------------------------------------------------
 def buscar_contas_gerenciais_banco():
     try:
         query = """
-        SELECT c.id, c.codigo_conta, c.nome_conta, c.ndd_id, c.ativo, c.nivel, c.criado_em,
-               n.codigo_ndd, n.descricao as descricao_ndd
-        FROM public.tb_contas_gerenciais c
-        LEFT JOIN public.tb_natureza_despesa_detalhada n ON c.ndd_id = n.id
-        ORDER BY c.codigo_conta ASC;
+        SELECT codigo_conta, nivel, nome_conta, ativo, criado_em
+        FROM public.tb_contas_gerenciais
+        ORDER BY codigo_conta ASC;
         """
         return executar_consulta_sql(query)
     except Exception as e:
         st.error(f"Erro ao consultar tb_contas_gerenciais: {e}")
         return pd.DataFrame()
 
-def inserir_conta_gerencial_banco(codigo_conta: str, nome_conta: str, ndd_id: int, ativo: bool, nivel: str):
+def inserir_conta_gerencial_banco(codigo_conta: str, nome_conta: str, nivel: str, ativo: bool):
     query = """
-    INSERT INTO public.tb_contas_gerenciais (codigo_conta, nome_conta, ndd_id, ativo, nivel)
-    VALUES (:codigo_conta, :nome_conta, :ndd_id, :ativo, :nivel);
+    INSERT INTO public.tb_contas_gerenciais (codigo_conta, nome_conta, nivel, ativo)
+    VALUES (:codigo_conta, :nome_conta, :nivel, :ativo);
     """
     executar_comando_sql(query, {
         "codigo_conta": codigo_conta,
         "nome_conta": nome_conta,
-        "ndd_id": ndd_id if ndd_id else None,
-        "ativo": ativo,
-        "nivel": nivel
+        "nivel": nivel,
+        "ativo": ativo
     })
 
-def atualizar_conta_gerencial_banco(conta_id: int, codigo_conta: str, nome_conta: str, ndd_id: int, ativo: bool, nivel: str):
+def atualizar_conta_gerencial_banco(codigo_conta_orig: str, codigo_conta_novo: str, nome_conta: str, nivel: str, ativo: bool):
     query = """
     UPDATE public.tb_contas_gerenciais
-    SET codigo_conta = :codigo_conta, nome_conta = :nome_conta, ndd_id = :ndd_id, ativo = :ativo, nivel = :nivel
-    WHERE id = :conta_id;
+    SET codigo_conta = :codigo_conta_novo, nome_conta = :nome_conta, nivel = :nivel, ativo = :ativo
+    WHERE codigo_conta = :codigo_conta_orig;
     """
     executar_comando_sql(query, {
-        "conta_id": conta_id,
-        "codigo_conta": codigo_conta,
+        "codigo_conta_orig": codigo_conta_orig,
+        "codigo_conta_novo": codigo_conta_novo,
         "nome_conta": nome_conta,
-        "ndd_id": ndd_id if ndd_id else None,
-        "ativo": ativo,
-        "nivel": nivel
+        "nivel": nivel,
+        "ativo": ativo
     })
 
-def excluir_conta_gerencial_banco(conta_id: int):
-    query = "DELETE FROM public.tb_contas_gerenciais WHERE id = :conta_id;"
-    executar_comando_sql(query, {"conta_id": conta_id})
+def excluir_conta_gerencial_banco(codigo_conta: str):
+    query = "DELETE FROM public.tb_contas_gerenciais WHERE codigo_conta = :codigo_conta;"
+    executar_comando_sql(query, {"codigo_conta": codigo_conta})
 
 # -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO
@@ -351,8 +347,8 @@ if "tot_expandidos_set" not in st.session_state:
 if "editando_codigo_ug" not in st.session_state:
     st.session_state.editando_codigo_ug = None
 
-if "editando_conta_id" not in st.session_state:
-    st.session_state.editando_conta_id = None
+if "editando_codigo_conta" not in st.session_state:
+    st.session_state.editando_codigo_conta = None
 
 if "editando_ndd_id" not in st.session_state:
     st.session_state.editando_ndd_id = None
@@ -546,16 +542,17 @@ if verificar_senha():
                     try:
                         query_relatorio = f"""
                         SELECT 
-                            COALESCE(cg.nivel, 'S/N') AS "Nível / Grupo",
+                            COALESCE(cg.nivel, 'Nível 1') AS "Nível",
+                            COALESCE(cg.codigo_conta, 'S/C') AS "Código",
                             COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
                             SUM(CASE WHEN e.exercicio = {ano_ant_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior",
                             SUM(CASE WHEN e.exercicio = {ano_atual_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Atual"
                         FROM tb_execucao_despesa e
                         LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
-                        LEFT JOIN tb_contas_gerenciais cg ON ndd.id = cg.ndd_id
+                        LEFT JOIN tb_contas_gerenciais cg ON cg.codigo_conta = ndd.codigo_ndd
                         WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel})
-                        GROUP BY "Nível / Grupo", "Conta Gerencial"
-                        ORDER BY "Nível / Grupo", "Conta Gerencial";
+                        GROUP BY "Nível", "Código", "Conta Gerencial"
+                        ORDER BY "Código" ASC, "Conta Gerencial" ASC;
                         """
                         
                         df_relatorio_sql = executar_consulta_sql(query_relatorio)
@@ -672,7 +669,7 @@ if verificar_senha():
                     if not df_contas_cg.empty:
                         niveis_lista = sorted(df_contas_cg["nivel"].dropna().unique().tolist())
                     else:
-                        niveis_lista = ["Nível 1", "Nível 2"]
+                        niveis_lista = ["1", "2"]
 
                     if tipo_visao == "Mensal":
                         p0, p1, p2, p3 = periodo_sel, periodo_sel - 1, periodo_sel - 2, periodo_sel - 12
@@ -843,7 +840,7 @@ if verificar_senha():
                         idx_col_g += 1
 
     # -----------------------------------------------------------------------------
-    # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS) - AJUSTADO
+    # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
         st.header("📌 Cadastro de Unidades Gestoras (UGs)")
@@ -945,10 +942,10 @@ if verificar_senha():
                             st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # MAPEAMENTO DE UGs (SEPARADO)
+    # MAPEAMENTO DE UGs
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "mapeamento_ugs":
-        st.header("🔗 Mapeamento de UGs (Colunas F/G)")
+        st.header("🔗 Mapeamento de UGs")
         st.write("Alocação de Unidades Gestoras (UGs SIAFI -> Unidade Consolidada).")
 
         ugs_para_mapear = set(st.session_state.mapa_ugs.keys())
@@ -995,51 +992,39 @@ if verificar_senha():
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
         st.header("⚙️ Gestão de Contas Gerenciais & NDD")
-        st.write("Gerencie o cadastro de Contas Gerenciais, a estrutura por níveis e o cadastro de Natureza de Despesa Detalhada (NDD).")
+        st.write("Gerencie o cadastro de Contas Gerenciais, a estrutura por níveis e a hierarquia do plano de contas (`public.tb_contas_gerenciais`).")
 
         tab_cg, tab_ndd = st.tabs([
             "📌 Cadastro de Contas Gerenciais", 
             "🏷️ Natureza de Despesa Detalhada (NDD)"
         ])
 
-        # TAB 1: CONTAS GERENCIAIS
+        # TAB 1: CONTAS GERENCIAIS (AJUSTADO CONFORME DDL)
         with tab_cg:
             df_cg = buscar_contas_gerenciais_banco()
-            df_ndd_cad = buscar_ndd_banco()
 
             col_add_cg, col_list_cg = st.columns([1, 2])
 
             with col_add_cg:
                 st.subheader("➕ Nova Conta Gerencial")
                 with st.form("form_add_cg", clear_on_submit=True):
-                    codigo_conta_in = st.text_input("Código da Conta * (Único):", placeholder="Ex: 1.1")
-                    nome_conta_in = st.text_input("Nome da Conta:", placeholder="Ex: Obras e Reformas")
-                    nivel_in = st.text_input("Nível:", placeholder="Ex: 1, 2, 3...")
-                    
-                    options_ndd = {row["id"]: f"{row['codigo_ndd']} - {row['descricao']}" for _, row in df_ndd_cad.iterrows()} if not df_ndd_cad.empty else {}
-                    options_ndd_keys = [None] + list(options_ndd.keys())
-                    
-                    ndd_sel_id = st.selectbox(
-                        "Vincular à NDD:",
-                        options=options_ndd_keys,
-                        format_func=lambda x: "Nenhuma (Sem NDD)" if x is None else options_ndd.get(x, "")
-                    )
-                    
+                    codigo_conta_in = st.text_input("Código da Conta * (Ex: 1.0, 1.1):", placeholder="Ex: 1.1")
+                    nome_conta_in = st.text_input("Nome da Conta *:", placeholder="Ex: Obras e Reformas")
+                    nivel_in = st.text_input("Nível (Ex: 1, 2, 3 ou Nível 1):", value="1")
                     ativo_in = st.checkbox("Conta Ativa", value=True)
                     
                     btn_save_cg = st.form_submit_button("Salvar Conta Gerencial", use_container_width=True, type="primary")
 
                     if btn_save_cg:
-                        if not codigo_conta_in.strip():
-                            st.error("O campo 'Código da Conta' é obrigatório.")
+                        if not codigo_conta_in.strip() or not nome_conta_in.strip():
+                            st.error("Os campos 'Código da Conta' e 'Nome da Conta' são obrigatórios.")
                         else:
                             try:
                                 inserir_conta_gerencial_banco(
                                     codigo_conta=codigo_conta_in.strip(),
-                                    nome_conta=nome_conta_in.strip() if nome_conta_in else None,
-                                    ndd_id=ndd_sel_id,
-                                    ativo=ativo_in,
-                                    nivel=nivel_in.strip() if nivel_in else None
+                                    nome_conta=nome_conta_in.strip(),
+                                    nivel=nivel_in.strip() if nivel_in else "1",
+                                    ativo=ativo_in
                                 )
                                 st.success(f"Conta '{codigo_conta_in}' inserida com sucesso!")
                                 st.rerun()
@@ -1050,76 +1035,64 @@ if verificar_senha():
                 st.subheader(f"Contas Gerenciais Cadastradas ({len(df_cg)})")
                 
                 if df_cg.empty:
-                    st.info("Nenhuma Conta Gerencial cadastrada no banco de dados.")
+                    st.info("Nenhuma Conta Gerencial cadastrada na tabela `public.tb_contas_gerenciais`.")
                 else:
                     for idx, row in df_cg.iterrows():
-                        c_id = row["id"]
                         c_cod = row["codigo_conta"]
                         c_nome = row["nome_conta"] if pd.notna(row["nome_conta"]) else ""
-                        c_niv = row["nivel"] if pd.notna(row["nivel"]) else "S/N"
+                        c_niv = row["nivel"] if pd.notna(row["nivel"]) else "1"
                         c_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
-                        ndd_code = row["codigo_ndd"] if pd.notna(row["codigo_ndd"]) else ""
 
                         status_icon = "🟢" if c_ativo else "🔴"
-                        lbl_ndd = f" | NDD: {ndd_code}" if ndd_code else ""
-                        disp_str = f"{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv}{lbl_ndd})*"
+                        
+                        # Recuo visual conforme estrutura hierárquica
+                        indent = "&nbsp;&nbsp;&nbsp;&nbsp;" if ("." in str(c_cod) or str(c_niv) != "1") else ""
+                        disp_str = f"{indent}{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv})*"
 
                         c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
-                        c_txt.markdown(disp_str)
+                        c_txt.markdown(disp_str, unsafe_allow_html=True)
 
-                        if c_btn_edit.button("✏️", key=f"edit_cg_btn_{c_id}", help="Editar Conta"):
-                            st.session_state.editando_conta_id = c_id
+                        if c_btn_edit.button("✏️", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
+                            st.session_state.editando_codigo_conta = c_cod
                             st.rerun()
 
-                        if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_id}", help="Excluir Conta"):
+                        if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_cod}", help="Excluir Conta"):
                             try:
-                                excluir_conta_gerencial_banco(c_id)
-                                st.success("Conta Gerencial excluída!")
+                                excluir_conta_gerencial_banco(c_cod)
+                                st.success(f"Conta [{c_cod}] excluída!")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Erro ao excluir conta: {e}")
 
-                        # Formulário inline de edição
-                        if st.session_state.editando_conta_id == c_id:
+                        # Form de edição inline
+                        if st.session_state.editando_codigo_conta == c_cod:
                             with st.container():
                                 st.markdown("---")
-                                st.markdown(f"**Editando Conta Gerencial ID: {c_id}**")
+                                st.markdown(f"**Editando Conta Gerencial: {c_cod}**")
                                 
-                                e_cod = st.text_input("Código:", value=str(c_cod), key=f"edit_cg_cod_{c_id}")
-                                e_nome = st.text_input("Nome:", value=c_nome, key=f"edit_cg_nome_{c_id}")
-                                e_niv = st.text_input("Nível:", value=str(c_niv), key=f"edit_cg_niv_{c_id}")
-                                
-                                cur_ndd_id = row["ndd_id"] if pd.notna(row["ndd_id"]) else None
-                                idx_ndd = options_ndd_keys.index(cur_ndd_id) if cur_ndd_id in options_ndd_keys else 0
-
-                                e_ndd_id = st.selectbox(
-                                    "NDD Vinculada:",
-                                    options=options_ndd_keys,
-                                    index=idx_ndd,
-                                    format_func=lambda x: "Nenhuma (Sem NDD)" if x is None else options_ndd.get(x, ""),
-                                    key=f"edit_cg_ndd_{c_id}"
-                                )
-                                e_ativo = st.checkbox("Ativo", value=c_ativo, key=f"edit_cg_ativo_{c_id}")
+                                e_cod = st.text_input("Código da Conta:", value=str(c_cod), key=f"edit_cg_cod_{c_cod}")
+                                e_nome = st.text_input("Nome da Conta:", value=c_nome, key=f"edit_cg_nome_{c_cod}")
+                                e_niv = st.text_input("Nível:", value=str(c_niv), key=f"edit_cg_niv_{c_cod}")
+                                e_ativo = st.checkbox("Ativo", value=c_ativo, key=f"edit_cg_ativo_{c_cod}")
 
                                 c_save, c_canc = st.columns(2)
-                                if c_save.button("💾 Salvar", key=f"save_cg_btn_{c_id}", type="primary"):
+                                if c_save.button("💾 Salvar", key=f"save_cg_btn_{c_cod}", type="primary"):
                                     try:
                                         atualizar_conta_gerencial_banco(
-                                            conta_id=c_id,
-                                            codigo_conta=e_cod.strip(),
-                                            nome_conta=e_nome.strip() if e_nome else None,
-                                            ndd_id=e_ndd_id,
-                                            ativo=e_ativo,
-                                            nivel=e_niv.strip() if e_niv else None
+                                            codigo_conta_orig=c_cod,
+                                            codigo_conta_novo=e_cod.strip(),
+                                            nome_conta=e_nome.strip(),
+                                            nivel=e_niv.strip() if e_niv else "1",
+                                            ativo=e_ativo
                                         )
-                                        st.session_state.editando_conta_id = None
+                                        st.session_state.editando_codigo_conta = None
                                         st.success("Conta Gerencial atualizada com sucesso!")
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"Erro ao atualizar conta: {e}")
 
-                                if c_canc.button("Cancelar", key=f"canc_cg_btn_{c_id}"):
-                                    st.session_state.editando_conta_id = None
+                                if c_canc.button("Cancelar", key=f"canc_cg_btn_{c_cod}"):
+                                    st.session_state.editando_codigo_conta = None
                                     st.rerun()
                                 st.markdown("---")
 
@@ -1187,7 +1160,6 @@ if verificar_senha():
                             except Exception as e:
                                 st.error(f"Erro ao excluir NDD: {e}")
 
-                        # Formulário inline de edição NDD
                         if st.session_state.editando_ndd_id == n_id:
                             with st.container():
                                 st.markdown("---")
