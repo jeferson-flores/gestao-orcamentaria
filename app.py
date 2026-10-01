@@ -74,27 +74,32 @@ def excluir_ug_banco(codigo_ug: str):
     executar_comando_sql(query, {"codigo_ug": codigo_ug})
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA PUBLIC.TB_NATUREZA_DESPESA_DETALHADA (CORRIGIDAS SEM "ID")
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_NATUREZA_DESPESA_DETALHADA (SCHEMA EXATO)
 # -----------------------------------------------------------------------------
 def buscar_ndd_banco():
     try:
-        query = "SELECT codigo_ndd, descricao, grupo_despesa, ativo, criado_em FROM public.tb_natureza_despesa_detalhada ORDER BY codigo_ndd ASC;"
+        query = "SELECT codigo_ndd, descricao, grupo_despesa, conta_gerencial, criado_em FROM public.tb_natureza_despesa_detalhada ORDER BY codigo_ndd ASC;"
         return executar_consulta_sql(query)
     except Exception as e:
         st.error(f"Erro ao consultar tb_natureza_despesa_detalhada: {e}")
         return pd.DataFrame()
 
-def inserir_ndd_banco(codigo_ndd: str, descricao: str, grupo_despesa: str, ativo: bool):
+def inserir_ndd_banco(codigo_ndd: str, descricao: str, grupo_despesa: str, conta_gerencial: str):
     query = """
-    INSERT INTO public.tb_natureza_despesa_detalhada (codigo_ndd, descricao, grupo_despesa, ativo)
-    VALUES (:codigo_ndd, :descricao, :grupo_despesa, :ativo);
+    INSERT INTO public.tb_natureza_despesa_detalhada (codigo_ndd, descricao, grupo_despesa, conta_gerencial)
+    VALUES (:codigo_ndd, :descricao, :grupo_despesa, :conta_gerencial);
     """
-    executar_comando_sql(query, {"codigo_ndd": codigo_ndd, "descricao": descricao, "grupo_despesa": grupo_despesa, "ativo": ativo})
+    executar_comando_sql(query, {
+        "codigo_ndd": codigo_ndd, 
+        "descricao": descricao, 
+        "grupo_despesa": grupo_despesa, 
+        "conta_gerencial": conta_gerencial
+    })
 
-def atualizar_ndd_banco(codigo_ndd_orig: str, codigo_ndd_novo: str, descricao: str, grupo_despesa: str, ativo: bool):
+def atualizar_ndd_banco(codigo_ndd_orig: str, codigo_ndd_novo: str, descricao: str, grupo_despesa: str, conta_gerencial: str):
     query = """
     UPDATE public.tb_natureza_despesa_detalhada
-    SET codigo_ndd = :codigo_ndd_novo, descricao = :descricao, grupo_despesa = :grupo_despesa, ativo = :ativo
+    SET codigo_ndd = :codigo_ndd_novo, descricao = :descricao, grupo_despesa = :grupo_despesa, conta_gerencial = :conta_gerencial
     WHERE codigo_ndd = :codigo_ndd_orig;
     """
     executar_comando_sql(query, {
@@ -102,7 +107,7 @@ def atualizar_ndd_banco(codigo_ndd_orig: str, codigo_ndd_novo: str, descricao: s
         "codigo_ndd_novo": codigo_ndd_novo,
         "descricao": descricao,
         "grupo_despesa": grupo_despesa,
-        "ativo": ativo
+        "conta_gerencial": conta_gerencial
     })
 
 def excluir_ndd_banco(codigo_ndd: str):
@@ -170,7 +175,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Customização CSS para impressão, menu lateral e botões do relatório
 st.markdown("""
     <style>
     div[data-testid="stSidebar"] button {
@@ -231,9 +235,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. BANCO DE DADOS/ESTRUTURAS PADRÃO
+# 2. ESTRUTURAS PADRÃO
 # -----------------------------------------------------------------------------
-
 UNIDADES_UFSM_PADRAO = [
     "PRA - Pró-Reitoria de Administração",
     "PROPLAN - Pró-Reitoria de Planejamento",
@@ -327,7 +330,6 @@ USUARIOS_PADRAO = [
     {"usuario": "pra_gestor", "nome": "Gestor PRA", "senha": "pra123", "perfil": "Gestor"},
 ]
 
-# Inicialização da Memória do Sistema
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "carga"
 
@@ -395,9 +397,8 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL REORGANIZADO
+    # 4. MENU LATERAL
     # -----------------------------------------------------------------------------
-    
     if st.session_state.logo_personalizada is not None:
         st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
     
@@ -415,13 +416,11 @@ if verificar_senha():
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
-    # Grupo Relatórios
     with st.sidebar.expander("📊 Relatórios", expanded=False):
         if st.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
             st.session_state.pagina_atual = "relatorio"
             st.rerun()
 
-    # Grupo Configurações
     with st.sidebar.expander("⚙️ Configurações", expanded=False):
         if st.button("📌 Cadastro de Unidades Gestoras (UGs)", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
             st.session_state.pagina_atual = "unidades_consolidadas"
@@ -498,7 +497,7 @@ if verificar_senha():
                 st.dataframe(df_tratado.head(5), use_container_width=True)
 
                 st.markdown("---")
-                st.subheader("🚀 PASSO 3: Exportação e Carga Massiva para o Supabase")
+                st.subheader("🚀 Exportação e Carga Massiva para o Supabase")
                 st.caption("Grave esta planilha na tabela `tb_execucao_despesa` do seu banco de dados na nuvem Supabase.")
 
                 if st.button("🚀 Gravar Dados no Supabase", type="primary"):
@@ -539,7 +538,7 @@ if verificar_senha():
         fonte_dados = st.radio("📡 Fonte dos Dados do Relatório:", ["Banco de Dados Supabase (Nuvem / SQL)", "Planilha em Memória (Upload Local)"], horizontal=True)
 
         if fonte_dados == "Banco de Dados Supabase (Nuvem / SQL)":
-            st.subheader("📊 Demonstrativo Financeiro Comparativo (Consulta SQL Directa do Supabase)")
+            st.subheader("📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)")
             
             c_a1, c_a2 = st.columns(2)
             ano_atual_sel = c_a1.number_input("Ano Atual:", value=datetime.now().year, step=1)
@@ -603,7 +602,7 @@ if verificar_senha():
                 col_resultado_lei = encontrar_coluna(["resultado", "lei", "rp", "fonte"], 2)
                 col_ug_nome = encontrar_coluna(["ug", "unidade gestora", "nome ug", "gestora"], 6 if len(colunas)>6 else 0)
                 col_pi_cod = encontrar_coluna(["código pi", "codigo pi", "pi"], 11 if len(colunas)>11 else 0)
-                col_pi_nome = me = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
+                col_pi_nome = encontrar_coluna(["nome pi", "descrição pi", "plano interno"], 12 if len(colunas)>12 else 0)
                 col_valor = encontrar_coluna(["valor", "executado", "pago", "liquidado", "saldo"], -1)
 
                 mascara_lei = df[col_resultado_lei].astype(str).str.contains("2", na=False)
@@ -636,7 +635,6 @@ if verificar_senha():
                     if pd.isna(periodo): return ""
                     return f"{meses_siglas[periodo.month]}/{periodo.year}"
 
-                # CONTROLES DE FILTRO
                 c_flag, c_unid, c_mes, c_imp = st.columns([1.5, 2, 2, 1])
 
                 with c_flag:
@@ -671,7 +669,6 @@ if verificar_senha():
                 st.markdown("---")
 
                 if periodo_sel is not None:
-                    # Busca a lista de contas diretamente da tabela no Supabase para montar a hierarquia
                     df_contas_cg = buscar_contas_gerenciais_banco()
                     
                     if not df_contas_cg.empty:
@@ -1000,14 +997,13 @@ if verificar_senha():
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
         st.header("⚙️ Gestão de Contas Gerenciais & NDD")
-        st.write("Gerencie o cadastro de Contas Gerenciais, a estrutura por níveis e a hierarquia do plano de contas (`public.tb_contas_gerenciais`).")
+        st.write("Gerencie o cadastro de Contas Gerenciais e a estrutura da Natureza de Despesa Detalhada (`public.tb_natureza_despesa_detalhada`).")
 
         tab_cg, tab_ndd = st.tabs([
             "📌 Cadastro de Contas Gerenciais", 
             "🏷️ Natureza de Despesa Detalhada (NDD)"
         ])
 
-        # Busca dados de NDD para popular opções de relacionamento
         df_ndd_opcoes = buscar_ndd_banco()
         opcoes_ndd = ["Nenhum (Sem vínculo)"]
         if not df_ndd_opcoes.empty:
@@ -1127,7 +1123,7 @@ if verificar_senha():
                                     st.rerun()
                                 st.markdown("---")
 
-        # TAB 2: NATUREZA DE DESPESA DETALHADA (NDD) - CORRIGIDA
+        # TAB 2: NATUREZA DE DESPESA DETALHADA (NDD)
         with tab_ndd:
             df_ndd = buscar_ndd_banco()
 
@@ -1137,22 +1133,22 @@ if verificar_senha():
                 st.subheader("➕ Nova NDD")
                 with st.form("form_add_ndd", clear_on_submit=True):
                     cod_ndd_in = st.text_input("Código NDD * (Único):", placeholder="Ex: 33903001")
-                    desc_ndd_in = st.text_input("Descrição:", placeholder="Ex: Combustíveis e Lubrificantes")
+                    desc_ndd_in = st.text_input("Descrição *:", placeholder="Ex: Combustíveis e Lubrificantes")
                     grupo_despesa_in = st.text_input("Grupo de Despesa:", placeholder="Ex: Material de Consumo")
-                    ativo_ndd_in = st.checkbox("NDD Ativa", value=True)
+                    conta_gerencial_in = st.text_input("Conta Gerencial *:", placeholder="Ex: Despesas Operacionais")
 
                     btn_save_ndd = st.form_submit_button("Salvar NDD", use_container_width=True, type="primary")
 
                     if btn_save_ndd:
-                        if not cod_ndd_in.strip():
-                            st.error("O campo 'Código NDD' é obrigatório.")
+                        if not cod_ndd_in.strip() or not desc_ndd_in.strip() or not conta_gerencial_in.strip():
+                            st.error("Os campos 'Código NDD', 'Descrição' e 'Conta Gerencial' são obrigatórios.")
                         else:
                             try:
                                 inserir_ndd_banco(
                                     codigo_ndd=cod_ndd_in.strip(),
                                     descricao=desc_ndd_in.strip(),
                                     grupo_despesa=grupo_despesa_in.strip() if grupo_despesa_in else None,
-                                    ativo=ativo_ndd_in
+                                    conta_gerencial=conta_gerencial_in.strip()
                                 )
                                 st.success(f"NDD '{cod_ndd_in}' salva com sucesso!")
                                 st.rerun()
@@ -1169,11 +1165,11 @@ if verificar_senha():
                         n_cod = row["codigo_ndd"]
                         n_desc = row["descricao"] if pd.notna(row["descricao"]) else ""
                         n_grp = row["grupo_despesa"] if pd.notna(row["grupo_despesa"]) else ""
-                        n_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+                        n_cg = row["conta_gerencial"] if pd.notna(row["conta_gerencial"]) else ""
 
-                        status_ic = "🟢" if n_ativo else "🔴"
                         lbl_grp = f" *(Grupo: {n_grp})*" if n_grp else ""
-                        disp_ndd = f"{status_ic} **[{n_cod}]** {n_desc}{lbl_grp}"
+                        lbl_cg = f" | Conta: {n_cg}" if n_cg else ""
+                        disp_ndd = f"🏷️ **[{n_cod}]** {n_desc}{lbl_grp}{lbl_cg}"
 
                         c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                         c_txt.markdown(disp_ndd)
@@ -1198,7 +1194,7 @@ if verificar_senha():
                                 e_ndd_cod = st.text_input("Código NDD:", value=str(n_cod), key=f"edit_ndd_cod_{n_cod}")
                                 e_ndd_desc = st.text_input("Descrição:", value=n_desc, key=f"edit_ndd_desc_{n_cod}")
                                 e_ndd_grp = st.text_input("Grupo de Despesa:", value=n_grp, key=f"edit_ndd_grp_{n_cod}")
-                                e_ndd_ativo = st.checkbox("Ativo", value=n_ativo, key=f"edit_ndd_ativo_{n_cod}")
+                                e_ndd_cg = st.text_input("Conta Gerencial:", value=n_cg, key=f"edit_ndd_cg_{n_cod}")
 
                                 c_save, c_canc = st.columns(2)
                                 if c_save.button("💾 Salvar", key=f"save_ndd_btn_{n_cod}", type="primary"):
@@ -1208,7 +1204,7 @@ if verificar_senha():
                                             codigo_ndd_novo=e_ndd_cod.strip(),
                                             descricao=e_ndd_desc.strip(),
                                             grupo_despesa=e_ndd_grp.strip() if e_ndd_grp else None,
-                                            ativo=e_ndd_ativo
+                                            conta_gerencial=e_ndd_cg.strip()
                                         )
                                         st.session_state.editando_codigo_ndd = None
                                         st.success("NDD alterada com sucesso!")
