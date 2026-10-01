@@ -74,11 +74,11 @@ def excluir_ug_banco(codigo_ug: str):
     executar_comando_sql(query, {"codigo_ug": codigo_ug})
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA PUBLIC.TB_NATUREZA_DESPESA_DETALHADA
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_NATUREZA_DESPESA_DETALHADA (CORRIGIDAS SEM "ID")
 # -----------------------------------------------------------------------------
 def buscar_ndd_banco():
     try:
-        query = "SELECT id, codigo_ndd, descricao, grupo_despesa, ativo, criado_em FROM public.tb_natureza_despesa_detalhada ORDER BY codigo_ndd ASC;"
+        query = "SELECT codigo_ndd, descricao, grupo_despesa, ativo, criado_em FROM public.tb_natureza_despesa_detalhada ORDER BY codigo_ndd ASC;"
         return executar_consulta_sql(query)
     except Exception as e:
         st.error(f"Erro ao consultar tb_natureza_despesa_detalhada: {e}")
@@ -91,20 +91,26 @@ def inserir_ndd_banco(codigo_ndd: str, descricao: str, grupo_despesa: str, ativo
     """
     executar_comando_sql(query, {"codigo_ndd": codigo_ndd, "descricao": descricao, "grupo_despesa": grupo_despesa, "ativo": ativo})
 
-def atualizar_ndd_banco(ndd_id: int, codigo_ndd: str, descricao: str, grupo_despesa: str, ativo: bool):
+def atualizar_ndd_banco(codigo_ndd_orig: str, codigo_ndd_novo: str, descricao: str, grupo_despesa: str, ativo: bool):
     query = """
     UPDATE public.tb_natureza_despesa_detalhada
-    SET codigo_ndd = :codigo_ndd, descricao = :descricao, grupo_despesa = :grupo_despesa, ativo = :ativo
-    WHERE id = :ndd_id;
+    SET codigo_ndd = :codigo_ndd_novo, descricao = :descricao, grupo_despesa = :grupo_despesa, ativo = :ativo
+    WHERE codigo_ndd = :codigo_ndd_orig;
     """
-    executar_comando_sql(query, {"ndd_id": ndd_id, "codigo_ndd": codigo_ndd, "descricao": descricao, "grupo_despesa": grupo_despesa, "ativo": ativo})
+    executar_comando_sql(query, {
+        "codigo_ndd_orig": codigo_ndd_orig,
+        "codigo_ndd_novo": codigo_ndd_novo,
+        "descricao": descricao,
+        "grupo_despesa": grupo_despesa,
+        "ativo": ativo
+    })
 
-def excluir_ndd_banco(ndd_id: int):
-    query = "DELETE FROM public.tb_natureza_despesa_detalhada WHERE id = :ndd_id;"
-    executar_comando_sql(query, {"ndd_id": ndd_id})
+def excluir_ndd_banco(codigo_ndd: str):
+    query = "DELETE FROM public.tb_natureza_despesa_detalhada WHERE codigo_ndd = :codigo_ndd;"
+    executar_comando_sql(query, {"codigo_ndd": codigo_ndd})
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA PUBLIC.TB_CONTAS_GERENCIAIS (ATUALIZADAS COM CODIGO_NDD)
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_CONTAS_GERENCIAIS
 # -----------------------------------------------------------------------------
 def buscar_contas_gerenciais_banco():
     try:
@@ -352,8 +358,8 @@ if "editando_codigo_ug" not in st.session_state:
 if "editando_codigo_conta" not in st.session_state:
     st.session_state.editando_codigo_conta = None
 
-if "editando_ndd_id" not in st.session_state:
-    st.session_state.editando_ndd_id = None
+if "editando_codigo_ndd" not in st.session_state:
+    st.session_state.editando_codigo_ndd = None
 
 # -----------------------------------------------------------------------------
 # 3. AUTENTICAÇÃO
@@ -1009,7 +1015,7 @@ if verificar_senha():
                 desc = f" - {r_ndd['descricao']}" if pd.notna(r_ndd['descricao']) and r_ndd['descricao'] else ""
                 opcoes_ndd.append(f"{r_ndd['codigo_ndd']}{desc}")
 
-        # TAB 1: CONTAS GERENCIAIS (AJUSTADO CONFORME DDL)
+        # TAB 1: CONTAS GERENCIAIS
         with tab_cg:
             df_cg = buscar_contas_gerenciais_banco()
 
@@ -1060,7 +1066,6 @@ if verificar_senha():
 
                         status_icon = "🟢" if c_ativo else "🔴"
                         
-                        # Recuo visual conforme estrutura hierárquica
                         indent = "&nbsp;&nbsp;&nbsp;&nbsp;" if ("." in str(c_cod) or str(c_niv) != "1") else ""
                         ndd_str = f" | *NDD: {c_ndd}*" if c_ndd else ""
                         disp_str = f"{indent}{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv})*{ndd_str}"
@@ -1080,7 +1085,6 @@ if verificar_senha():
                             except Exception as e:
                                 st.error(f"Erro ao excluir conta: {e}")
 
-                        # Form de edição inline
                         if st.session_state.editando_codigo_conta == c_cod:
                             with st.container():
                                 st.markdown("---")
@@ -1090,7 +1094,6 @@ if verificar_senha():
                                 e_nome = st.text_input("Nome da Conta:", value=c_nome, key=f"edit_cg_nome_{c_cod}")
                                 e_niv = st.text_input("Nível:", value=str(c_niv), key=f"edit_cg_niv_{c_cod}")
                                 
-                                # Índice padrão para o Selectbox de NDD na Edição
                                 idx_ndd_def = 0
                                 if c_ndd:
                                     for i_op, op in enumerate(opcoes_ndd):
@@ -1124,7 +1127,7 @@ if verificar_senha():
                                     st.rerun()
                                 st.markdown("---")
 
-        # TAB 2: NATUREZA DE DESPESA DETALHADA (NDD)
+        # TAB 2: NATUREZA DE DESPESA DETALHADA (NDD) - CORRIGIDA
         with tab_ndd:
             df_ndd = buscar_ndd_banco()
 
@@ -1163,7 +1166,6 @@ if verificar_senha():
                     st.info("Nenhuma Natureza de Despesa Detalhada cadastrada.")
                 else:
                     for idx, row in df_ndd.iterrows():
-                        n_id = row["id"]
                         n_cod = row["codigo_ndd"]
                         n_desc = row["descricao"] if pd.notna(row["descricao"]) else ""
                         n_grp = row["grupo_despesa"] if pd.notna(row["grupo_despesa"]) else ""
@@ -1176,46 +1178,46 @@ if verificar_senha():
                         c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                         c_txt.markdown(disp_ndd)
 
-                        if c_btn_edit.button("✏️", key=f"edit_ndd_btn_{n_id}", help="Editar NDD"):
-                            st.session_state.editando_ndd_id = n_id
+                        if c_btn_edit.button("✏️", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
+                            st.session_state.editando_codigo_ndd = n_cod
                             st.rerun()
 
-                        if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_id}", help="Excluir NDD"):
+                        if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_cod}", help="Excluir NDD"):
                             try:
-                                excluir_ndd_banco(n_id)
+                                excluir_ndd_banco(n_cod)
                                 st.success("NDD excluída com sucesso!")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Erro ao excluir NDD: {e}")
 
-                        if st.session_state.editando_ndd_id == n_id:
+                        if st.session_state.editando_codigo_ndd == n_cod:
                             with st.container():
                                 st.markdown("---")
-                                st.markdown(f"**Editando NDD ID: {n_id}**")
+                                st.markdown(f"**Editando NDD Cod: {n_cod}**")
 
-                                e_ndd_cod = st.text_input("Código NDD:", value=str(n_cod), key=f"edit_ndd_cod_{n_id}")
-                                e_ndd_desc = st.text_input("Descrição:", value=n_desc, key=f"edit_ndd_desc_{n_id}")
-                                e_ndd_grp = st.text_input("Grupo de Despesa:", value=n_grp, key=f"edit_ndd_grp_{n_id}")
-                                e_ndd_ativo = st.checkbox("Ativo", value=n_ativo, key=f"edit_ndd_ativo_{n_id}")
+                                e_ndd_cod = st.text_input("Código NDD:", value=str(n_cod), key=f"edit_ndd_cod_{n_cod}")
+                                e_ndd_desc = st.text_input("Descrição:", value=n_desc, key=f"edit_ndd_desc_{n_cod}")
+                                e_ndd_grp = st.text_input("Grupo de Despesa:", value=n_grp, key=f"edit_ndd_grp_{n_cod}")
+                                e_ndd_ativo = st.checkbox("Ativo", value=n_ativo, key=f"edit_ndd_ativo_{n_cod}")
 
                                 c_save, c_canc = st.columns(2)
-                                if c_save.button("💾 Salvar", key=f"save_ndd_btn_{n_id}", type="primary"):
+                                if c_save.button("💾 Salvar", key=f"save_ndd_btn_{n_cod}", type="primary"):
                                     try:
                                         atualizar_ndd_banco(
-                                            ndd_id=n_id,
-                                            codigo_ndd=e_ndd_cod.strip(),
+                                            codigo_ndd_orig=n_cod,
+                                            codigo_ndd_novo=e_ndd_cod.strip(),
                                             descricao=e_ndd_desc.strip(),
                                             grupo_despesa=e_ndd_grp.strip() if e_ndd_grp else None,
                                             ativo=e_ndd_ativo
                                         )
-                                        st.session_state.editando_ndd_id = None
+                                        st.session_state.editando_codigo_ndd = None
                                         st.success("NDD alterada com sucesso!")
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"Erro ao atualizar NDD: {e}")
 
-                                if c_canc.button("Cancelar", key=f"canc_ndd_btn_{n_id}"):
-                                    st.session_state.editando_ndd_id = None
+                                if c_canc.button("Cancelar", key=f"canc_ndd_btn_{n_cod}"):
+                                    st.session_state.editando_codigo_ndd = None
                                     st.rerun()
                                 st.markdown("---")
 
