@@ -38,34 +38,40 @@ def executar_comando_sql(query: str, params: dict = None):
             conn.execute(text(query))
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS
+# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS (AJUSTADAS)
 # -----------------------------------------------------------------------------
 def buscar_ugs_banco():
     try:
-        query = "SELECT id, codigo, nome, sigla, ativa, criado_em FROM public.tb_ugs ORDER BY codigo ASC;"
+        query = "SELECT codigo_ug, nome, sigla, ativo, criado_em FROM public.tb_ugs ORDER BY codigo_ug ASC;"
         return executar_consulta_sql(query)
     except Exception as e:
         st.error(f"Erro ao consultar tb_ugs no Supabase: {e}")
         return pd.DataFrame()
 
-def inserir_ug_banco(codigo: str, nome: str, sigla: str, ativa: bool):
+def inserir_ug_banco(codigo_ug: str, nome: str, sigla: str, ativo: bool):
     query = """
-    INSERT INTO public.tb_ugs (codigo, nome, sigla, ativa)
-    VALUES (:codigo, :nome, :sigla, :ativa);
+    INSERT INTO public.tb_ugs (codigo_ug, nome, sigla, ativo)
+    VALUES (:codigo_ug, :nome, :sigla, :ativo);
     """
-    executar_comando_sql(query, {"codigo": codigo, "nome": nome, "sigla": sigla, "ativa": ativa})
+    executar_comando_sql(query, {"codigo_ug": codigo_ug, "nome": nome, "sigla": sigla, "ativo": ativo})
 
-def atualizar_ug_banco(ug_id: int, codigo: str, nome: str, sigla: str, ativa: bool):
+def atualizar_ug_banco(codigo_ug_orig: str, codigo_ug_novo: str, nome: str, sigla: str, ativo: bool):
     query = """
     UPDATE public.tb_ugs
-    SET codigo = :codigo, nome = :nome, sigla = :sigla, ativa = :ativa
-    WHERE id = :ug_id;
+    SET codigo_ug = :codigo_ug_novo, nome = :nome, sigla = :sigla, ativo = :ativo
+    WHERE codigo_ug = :codigo_ug_orig;
     """
-    executar_comando_sql(query, {"ug_id": ug_id, "codigo": codigo, "nome": nome, "sigla": sigla, "ativa": ativa})
+    executar_comando_sql(query, {
+        "codigo_ug_orig": codigo_ug_orig,
+        "codigo_ug_novo": codigo_ug_novo,
+        "nome": nome,
+        "sigla": sigla,
+        "ativo": ativo
+    })
 
-def excluir_ug_banco(ug_id: int):
-    query = "DELETE FROM public.tb_ugs WHERE id = :ug_id;"
-    executar_comando_sql(query, {"ug_id": ug_id})
+def excluir_ug_banco(codigo_ug: str):
+    query = "DELETE FROM public.tb_ugs WHERE codigo_ug = :codigo_ug;"
+    executar_comando_sql(query, {"codigo_ug": codigo_ug})
 
 # -----------------------------------------------------------------------------
 # FUNÇÕES DE CRUD PARA PUBLIC.TB_NATUREZA_DESPESA_DETALHADA
@@ -342,8 +348,8 @@ if "dados_tg_raw" not in st.session_state:
 if "tot_expandidos_set" not in st.session_state:
     st.session_state.tot_expandidos_set = set()
 
-if "editando_unidade_id" not in st.session_state:
-    st.session_state.editando_unidade_id = None
+if "editando_codigo_ug" not in st.session_state:
+    st.session_state.editando_codigo_ug = None
 
 if "editando_conta_id" not in st.session_state:
     st.session_state.editando_conta_id = None
@@ -837,7 +843,7 @@ if verificar_senha():
                         idx_col_g += 1
 
     # -----------------------------------------------------------------------------
-    # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS)
+    # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS) - AJUSTADO
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
         st.header("📌 Cadastro de Unidades Gestoras (UGs)")
@@ -853,20 +859,20 @@ if verificar_senha():
                 codigo_input = st.text_input("Código da UG * (Único):", placeholder="Ex: 153164")
                 nome_input = st.text_input("Nome da UG:", placeholder="Ex: Pró-Reitoria de Administração")
                 sigla_input = st.text_input("Sigla:", placeholder="Ex: PRA")
-                ativa_input = st.checkbox("UG Ativa", value=True)
+                ativo_input = st.checkbox("UG Ativa", value=True)
                 
                 btn_salvar = st.form_submit_button("Salvar UG", use_container_width=True, type="primary")
 
                 if btn_salvar:
                     if not codigo_input.strip():
-                        st.error("O campo 'Código' é obrigatório.")
+                        st.error("O campo 'Código da UG' é obrigatório.")
                     else:
                         try:
                             inserir_ug_banco(
-                                codigo=codigo_input.strip(),
+                                codigo_ug=codigo_input.strip(),
                                 nome=nome_input.strip() if nome_input else None,
                                 sigla=sigla_input.strip() if sigla_input else None,
-                                ativa=ativa_input
+                                ativo=ativo_input
                             )
                             rotulo_u = f"{sigla_input.strip()} - {nome_input.strip()}" if sigla_input and nome_input else nome_input or codigo_input
                             if rotulo_u not in st.session_state.unidades_consolidadas:
@@ -884,58 +890,57 @@ if verificar_senha():
                 st.info("Nenhuma UG cadastrada na tabela `public.tb_ugs`.")
             else:
                 for idx, row in df_ugs.iterrows():
-                    ug_id = row["id"]
-                    ug_cod = row["codigo"]
+                    ug_cod = row["codigo_ug"]
                     ug_nome = row["nome"] if pd.notna(row["nome"]) else ""
                     ug_sigla = row["sigla"] if pd.notna(row["sigla"]) else ""
-                    ug_ativa = bool(row["ativa"]) if pd.notna(row["ativa"]) else True
+                    ug_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
 
-                    status_str = "🟢" if ug_ativa else "🔴"
+                    status_str = "🟢" if ug_ativo else "🔴"
                     display_text = f"{status_str} **[{ug_cod}]** {ug_sigla} - {ug_nome}".strip(" -")
 
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(display_text)
                     
-                    if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_id}", help="Alterar dados da UG"):
-                        st.session_state.editando_unidade_id = ug_id
+                    if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_cod}", help="Alterar dados da UG"):
+                        st.session_state.editando_codigo_ug = ug_cod
                         st.rerun()
 
-                    if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_id}", help="Excluir UG"):
+                    if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_cod}", help="Excluir UG"):
                         try:
-                            excluir_ug_banco(ug_id)
+                            excluir_ug_banco(ug_cod)
                             st.success(f"UG [{ug_cod}] excluída com sucesso!")
                             st.rerun()
                         except Exception as e:
                             st.error(f"Erro ao excluir UG: {e}")
 
-                    if st.session_state.editando_unidade_id == ug_id:
+                    if st.session_state.editando_codigo_ug == ug_cod:
                         with st.container():
                             st.markdown("---")
                             st.markdown(f"**Editando UG Cod: {ug_cod}**")
                             
-                            edit_cod = st.text_input("Código:", value=str(ug_cod), key=f"edit_cod_{ug_id}")
-                            edit_nome = st.text_input("Nome:", value=ug_nome, key=f"edit_nome_{ug_id}")
-                            edit_sigla = st.text_input("Sigla:", value=ug_sigla, key=f"edit_sigla_{ug_id}")
-                            edit_ativa = st.checkbox("Ativa", value=ug_ativa, key=f"edit_ativa_{ug_id}")
+                            edit_cod = st.text_input("Código UG:", value=str(ug_cod), key=f"edit_cod_{ug_cod}")
+                            edit_nome = st.text_input("Nome:", value=ug_nome, key=f"edit_nome_{ug_cod}")
+                            edit_sigla = st.text_input("Sigla:", value=ug_sigla, key=f"edit_sigla_{ug_cod}")
+                            edit_ativo = st.checkbox("Ativo", value=ug_ativo, key=f"edit_ativo_{ug_cod}")
 
                             c_save, c_canc = st.columns(2)
-                            if c_save.button("💾 Salvar Alterações", key=f"save_ug_btn_{ug_id}", type="primary"):
+                            if c_save.button("💾 Salvar Alterações", key=f"save_ug_btn_{ug_cod}", type="primary"):
                                 try:
                                     atualizar_ug_banco(
-                                        ug_id=ug_id,
-                                        codigo=edit_cod.strip(),
+                                        codigo_ug_orig=ug_cod,
+                                        codigo_ug_novo=edit_cod.strip(),
                                         nome=edit_nome.strip() if edit_nome else None,
                                         sigla=edit_sigla.strip() if edit_sigla else None,
-                                        ativa=edit_ativa
+                                        ativo=edit_ativo
                                     )
-                                    st.session_state.editando_unidade_id = None
+                                    st.session_state.editando_codigo_ug = None
                                     st.success("Unidade alterada com sucesso!")
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"Erro ao atualizar UG: {e}")
 
-                            if c_canc.button("Cancelar", key=f"canc_ug_btn_{ug_id}"):
-                                st.session_state.editando_unidade_id = None
+                            if c_canc.button("Cancelar", key=f"canc_ug_btn_{ug_cod}"):
+                                st.session_state.editando_codigo_ug = None
                                 st.rerun()
                             st.markdown("---")
 
