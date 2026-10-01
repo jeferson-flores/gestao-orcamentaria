@@ -120,7 +120,7 @@ def excluir_ndd_banco(codigo_ndd: str):
 def buscar_contas_gerenciais_banco():
     try:
         query = """
-        SELECT codigo_conta, nivel, nome_conta, codigo_ndd, ativo, criado_em
+        SELECT codigo_conta, nivel, nome_conta, ativo, criado_em
         FROM public.tb_contas_gerenciais
         ORDER BY codigo_conta ASC;
         """
@@ -129,23 +129,22 @@ def buscar_contas_gerenciais_banco():
         st.error(f"Erro ao consultar tb_contas_gerenciais: {e}")
         return pd.DataFrame()
 
-def inserir_conta_gerencial_banco(codigo_conta: str, nome_conta: str, nivel: str, ativo: bool, codigo_ndd: str = None):
+def inserir_conta_gerencial_banco(codigo_conta: str, nome_conta: str, nivel: str, ativo: bool):
     query = """
-    INSERT INTO public.tb_contas_gerenciais (codigo_conta, nome_conta, nivel, ativo, codigo_ndd)
-    VALUES (:codigo_conta, :nome_conta, :nivel, :ativo, :codigo_ndd);
+    INSERT INTO public.tb_contas_gerenciais (codigo_conta, nome_conta, nivel, ativo)
+    VALUES (:codigo_conta, :nome_conta, :nivel, :ativo);
     """
     executar_comando_sql(query, {
         "codigo_conta": codigo_conta,
         "nome_conta": nome_conta,
         "nivel": nivel,
-        "ativo": ativo,
-        "codigo_ndd": codigo_ndd
+        "ativo": ativo
     })
 
-def atualizar_conta_gerencial_banco(codigo_conta_orig: str, codigo_conta_novo: str, nome_conta: str, nivel: str, ativo: bool, codigo_ndd: str = None):
+def atualizar_conta_gerencial_banco(codigo_conta_orig: str, codigo_conta_novo: str, nome_conta: str, nivel: str, ativo: bool):
     query = """
     UPDATE public.tb_contas_gerenciais
-    SET codigo_conta = :codigo_conta_novo, nome_conta = :nome_conta, nivel = :nivel, ativo = :ativo, codigo_ndd = :codigo_ndd
+    SET codigo_conta = :codigo_conta_novo, nome_conta = :nome_conta, nivel = :nivel, ativo = :ativo
     WHERE codigo_conta = :codigo_conta_orig;
     """
     executar_comando_sql(query, {
@@ -153,8 +152,7 @@ def atualizar_conta_gerencial_banco(codigo_conta_orig: str, codigo_conta_novo: s
         "codigo_conta_novo": codigo_conta_novo,
         "nome_conta": nome_conta,
         "nivel": nivel,
-        "ativo": ativo,
-        "codigo_ndd": codigo_ndd
+        "ativo": ativo
     })
 
 def excluir_conta_gerencial_banco(codigo_conta: str):
@@ -560,7 +558,7 @@ if verificar_senha():
                             SUM(CASE WHEN e.exercicio = {ano_atual_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Atual"
                         FROM tb_execucao_despesa e
                         LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
-                        LEFT JOIN tb_contas_gerenciais cg ON cg.codigo_ndd = ndd.codigo_ndd OR cg.codigo_conta = ndd.codigo_ndd
+                        LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%' || cg.codigo_conta || '%'
                         WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel})
                         GROUP BY "Nível", "Código", "Conta Gerencial"
                         ORDER BY "Código" ASC, "Conta Gerencial" ASC;
@@ -1003,13 +1001,6 @@ if verificar_senha():
         st.header("🏷️ Gestão de Contas Gerenciais")
         st.write("Gerencie o cadastro de Contas Gerenciais (`public.tb_contas_gerenciais`).")
 
-        df_ndd_opcoes = buscar_ndd_banco()
-        opcoes_ndd = ["Nenhum (Sem vínculo)"]
-        if not df_ndd_opcoes.empty:
-            for _, r_ndd in df_ndd_opcoes.iterrows():
-                desc = f" - {r_ndd['descricao']}" if pd.notna(r_ndd['descricao']) and r_ndd['descricao'] else ""
-                opcoes_ndd.append(f"{r_ndd['codigo_ndd']}{desc}")
-
         df_cg = buscar_contas_gerenciais_banco()
 
         col_add_cg, col_list_cg = st.columns([1, 2])
@@ -1020,8 +1011,6 @@ if verificar_senha():
                 codigo_conta_in = st.text_input("Código da Conta * (Ex: 1.0, 1.1):", placeholder="Ex: 1.1")
                 nome_conta_in = st.text_input("Nome da Conta *:", placeholder="Ex: Obras e Reformas")
                 nivel_in = st.text_input("Nível (Ex: 1, 2, 3 ou Nível 1):", value="1")
-                
-                ndd_sel = st.selectbox("Vincular a NDD (Opcional):", opcoes_ndd)
                 ativo_in = st.checkbox("Conta Ativa", value=True)
                 
                 btn_save_cg = st.form_submit_button("Salvar Conta Gerencial", use_container_width=True, type="primary")
@@ -1031,13 +1020,11 @@ if verificar_senha():
                         st.error("Os campos 'Código da Conta' e 'Nome da Conta' são obrigatórios.")
                     else:
                         try:
-                            codigo_ndd_val = None if ndd_sel == "Nenhum (Sem vínculo)" else ndd_sel.split(" - ")[0].strip()
                             inserir_conta_gerencial_banco(
                                 codigo_conta=codigo_conta_in.strip(),
                                 nome_conta=nome_conta_in.strip(),
                                 nivel=nivel_in.strip() if nivel_in else "1",
-                                ativo=ativo_in,
-                                codigo_ndd=codigo_ndd_val
+                                ativo=ativo_in
                             )
                             st.success(f"Conta '{codigo_conta_in}' inserida com sucesso!")
                             st.rerun()
@@ -1054,14 +1041,12 @@ if verificar_senha():
                     c_cod = row["codigo_conta"]
                     c_nome = row["nome_conta"] if pd.notna(row["nome_conta"]) else ""
                     c_niv = row["nivel"] if pd.notna(row["nivel"]) else "1"
-                    c_ndd = row["codigo_ndd"] if "codigo_ndd" in row and pd.notna(row["codigo_ndd"]) else ""
                     c_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
 
                     status_icon = "🟢" if c_ativo else "🔴"
                     
                     indent = "&nbsp;&nbsp;&nbsp;&nbsp;" if ("." in str(c_cod) or str(c_niv) != "1") else ""
-                    ndd_str = f" | *NDD: {c_ndd}*" if c_ndd else ""
-                    disp_str = f"{indent}{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv})*{ndd_str}"
+                    disp_str = f"{indent}{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv})*"
 
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_str, unsafe_allow_html=True)
@@ -1086,28 +1071,17 @@ if verificar_senha():
                             e_cod = st.text_input("Código da Conta:", value=str(c_cod), key=f"edit_cg_cod_{c_cod}")
                             e_nome = st.text_input("Nome da Conta:", value=c_nome, key=f"edit_cg_nome_{c_cod}")
                             e_niv = st.text_input("Nível:", value=str(c_niv), key=f"edit_cg_niv_{c_cod}")
-                            
-                            idx_ndd_def = 0
-                            if c_ndd:
-                                for i_op, op in enumerate(opcoes_ndd):
-                                    if op.startswith(str(c_ndd)):
-                                        idx_ndd_def = i_op
-                                        break
-                            
-                            e_ndd_sel = st.selectbox("Vincular a NDD:", opcoes_ndd, index=idx_ndd_def, key=f"edit_cg_ndd_{c_cod}")
                             e_ativo = st.checkbox("Ativo", value=c_ativo, key=f"edit_cg_ativo_{c_cod}")
 
                             c_save, c_canc = st.columns(2)
                             if c_save.button("💾 Salvar", key=f"save_cg_btn_{c_cod}", type="primary"):
                                 try:
-                                    e_codigo_ndd_val = None if e_ndd_sel == "Nenhum (Sem vínculo)" else e_ndd_sel.split(" - ")[0].strip()
                                     atualizar_conta_gerencial_banco(
                                         codigo_conta_orig=c_cod,
                                         codigo_conta_novo=e_cod.strip(),
                                         nome_conta=e_nome.strip(),
                                         nivel=e_niv.strip() if e_niv else "1",
-                                        ativo=e_ativo,
-                                        codigo_ndd=e_codigo_ndd_val
+                                        ativo=e_ativo
                                     )
                                     st.session_state.editando_codigo_conta = None
                                     st.success("Conta Gerencial atualizada com sucesso!")
@@ -1179,7 +1153,7 @@ if verificar_senha():
 
                     lbl_grp = f" *(Grupo: {n_grp})*" if n_grp else ""
                     lbl_cg = f" | Conta: {n_cg}" if n_cg else ""
-                    disp_ndd = f"🏷️️ **[{n_cod}]** {n_desc}{lbl_grp}{lbl_cg}"
+                    disp_ndd = f"🏷 **[{n_cod}]** {n_desc}{lbl_grp}{lbl_cg}"
 
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_ndd)
