@@ -493,7 +493,7 @@ if verificar_senha():
         st.info("💡 **Dica**: Utilize o menu lateral esquerdo para navegar entre os módulos de Cadastros, Gestão de Dados e Relatórios.")
 
     # -----------------------------------------------------------------------------
-    # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
+    # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL (ATUALIZADA COM 'descricao')
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "carga":
         st.markdown("<h2 style='color: #003366;'>📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase</h2>", unsafe_allow_html=True)
@@ -522,6 +522,7 @@ if verificar_senha():
                     col_ug = st.selectbox("Coluna de UG Responsável:", colunas, index=min(6, len(colunas)-1))
                 with c_m2:
                     col_mes = st.selectbox("Coluna de Mês / Competência:", colunas, index=min(1, len(colunas)-1))
+                    col_desc = st.selectbox("Coluna de Descrição / Histórico:", colunas, index=min(2, len(colunas)-1))
                 with c_m3:
                     col_nd = st.selectbox("Coluna de Natureza de Despesa (NDD):", colunas, index=min(11, len(colunas)-1))
                     col_val = st.selectbox("Coluna de Valor Liquidado:", colunas, index=len(colunas)-1)
@@ -532,6 +533,7 @@ if verificar_senha():
                     df_tratado["mes_competencia"] = pd.to_datetime(df[col_mes].astype(str), errors="coerce").dt.month.fillna(1).astype(int)
                     df_tratado["ug_responsavel"] = df[col_ug].astype(str).str.strip()
                     df_tratado["natureza_despesa_detalhada"] = df[col_nd].astype(str).str.strip()
+                    df_tratado["descricao"] = df[col_desc].astype(str).str.strip()
                     df_tratado["valor_liquidado"] = df[col_val].apply(converter_valor)
 
                     st.session_state.dados_tg_raw = df_tratado
@@ -694,12 +696,10 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(display_text, unsafe_allow_html=True)
                     
-                    # Botão alterar (ícone caneta/lápis) preservado sem alteração de estilo customizado agressivo
                     if c_btn_edit.button("✏️", key=f"edit_unidade_btn_{u_cod}", help="Alterar dados da unidade"):
                         st.session_state.editando_codigo_unidade = u_cod
                         st.rerun()
 
-                    # Botão excluir (ícone lixeira) preservado sem alteração
                     if c_btn_del.button("🗑️", key=f"del_unidade_btn_{u_cod}", help="Excluir unidade"):
                         try:
                             excluir_unidade_banco(u_cod)
@@ -733,7 +733,6 @@ if verificar_senha():
                             edit_ativo = st.checkbox("Ativo", value=u_ativo, key=f"edit_un_ativo_{u_cod}")
 
                             c_save, c_canc = st.columns(2)
-                            # Botão de Salvar Alterações padronizado em azul primário
                             if c_save.button("💾 Salvar Alterações", key=f"save_unidade_btn_{u_cod}", type="primary"):
                                 try:
                                     novo_pai_val = None
@@ -821,12 +820,10 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(display_text)
                     
-                    # Botão alterar (caneta) mantido
                     if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_cod}", help="Alterar dados da UG"):
                         st.session_state.editando_codigo_ug = ug_cod
                         st.rerun()
 
-                    # Botão excluir (lixeira) mantido
                     if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_cod}", help="Excluir UG"):
                         try:
                             excluir_ug_banco(ug_cod)
@@ -932,12 +929,10 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_str, unsafe_allow_html=True)
 
-                    # Botão alterar (caneta) mantido
                     if c_btn_edit.button("✏️", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
                         st.session_state.editando_codigo_conta = c_cod
                         st.rerun()
 
-                    # Botão excluir (lixeira) mantido
                     if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_cod}", help="Excluir Conta"):
                         try:
                             excluir_conta_gerencial_banco(c_cod)
@@ -1039,12 +1034,10 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_ndd)
 
-                    # Botão alterar (caneta) mantido
                     if c_btn_edit.button("✏️", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
                         st.session_state.editando_codigo_ndd = n_cod
                         st.rerun()
 
-                    # Botão excluir (lixeira) mantido
                     if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_cod}", help="Excluir NDD"):
                         try:
                             excluir_ndd_banco(n_cod)
@@ -1124,7 +1117,7 @@ if verificar_senha():
                     st.rerun()
 
         with col_usr_list:
-            st.subheader(f"Usuários Cadastradas ({len(st.session_state.tabela_usuarios)})" if False else f"Usuários Cadastrados ({len(st.session_state.tabela_usuarios)})")
+            st.subheader(f"Usuários Cadastrados ({len(st.session_state.tabela_usuarios)})")
             
             df_usr_view = pd.DataFrame(st.session_state.tabela_usuarios)[["usuario", "nome", "perfil"]]
             df_usr_view.columns = ["Login", "Nome Completo", "Perfil"]
