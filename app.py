@@ -159,7 +159,7 @@ def excluir_conta_gerencial_banco(codigo_conta: str):
     executar_comando_sql(query, {"codigo_conta": codigo_conta})
 
 # -----------------------------------------------------------------------------
-# 1. CONFIGURAÇÃO DE PÁGINA E CSS INSTITUCIONAL (PADRÃO UFSM - SEM ARREDONDAMENTO)
+# 1. INICIALIZAÇÃO DA SESSÃO
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
     st.session_state.logo_personalizada = None
@@ -167,107 +167,42 @@ if "logo_personalizada" not in st.session_state:
 icone_aba = st.session_state.logo_personalizada if st.session_state.logo_personalizada is not None else "🏛️"
 
 st.set_page_config(
-    page_title="SiGeO - Sistema de Gestão Orçamentária | UFSM",
+    page_title="SiGeO - Sistema de Gestão Orçamentária",
     page_icon=icone_aba,
     layout="wide"
 )
 
-# Estilização CSS rigorosa: Largura total para a faixa azul e elementos estritamente quadrados (sem border-radius)
 st.markdown("""
     <style>
-    /* Ocultar barra lateral padrão do Streamlit para controle total do layout institucional */
-    [data-testid="stSidebar"] {
-        display: none;
-    }
-    
-    /* Ajuste de margens globais para encostar a faixa azul nas bordas da tela */
-    .block-container {
-        padding-top: 0rem !important;
-        padding-left: 2rem !important;
-        padding-right: 2rem !important;
-        max-width: 100% !important;
+    div[data-testid="stSidebar"] button {
+        width: 100%;
+        border-radius: 6px;
+        height: 2.8em;
+        font-weight: bold;
+        margin-bottom: 4px;
     }
 
-    :root {
-        --ufsm-azul-primario: #002b5c;
-        --ufsm-azul-secundario: #003366;
-        --ufsm-cinza-claro: #f4f6f9;
+    div[data-testid="stColumn"] button[kind="secondary"] {
+        padding: 0px !important;
+        line-height: 1 !important;
     }
 
-    /* Faixa Superior Institucional de Largura Total */
-    .faixa-superior-ufsm-global {
-        width: 100vw;
-        position: relative;
-        left: calc(-50vw + 50%);
-        background: linear-gradient(90deg, #002b5c 0%, #003366 100%);
-        padding: 15px 40px;
-        color: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        margin-bottom: 0px;
-        border-radius: 0px !important;
-    }
-    
-    .cabecalho-conteudo {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .instituicao-info h1 {
-        margin: 0;
-        font-size: 26px;
-        font-weight: 700;
-        color: white;
-        letter-spacing: 0.5px;
-    }
-    
-    .instituicao-info p {
-        margin: 2px 0 0 0;
-        font-size: 13px;
-        color: #d0dce8;
-    }
-
-    /* Forçar elementos quadrados em todo o sistema (sem cantos arredondados) */
-    button, input, select, textarea, div, .stButton>button, .stTextInput>div>div>input, .stSelectbox>div>div, .card-inicio {
-        border-radius: 0px !important;
-    }
-
-    /* Cards de Navegação Estilo Link Retangulares */
-    .card-inicio {
-        background-color: white;
-        border: 1px solid #d1d9e0;
-        border-top: 4px solid #002b5c;
-        padding: 20px;
-        text-align: center;
-        transition: all 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        margin-bottom: 15px;
-        border-radius: 0px !important;
-    }
-    .card-inicio:hover {
-        background-color: #fafbfc;
-        border-color: #003366;
-    }
-
-    .stButton button[kind="primary"] {
-        background-color: #002b5c !important;
-        border-color: #002b5c !important;
-        color: white !important;
-        border-radius: 0px !important;
-    }
-    
-    .stButton button[kind="primary"]:hover {
-        background-color: #001a38 !important;
-        border-color: #001a38 !important;
-    }
-
-    /* Estilização para Impressão e Relatórios Oficiais */
     @media print {
-        header, footer, .stButton, .stSelectbox, .no-print {
+        [data-testid="stSidebar"], 
+        header, 
+        footer, 
+        .stButton, 
+        .stSelectbox,
+        .no-print {
             display: none !important;
         }
+        
+        .main .block-container {
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+        }
+        
         body {
             background-color: white !important;
             color: black !important;
@@ -278,9 +213,20 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 3px solid #002b5c;
+        border-bottom: 2px solid #003366;
         padding-bottom: 12px;
         margin-bottom: 20px;
+    }
+    .titulo-impressao h2 {
+        margin: 0;
+        color: #003366;
+        font-size: 22px;
+    }
+    .titulo-impressao h4 {
+        margin: 4px 0 0 0;
+        color: #555555;
+        font-size: 14px;
+        font-weight: normal;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -294,7 +240,7 @@ USUARIOS_PADRAO = [
 ]
 
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "inicio"
+    st.session_state.pagina_atual = "carga"
 
 if "tabela_usuarios" not in st.session_state:
     st.session_state.tabela_usuarios = USUARIOS_PADRAO.copy()
@@ -304,6 +250,9 @@ if "usuario_logado" not in st.session_state:
 
 if "dados_tg_raw" not in st.session_state:
     st.session_state.dados_tg_raw = None
+
+if "tot_expandidos_set" not in st.session_state:
+    st.session_state.tot_expandidos_set = set()
 
 if "editando_codigo_ug" not in st.session_state:
     st.session_state.editando_codigo_ug = None
@@ -322,100 +271,82 @@ def verificar_senha():
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
-        st.markdown("""
-            <div style="width: 100vw; position: relative; left: calc(-50vw + 50%); background: #002b5c; padding: 20px 40px; color: white; margin-bottom: 40px;">
-                <h2 style="margin: 0; font-size: 22px;">UFSM - Universidade Federal de Santa Maria</h2>
-                <p style="margin: 2px 0 0 0; font-size: 13px; color: #d0dce8;">SiGeO - Sistema de Gestão Orçamentária</p>
-            </div>
-        """, unsafe_allow_html=True)
+        st.title("SiGeO - Sistema de Gestão Orçamentária")
+        st.subheader("Acesso ao Sistema")
         
-        col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
-        with col_l2:
-            st.markdown("<h3 style='color: #002b5c; text-align: center;'>Autenticação no Sistema</h3>", unsafe_allow_html=True)
-            with st.form("form_login"):
-                usuario_input = st.text_input("Usuário:")
-                senha_input = st.text_input("Senha:", type="password")
-                btn_entrar = st.form_submit_button("Entrar no Sistema", type="primary", use_container_width=True)
+        # Envolvemos o formulário de login com st.form para submeter com a tecla "Enter"
+        with st.form("form_login"):
+            c_user, c_pass = st.columns(2)
+            usuario_input = c_user.text_input("Usuário:")
+            senha_input = c_pass.text_input("Senha:", type="password")
+            
+            btn_entrar = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+            
+            if btn_entrar:
+                usuario_encontrado = None
+                for u in st.session_state.tabela_usuarios:
+                    if u["usuario"].lower() == usuario_input.strip().lower() and u["senha"] == senha_input:
+                        usuario_encontrado = u
+                        break
                 
-                if btn_entrar:
-                    usuario_encontrado = None
-                    for u in st.session_state.tabela_usuarios:
-                        if u["usuario"].lower() == usuario_input.strip().lower() and u["senha"] == senha_input:
-                            usuario_encontrado = u
-                            break
-                    
-                    if usuario_encontrado:
-                        st.session_state.autenticado = True
-                        st.session_state.usuario_logado = usuario_encontrado
-                        st.rerun()
-                    else:
-                        st.error("Usuário ou senha incorretos.")
+                if usuario_encontrado:
+                    st.session_state.autenticado = True
+                    st.session_state.usuario_logado = usuario_encontrado
+                    st.rerun()
+                else:
+                    st.error("Usuário ou senha incorretos.")
         return False
     return True
 
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. CABEÇALHO INSTITUCIONAL GLOBAL E BARRA DE LINKS HORIZONTAIS (TODAS AS TELAS)
+    # 4. MENU LATERAL
     # -----------------------------------------------------------------------------
-    st.markdown("""
-        <div class="faixa-superior-ufsm-global">
-            <div class="cabecalho-conteudo">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <div style="font-size: 32px;">🏛️</div>
-                    <div class="instituicao-info">
-                        <h1>UFSM</h1>
-                        <p>Universidade Federal de Santa Maria | SiGeO - Sistema de Gestão Orçamentária</p>
-                    </div>
-                </div>
-                <div style="font-size: 12px; color: #d0dce8; text-align: right;">
-                    Usuário: <b>{}</b> ({})
-                </div>
-            </div>
-        </div>
-    """.format(st.session_state.usuario_logado['nome'], st.session_state.usuario_logado['perfil']), unsafe_allow_html=True)
-
-    # Barra de Links Horizontais estilo Portal UFSM (Textos / Links Limpos)
-    st.markdown("""
-        <div style="width: 100vw; position: relative; left: calc(-50vw + 50%); background-color: #001f3f; padding: 10px 40px; margin-bottom: 25px; border-bottom: 1px solid #004080;">
-            <div style="max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; font-size: 14px; font-weight: 600;">
-                <span style="color: #ffffff; cursor: default;">≡ Menu</span>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Botões de navegação horizontal equivalentes aos links solicitados
-    c_nav1, c_nav2, c_nav3, c_nav4, c_nav5, c_nav6, c_nav7 = st.columns(7)
+    if st.session_state.logo_personalizada is not None:
+        st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
     
-    with c_nav1:
-        if st.button("Início", use_container_width=True, type="primary" if st.session_state.pagina_atual == "inicio" else "secondary"):
-            st.session_state.pagina_atual = "inicio"
-            st.rerun()
-    with c_nav2:
-        if st.button("Carga", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
-            st.session_state.pagina_atual = "carga"
-            st.rerun()
-    with c_nav3:
-        if st.button("Relatórios", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+    st.sidebar.title("SiGeO - Sistema de Gestão Orçamentária")
+    st.sidebar.caption(f"Usuário: **{st.session_state.usuario_logado['nome']}** ({st.session_state.usuario_logado['perfil']})")
+    
+    if st.sidebar.button("🚪 Sair / Logout"):
+        st.session_state.autenticado = False
+        st.session_state.usuario_logado = None
+        st.rerun()
+
+    st.sidebar.markdown("---")
+
+    if st.sidebar.button("📁 1. Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
+        st.session_state.pagina_atual = "carga"
+        st.rerun()
+
+    with st.sidebar.expander("📊 Relatórios", expanded=False):
+        if st.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
             st.session_state.pagina_atual = "relatorio"
             st.rerun()
-    with c_nav4:
-        if st.button("UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
+
+    with st.sidebar.expander("⚙️ Configurações", expanded=False):
+        if st.button("📌 Cadastro de Unidades Gestoras (UGs)", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
             st.session_state.pagina_atual = "unidades_consolidadas"
             st.rerun()
-    with c_nav5:
-        if st.button("Contas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+
+        if st.button("🏷 Contas Gerenciais", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
             st.session_state.pagina_atual = "contas"
             st.rerun()
-    with c_nav6:
-        if st.button("NDD", use_container_width=True, type="primary" if st.session_state.pagina_atual == "ndd" else "secondary"):
+
+        if st.button("📑 Naturezas de Despesa", use_container_width=True, type="primary" if st.session_state.pagina_atual == "ndd" else "secondary"):
             st.session_state.pagina_atual = "ndd"
             st.rerun()
-    with c_nav7:
-        if st.button("Sair", use_container_width=True):
-            st.session_state.autenticado = False
-            st.session_state.usuario_logado = None
+
+        if st.button("👤 Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
+            st.session_state.pagina_atual = "usuarios"
             st.rerun()
+
+        if st.button("🎨 Configuração Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
+            st.session_state.pagina_atual = "config"
+            st.rerun()
+
+    st.sidebar.markdown("---")
 
     def converter_valor(val):
         if pd.isna(val): return 0.0
@@ -425,52 +356,10 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
-    # TELA 0: INÍCIO / DASHBOARD
+    # PÁGINA 1: CARGA DA PLANILHA (SEM A COLUNA DESCRIÇÃO_ND)
     # -----------------------------------------------------------------------------
-    if st.session_state.pagina_atual == "inicio":
-        st.markdown("### 📌 Módulos Operacionais do SiGeO")
-        st.write("Selecione abaixo o módulo desejado para gerenciar os dados orçamentários:")
-
-        col_h1, col_h2, col_h3 = st.columns(3)
-
-        with col_h1:
-            st.markdown("""
-                <div class="card-inicio">
-                    <h4>Carga de Dados</h4>
-                    <p style="font-size: 13px; color: #555;">Importação de planilhas do Tesouro Gerencial e processamento em lote para o Supabase.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Acessar Carga de Dados", use_container_width=True, type="primary", key="btn_h_carga"):
-                st.session_state.pagina_atual = "carga"
-                st.rerun()
-
-        with col_h2:
-            st.markdown("""
-                <div class="card-inicio">
-                    <h4>Relatórios</h4>
-                    <p style="font-size: 13px; color: #555;">Demonstrativos de execução orçamentária e comparativos estruturados.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Acessar Relatórios", use_container_width=True, type="primary", key="btn_h_rel"):
-                st.session_state.pagina_atual = "relatorio"
-                st.rerun()
-
-        with col_h3:
-            st.markdown("""
-                <div class="card-inicio">
-                    <h4>Configurações</h4>
-                    <p style="font-size: 13px; color: #555;">Gerenciamento de UGs, Contas Gerenciais, NDDs e cadastros do sistema.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Acessar Configurações", use_container_width=True, type="primary", key="btn_h_conf"):
-                st.session_state.pagina_atual = "unidades_consolidadas"
-                st.rerun()
-
-    # -----------------------------------------------------------------------------
-    # PÁGINA 1: CARGA DA PLANILHA
-    # -----------------------------------------------------------------------------
-    elif st.session_state.pagina_atual == "carga":
-        st.markdown("<h2 style='color: #002b5c;'>Carga do Relatório do Tesouro Gerencial</h2>", unsafe_allow_html=True)
+    if st.session_state.pagina_atual == "carga":
+        st.header("📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase")
         st.write("Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx ou .csv) e mapeie as colunas para carregar no Supabase.")
 
         arquivo = st.file_uploader("Selecione o arquivo da UFSM", type=["csv", "xlsx"])
@@ -487,7 +376,8 @@ if verificar_senha():
                 st.success(f"Arquivo carregado com sucesso! Total de {len(df):,} linhas encontradas.")
 
                 st.markdown("---")
-                st.subheader("Mapeamento Dinâmico de Colunas")
+                st.subheader("⚙️ Mapeamento Dinâmico de Colunas")
+                st.info("Selecione abaixo a correspondência correta das colunas do seu arquivo para padronização:")
 
                 c_m1, c_m2, c_m3 = st.columns(3)
                 with c_m1:
@@ -499,7 +389,7 @@ if verificar_senha():
                     col_nd = st.selectbox("Coluna de Natureza de Despesa (NDD):", colunas, index=min(11, len(colunas)-1))
                     col_val = st.selectbox("Coluna de Valor Liquidado:", colunas, index=len(colunas)-1)
 
-                if st.button("Processar e Visualizar Dados Tratados", type="primary"):
+                if st.button("🔄 Processar e Visualizar Dados Tratados", type="primary"):
                     df_tratado = pd.DataFrame()
                     df_tratado["exercicio"] = pd.to_numeric(df[col_ex], errors="coerce").fillna(datetime.now().year).astype(int)
                     df_tratado["mes_competencia"] = pd.to_datetime(df[col_mes].astype(str), errors="coerce").dt.month.fillna(1).astype(int)
@@ -513,26 +403,49 @@ if verificar_senha():
 
                 if st.session_state.dados_tg_raw is not None:
                     st.markdown("---")
-                    if st.button("Gravar Dados no Supabase", type="primary"):
+                    st.subheader("🚀 Exportação e Carga Massiva para o Supabase")
+                    if st.button("🚀 Gravar Dados no Supabase", type="primary"):
                         with st.spinner("Enviando lotes de dados para o Supabase..."):
                             carregar_dados_para_supabase(st.session_state.dados_tg_raw, "tb_execucao_despesa")
-                            st.success("Carga concluída com sucesso no banco de dados Supabase!")
+                            st.success("🎉 Carga concluída com sucesso no banco de dados Supabase!")
 
             except Exception as e:
                 st.error(f"Erro ao ler o arquivo: {e}")
+
+        elif st.session_state.dados_tg_raw is not None:
+            st.info("Planilha tratada armazenada na memória local do sistema.")
+            if st.button("Remover e Enviar Nova Planilha"):
+                st.session_state.dados_tg_raw = None
+                st.rerun()
 
     # -----------------------------------------------------------------------------
     # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
-        st.markdown("<h2 style='color: #002b5c;'>Demonstrativo de Execução Orçamentária</h2>", unsafe_allow_html=True)
+        c_head1, c_head2 = st.columns([1, 4])
+        with c_head1:
+            if st.session_state.logo_personalizada is not None:
+                st.image(st.session_state.logo_personalizada, width=130)
+            else:
+                st.write("🏛️ **UFSM**")
+        with c_head2:
+            st.markdown(f"""
+                <div class="titulo-impressao">
+                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
+                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - EXECUÇÃO ORÇAMENTÁRIA</h4>
+                    <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("---")
+        st.subheader("📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)")
         
         c_a1, c_a2 = st.columns(2)
         ano_atual_sel = c_a1.number_input("Ano Atual:", value=datetime.now().year, step=1)
         ano_ant_sel = c_a2.number_input("Ano Comparativo:", value=datetime.now().year - 1, step=1)
 
-        if st.button("Executar Consulta SQL no Supabase", type="primary"):
-            with st.spinner("Buscando dados diretamente do Supabase..."):
+        if st.button("🔍 Executar Consulta SQL no Supabase", type="primary"):
+            with st.spinner("Buscando e processando dados diretamente do Supabase..."):
                 try:
                     query_relatorio = f"""
                     SELECT 
@@ -567,6 +480,7 @@ if verificar_senha():
                             }),
                             use_container_width=True
                         )
+
                 except Exception as e:
                     st.error(f"Erro ao consultar o Supabase: {e}")
 
@@ -574,97 +488,405 @@ if verificar_senha():
     # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
-        st.markdown("<h2 style='color: #002b5c;'>Cadastro de Unidades Gestoras (UGs)</h2>", unsafe_allow_html=True)
+        st.header("📌 Cadastro de Unidades Gestoras (UGs)")
+        st.write("Gestão das Unidades cadastradas no banco de dados (`public.tb_ugs`).")
+
         df_ugs = buscar_ugs_banco()
 
         col_u1, col_u2 = st.columns([1, 2])
+        
         with col_u1:
-            st.subheader("Adicionar Nova UG")
+            st.subheader("➕ Adicionar Nova UG")
             with st.form("form_add_ug", clear_on_submit=True):
-                codigo_input = st.text_input("Código da UG *:")
-                nome_input = st.text_input("Nome da UG:")
-                sigla_input = st.text_input("Sigla:")
+                codigo_input = st.text_input("Código da UG * (Único):", placeholder="Ex: 153164")
+                nome_input = st.text_input("Nome da UG:", placeholder="Ex: Pró-Reitoria de Administração")
+                sigla_input = st.text_input("Sigla:", placeholder="Ex: PRA")
                 ativo_input = st.checkbox("UG Ativa", value=True)
                 
-                if st.form_submit_button("Salvar UG", use_container_width=True, type="primary"):
+                btn_salvar = st.form_submit_button("Salvar UG", use_container_width=True, type="primary")
+
+                if btn_salvar:
                     if not codigo_input.strip():
                         st.error("O campo 'Código da UG' é obrigatório.")
                     else:
                         try:
-                            inserir_ug_banco(codigo_input.strip(), nome_input.strip() if nome_input else None, sigla_input.strip() if sigla_input else None, ativo_input)
-                            st.success("UG cadastrada com sucesso!")
+                            inserir_ug_banco(
+                                codigo_ug=codigo_input.strip(),
+                                nome=nome_input.strip() if nome_input else None,
+                                sigla=sigla_input.strip() if sigla_input else None,
+                                ativo=ativo_input
+                            )
+                            st.success(f"UG '{codigo_input}' cadastrada com sucesso!")
                             st.rerun()
                         except Exception as e:
-                            st.error(f"Erro: {e}")
+                            st.error(f"Erro ao salvar UG: {e}")
 
         with col_u2:
             st.subheader(f"Unidades Cadastradas ({len(df_ugs)})")
+            
             if df_ugs.empty:
-                st.info("Nenhuma UG cadastrada.")
+                st.info("Nenhuma UG cadastrada na tabela `public.tb_ugs`.")
             else:
-                for _, row in df_ugs.iterrows():
+                for idx, row in df_ugs.iterrows():
                     ug_cod = row["codigo_ug"]
-                    c_txt, c_btn = st.columns([6, 1])
-                    c_txt.markdown(f"**[{ug_cod}]** {row.get('sigla', '')} - {row.get('nome', '')}")
-                    if c_btn.button("🗑️", key=f"del_ug_{ug_cod}"):
-                        excluir_ug_banco(ug_cod)
+                    ug_nome = row["nome"] if pd.notna(row["nome"]) else ""
+                    ug_sigla = row["sigla"] if pd.notna(row["sigla"]) else ""
+                    ug_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+
+                    status_str = "🟢" if ug_ativo else "🔴"
+                    display_text = f"{status_str} **[{ug_cod}]** {ug_sigla} - {ug_nome}".strip(" -")
+
+                    c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                    c_txt.markdown(display_text)
+                    
+                    if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_cod}", help="Alterar dados da UG"):
+                        st.session_state.editando_codigo_ug = ug_cod
                         st.rerun()
+
+                    if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_cod}", help="Excluir UG"):
+                        try:
+                            excluir_ug_banco(ug_cod)
+                            st.success(f"UG [{ug_cod}] excluída com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao excluir UG: {e}")
+
+                    if st.session_state.editando_codigo_ug == ug_cod:
+                        with st.container():
+                            st.markdown("---")
+                            st.markdown(f"**Editando UG Cod: {ug_cod}**")
+                            
+                            edit_cod = st.text_input("Código UG:", value=str(ug_cod), key=f"edit_cod_{ug_cod}")
+                            edit_nome = st.text_input("Nome:", value=ug_nome, key=f"edit_nome_{ug_cod}")
+                            edit_sigla = st.text_input("Sigla:", value=ug_sigla, key=f"edit_sigla_{ug_cod}")
+                            edit_ativo = st.checkbox("Ativo", value=ug_ativo, key=f"edit_ativo_{ug_cod}")
+
+                            c_save, c_canc = st.columns(2)
+                            if c_save.button("💾 Salvar Alterações", key=f"save_ug_btn_{ug_cod}", type="primary"):
+                                try:
+                                    atualizar_ug_banco(
+                                        codigo_ug_orig=ug_cod,
+                                        codigo_ug_novo=edit_cod.strip(),
+                                        nome=edit_nome.strip() if edit_nome else None,
+                                        sigla=edit_sigla.strip() if edit_sigla else None,
+                                        ativo=edit_ativo
+                                    )
+                                    st.session_state.editando_codigo_ug = None
+                                    st.success("Unidade alterada com sucesso!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao atualizar UG: {e}")
+
+                            if c_canc.button("Cancelar", key=f"canc_ug_btn_{ug_cod}"):
+                                st.session_state.editando_codigo_ug = None
+                                st.rerun()
+                            st.markdown("---")
 
     # -----------------------------------------------------------------------------
     # CONTAS GERENCIAIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.markdown("<h2 style='color: #002b5c;'>Gestão de Contas Gerenciais</h2>", unsafe_allow_html=True)
+        st.header("🏷️ Gestão de Contas Gerenciais")
+        st.write("Gerencie o cadastro de Contas Gerenciais (`public.tb_contas_gerenciais`).")
+
         df_cg = buscar_contas_gerenciais_banco()
-        
-        col_c1, col_c2 = st.columns([1, 2])
-        with col_c1:
-            st.subheader("Nova Conta")
-            with st.form("form_cg", clear_on_submit=True):
-                c_cod_in = st.text_input("Código da Conta:")
-                c_nome_in = st.text_input("Nome da Conta:")
-                c_nivel_in = st.text_input("Nível:", value="1")
-                c_ativo_in = st.checkbox("Ativa", value=True)
+        col_add_cg, col_list_cg = st.columns([1, 2])
+
+        with col_add_cg:
+            st.subheader("➕ Nova Conta Gerencial")
+            with st.form("form_add_cg", clear_on_submit=True):
+                codigo_conta_in = st.text_input("Código da Conta * (Ex: 1.0, 1.1):", placeholder="Ex: 1.1")
+                nome_conta_in = st.text_input("Nome da Conta *:", placeholder="Ex: Obras e Reformas")
+                nivel_in = st.text_input("Nível (Ex: 1, 2, 3 ou Nível 1):", value="1")
+                ativo_in = st.checkbox("Conta Ativa", value=True)
                 
-                if st.form_submit_button("Salvar Conta", use_container_width=True, type="primary"):
-                    if c_cod_in and c_nome_in:
-                        inserir_conta_gerencial_banco(c_cod_in.strip(), c_nome_in.strip(), c_nivel_in.strip(), c_ativo_in)
-                        st.success("Salvo com sucesso!")
+                btn_save_cg = st.form_submit_button("Salvar Conta Gerencial", use_container_width=True, type="primary")
+
+                if btn_save_cg:
+                    if not codigo_conta_in.strip() or not nome_conta_in.strip():
+                        st.error("Os campos 'Código da Conta' e 'Nome da Conta' são obrigatórios.")
+                    else:
+                        try:
+                            inserir_conta_gerencial_banco(
+                                codigo_conta=codigo_conta_in.strip(),
+                                nome_conta=nome_conta_in.strip(),
+                                nivel=nivel_in.strip() if nivel_in else "1",
+                                ativo=ativo_in
+                            )
+                            st.success(f"Conta '{codigo_conta_in}' inserida com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao inserir conta gerencial: {e}")
+
+        with col_list_cg:
+            st.subheader(f"Contas Gerenciais Cadastradas ({len(df_cg)})")
+            
+            if df_cg.empty:
+                st.info("Nenhuma Conta Gerencial cadastrada na tabela `public.tb_contas_gerenciais`.")
+            else:
+                for idx, row in df_cg.iterrows():
+                    c_cod = row["codigo_conta"]
+                    c_nome = row["nome_conta"] if pd.notna(row["nome_conta"]) else ""
+                    c_niv = row["nivel"] if pd.notna(row["nivel"]) else "1"
+                    c_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+
+                    status_icon = "🟢" if c_ativo else "🔴"
+                    disp_str = f"{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv})*"
+
+                    c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                    c_txt.markdown(disp_str, unsafe_allow_html=True)
+
+                    if c_btn_edit.button("✏️️", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
+                        st.session_state.editando_codigo_conta = c_cod
                         st.rerun()
 
-        with col_c2:
-            st.subheader(f"Contas Cadastradas ({len(df_cg)})")
-            if df_cg.empty:
-                st.info("Nenhuma conta cadastrada.")
-            else:
-                for _, row in df_cg.iterrows():
-                    st.markdown(f"**[{row['codigo_conta']}]** {row['nome_conta']} (Nível: {row['nivel']})")
+                    if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_cod}", help="Excluir Conta"):
+                        try:
+                            excluir_conta_gerencial_banco(c_cod)
+                            st.success(f"Conta [{c_cod}] excluída!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao excluir conta: {e}")
+
+                    if st.session_state.editando_codigo_conta == c_cod:
+                        with st.container():
+                            st.markdown("---")
+                            st.markdown(f"**Editando Conta Gerencial: {c_cod}**")
+                            
+                            e_cod = st.text_input("Código da Conta:", value=str(c_cod), key=f"edit_cg_cod_{c_cod}")
+                            e_nome = st.text_input("Nome da Conta:", value=c_nome, key=f"edit_cg_nome_{c_cod}")
+                            e_niv = st.text_input("Nível:", value=str(c_niv), key=f"edit_cg_niv_{c_cod}")
+                            e_ativo = st.checkbox("Ativo", value=c_ativo, key=f"edit_cg_ativo_{c_cod}")
+
+                            c_save, c_canc = st.columns(2)
+                            if c_save.button("💾 Salvar", key=f"save_cg_btn_{c_cod}", type="primary"):
+                                try:
+                                    atualizar_conta_gerencial_banco(
+                                        codigo_conta_orig=c_cod,
+                                        codigo_conta_novo=e_cod.strip(),
+                                        nome_conta=e_nome.strip(),
+                                        nivel=e_niv.strip() if e_niv else "1",
+                                        ativo=e_ativo
+                                    )
+                                    st.session_state.editando_codigo_conta = None
+                                    st.success("Conta Gerencial atualizada com sucesso!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao atualizar conta: {e}")
+
+                            if c_canc.button("Cancelar", key=f"canc_cg_btn_{c_cod}"):
+                                st.session_state.editando_codigo_conta = None
+                                st.rerun()
+                            st.markdown("---")
 
     # -----------------------------------------------------------------------------
     # NATUREZA DE DESPESA DETALHADA (NDD)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "ndd":
-        st.markdown("<h2 style='color: #002b5c;'>Natureza de Despesa Detalhada (NDD)</h2>", unsafe_allow_html=True)
+        st.header("📑 Natureza de Despesa Detalhada (NDD)")
+        st.write("Gerencie a estrutura da Natureza de Despesa Detalhada (`public.tb_natureza_despesa_detalhada`).")
+
+        df_cg_opcoes = buscar_contas_gerenciais_banco()
+        opcoes_cg = ["Nenhum (Sem vínculo)"]
+        if not df_cg_opcoes.empty:
+            for _, r_cg in df_cg_opcoes.iterrows():
+                nome_c = f" - {r_cg['nome_conta']}" if pd.notna(r_cg['nome_conta']) and r_cg['nome_conta'] else ""
+                opcoes_cg.append(f"[{r_cg['codigo_conta']}]{nome_c}")
+
         df_ndd = buscar_ndd_banco()
-        
-        col_n1, col_n2 = st.columns([1, 2])
-        with col_n1:
-            st.subheader("Nova NDD")
-            with st.form("form_ndd", clear_on_submit=True):
-                n_cod_in = st.text_input("Código NDD:")
-                n_desc_in = st.text_input("Descrição:")
-                n_grp_in = st.text_input("Grupo de Despesa:")
-                
-                if st.form_submit_button("Salvar NDD", use_container_width=True, type="primary"):
-                    if n_cod_in and n_desc_in:
-                        inserir_ndd_banco(n_cod_in.strip(), n_desc_in.strip(), n_grp_in.strip() if n_grp_in else None, "1.0")
-                        st.success("NDD salva com sucesso!")
+        col_add_ndd, col_list_ndd = st.columns([1, 2])
+
+        with col_add_ndd:
+            st.subheader("➕ Nova NDD")
+            with st.form("form_add_ndd", clear_on_submit=True):
+                cod_ndd_in = st.text_input("Código NDD * (Único):", placeholder="Ex: 33903001")
+                desc_ndd_in = st.text_input("Descrição *:", placeholder="Ex: Combustíveis e Lubrificantes")
+                grupo_despesa_in = st.text_input("Grupo de Despesa:", placeholder="Ex: Material de Consumo")
+                conta_gerencial_sel = st.selectbox("Conta Gerencial *:", opcoes_cg)
+
+                btn_save_ndd = st.form_submit_button("Salvar NDD", use_container_width=True, type="primary")
+
+                if btn_save_ndd:
+                    if not cod_ndd_in.strip() or not desc_ndd_in.strip() or conta_gerencial_sel == "Nenhum (Sem vínculo)":
+                        st.error("Os campos 'Código NDD', 'Descrição' e 'Conta Gerencial' são obrigatórios.")
+                    else:
+                        try:
+                            inserir_ndd_banco(
+                                codigo_ndd=cod_ndd_in.strip(),
+                                descricao=desc_ndd_in.strip(),
+                                grupo_despesa=grupo_despesa_in.strip() if grupo_despesa_in else None,
+                                conta_gerencial=conta_gerencial_sel
+                            )
+                            st.success(f"NDD '{cod_ndd_in}' salva com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar NDD: {e}")
+
+        with col_list_ndd:
+            st.subheader(f"NDDs Cadastradas ({len(df_ndd)})")
+
+            if df_ndd.empty:
+                st.info("Nenhuma Natureza de Despesa Detalhada cadastrada.")
+            else:
+                for idx, row in df_ndd.iterrows():
+                    n_cod = row["codigo_ndd"]
+                    n_desc = row["descricao"] if pd.notna(row["descricao"]) else ""
+                    n_grp = row["grupo_despesa"] if pd.notna(row["grupo_despesa"]) else ""
+                    n_cg = row["conta_gerencial"] if pd.notna(row["conta_gerencial"]) else ""
+
+                    lbl_grp = f" *(Grupo: {n_grp})*" if n_grp else ""
+                    lbl_cg = f" | Conta: {n_cg}" if n_cg else ""
+                    disp_ndd = f"🏷 **[{n_cod}]** {n_desc}{lbl_grp}{lbl_cg}"
+
+                    c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                    c_txt.markdown(disp_ndd)
+
+                    if c_btn_edit.button("✏️", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
+                        st.session_state.editando_codigo_ndd = n_cod
                         st.rerun()
 
-        with col_n2:
-            st.subheader(f"NDDs Cadastradas ({len(df_ndd)})")
-            if df_ndd.empty:
-                st.info("Nenhuma NDD cadastrada.")
+                    if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_cod}", help="Excluir NDD"):
+                        try:
+                            excluir_ndd_banco(n_cod)
+                            st.success("NDD excluída com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao excluir NDD: {e}")
+
+                    if st.session_state.editando_codigo_ndd == n_cod:
+                        with st.container():
+                            st.markdown("---")
+                            st.markdown(f"**Editando NDD Cod: {n_cod}**")
+
+                            e_ndd_cod = st.text_input("Código NDD:", value=str(n_cod), key=f"edit_ndd_cod_{n_cod}")
+                            e_ndd_desc = st.text_input("Descrição:", value=n_desc, key=f"edit_ndd_desc_{n_cod}")
+                            e_ndd_grp = st.text_input("Grupo de Despesa:", value=n_grp, key=f"edit_ndd_grp_{n_cod}")
+                            
+                            idx_cg_def = 0
+                            if n_cg:
+                                for i_op, op in enumerate(opcoes_cg):
+                                    if op == n_cg:
+                                        idx_cg_def = i_op
+                                        break
+
+                            e_ndd_cg_sel = st.selectbox("Conta Gerencial:", opcoes_cg, index=idx_cg_def, key=f"edit_ndd_cg_{n_cod}")
+
+                            c_save, c_canc = st.columns(2)
+                            if c_save.button("💾 Salvar", key=f"save_ndd_btn_{n_cod}", type="primary"):
+                                try:
+                                    atualizar_ndd_banco(
+                                        codigo_ndd_orig=n_cod,
+                                        codigo_ndd_novo=e_ndd_cod.strip(),
+                                        descricao=e_ndd_desc.strip(),
+                                        grupo_despesa=e_ndd_grp.strip() if e_ndd_grp else None,
+                                        conta_gerencial=e_ndd_cg_sel
+                                    )
+                                    st.session_state.editando_codigo_ndd = None
+                                    st.success("NDD alterada com sucesso!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao atualizar NDD: {e}")
+
+                            if c_canc.button("Cancelar", key=f"canc_ndd_btn_{n_cod}"):
+                                st.session_state.editando_codigo_ndd = None
+                                st.rerun()
+                            st.markdown("---")
+
+    # -----------------------------------------------------------------------------
+    # CADASTRO DE USUÁRIOS
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "usuarios":
+        st.header("⚙️ Gestão de Usuários e Permissões")
+        st.write("Cadastre e controle os usuários que possuem acesso ao sistema.")
+
+        col_usr_add, col_usr_list = st.columns([1, 2])
+
+        with col_usr_add:
+            st.subheader("➕ Novo Usuário")
+            novo_usr_id = st.text_input("Usuário (Login):")
+            novo_usr_nome = st.text_input("Nome Completo:")
+            novo_usr_pass = st.text_input("Senha:", type="password")
+            novo_usr_perf = st.selectbox("Perfil:", ["Administrador", "Gestor", "Consulta"])
+
+            if st.button("Cadastrar Usuário", use_container_width=True):
+                if not novo_usr_id or not novo_usr_pass or not novo_usr_nome:
+                    st.error("Preencha todos os campos obrigatórios.")
+                elif any(u["usuario"].lower() == novo_usr_id.strip().lower() for u in st.session_state.tabela_usuarios):
+                    st.error("Este nome de usuário já existe.")
+                else:
+                    st.session_state.tabela_usuarios.append({
+                        "usuario": novo_usr_id.strip(),
+                        "nome": novo_usr_nome.strip(),
+                        "senha": novo_usr_pass,
+                        "perfil": novo_usr_perf
+                    })
+                    st.success(f"Usuário '{novo_usr_id}' cadastrado com sucesso!")
+                    st.rerun()
+
+        with col_usr_list:
+            st.subheader(f"Usuários Cadastrados ({len(st.session_state.tabela_usuarios)})")
+            
+            df_usr_view = pd.DataFrame(st.session_state.tabela_usuarios)[["usuario", "nome", "perfil"]]
+            df_usr_view.columns = ["Login", "Nome Completo", "Perfil"]
+            st.dataframe(df_usr_view, use_container_width=True)
+
+            st.markdown("---")
+            st.subheader("⚙️ Ações nos Usuários")
+            
+            usrs_existentes = [u["usuario"] for u in st.session_state.tabela_usuarios]
+            usr_selecionado = st.selectbox("Selecione um usuário para editar/excluir:", usrs_existentes)
+            
+            if usr_selecionado:
+                dados_usr = next(u for u in st.session_state.tabela_usuarios if u["usuario"] == usr_selecionado)
+                c_edit_pass, c_del_usr = st.columns(2)
+                
+                with c_edit_pass:
+                    nova_s = st.text_input(f"Nova senha para '{usr_selecionado}':", type="password", key="inp_nova_s")
+                    if st.button("Alterar Senha"):
+                        if nova_s:
+                            dados_usr["senha"] = nova_s
+                            st.success("Senha alterada com sucesso!")
+                        else:
+                            st.warning("Digite a nova senha.")
+
+                with c_del_usr:
+                    st.write("Excluir conta de acesso:")
+                    if st.button(f"🗑️ Excluir '{usr_selecionado}'", type="primary"):
+                        if len(st.session_state.tabela_usuarios) <= 1:
+                            st.error("Não é possível remover o único usuário do sistema.")
+                        else:
+                            st.session_state.tabela_usuarios = [u for u in st.session_state.tabela_usuarios if u["usuario"] != usr_selecionado]
+                            st.success(f"Usuário '{usr_selecionado}' removido com sucesso!")
+                            st.rerun()
+
+    # -----------------------------------------------------------------------------
+    # CONFIGURAÇÕES VISUAIS
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "config":
+        st.header("⚙️ Configuração Visual e Logomarca")
+        st.write("Carregue a imagem da logomarca oficial do seu computador. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone (favicon) na aba do navegador.")
+
+        c_up, c_prev = st.columns([2, 1])
+
+        with c_up:
+            st.subheader("Fazer Upload da Logo")
+            arquivo_logo = st.file_uploader("Selecione uma imagem (.png, .jpg, .jpeg):", type=["png", "jpg", "jpeg"])
+
+            if arquivo_logo is not None:
+                st.session_state.logo_personalizada = arquivo_logo.getvalue()
+                st.success("Logomarca carregada com sucesso!")
+                st.rerun()
+
+            if st.session_state.logo_personalizada is not None:
+                st.markdown("---")
+                if st.button("🗑️ Remover Logomarca Atual"):
+                    st.session_state.logo_personalizada = None
+                    st.success("Logomarca removida com sucesso!")
+                    st.rerun()
+
+        with c_prev:
+            st.subheader("Pré-visualização")
+            if st.session_state.logo_personalizada is not None:
+                st.image(st.session_state.logo_personalizada, caption="Logo Ativa no Sistema", width=200)
             else:
-                for _, row in df_ndd.iterrows():
-                    st.markdown(f"**[{row['codigo_ndd']}]** {row['descricao']}")
+                st.info("Nenhuma imagem carregada até o momento.")
