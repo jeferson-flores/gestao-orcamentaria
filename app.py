@@ -80,7 +80,7 @@ def excluir_unidade_banco(codigo_unidade: str):
     executar_comando_sql(query, {"codigo_unidade": codigo_unidade})
 
 # -----------------------------------------------------------------------------
-# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS (CORRIGIDO PARA O SCHEMA DA TABELA)
+# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS
 # -----------------------------------------------------------------------------
 def buscar_ugs_banco():
     try:
@@ -215,7 +215,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Estilização CSS geral
+# Estilização CSS geral com padronização dos botões azuis em telas internas
 st.markdown("""
     <style>
     :root {
@@ -257,6 +257,7 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
+    /* Padronização geral dos botões primários do sistema na cor azul UFSM */
     .stButton button[kind="primary"] {
         background-color: #003366 !important;
         border-color: #003366 !important;
@@ -380,7 +381,7 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL REORGANIZADO
+    # 4. MENU LATERAL REORGANIZADO (PRESERVADO)
     # -----------------------------------------------------------------------------
     if st.session_state.logo_personalizada is not None:
         st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
@@ -550,7 +551,7 @@ if verificar_senha():
 
         elif st.session_state.dados_tg_raw is not None:
             st.info("Planilha tratada armazenada na memória local do sistema.")
-            if st.button("Remover e Enviar Nova Planilha"):
+            if st.button("Remover e Enviar Nova Planilha", type="primary"):
                 st.session_state.dados_tg_raw = None
                 st.rerun()
 
@@ -693,11 +694,11 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(display_text, unsafe_allow_html=True)
                     
-                    if c_btn_edit.button("✏️", key=f"edit_unidade_btn_{u_cod}", help="Alterar dados da unidade"):
+                    if c_btn_edit.button("✏️", key=f"edit_unidade_btn_{u_cod}", help="Alterar dados da unidade", type="primary"):
                         st.session_state.editando_codigo_unidade = u_cod
                         st.rerun()
 
-                    if c_btn_del.button("🗑️", key=f"del_unidade_btn_{u_cod}", help="Excluir unidade"):
+                    if c_btn_del.button("🗑️", key=f"del_unidade_btn_{u_cod}", help="Excluir unidade", type="primary"):
                         try:
                             excluir_unidade_banco(u_cod)
                             st.success(f"Unidade [{u_cod}] excluída com sucesso!")
@@ -750,13 +751,13 @@ if verificar_senha():
                                 except Exception as e:
                                     st.error(f"Erro ao atualizar unidade: {e}")
 
-                            if c_canc.button("Cancelar", key=f"canc_unidade_btn_{u_cod}"):
+                            if c_canc.button("Cancelar", key=f"canc_unidade_btn_{u_cod}", type="primary"):
                                 st.session_state.editando_codigo_unidade = None
                                 st.rerun()
                             st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # CADASTRO: UGS (ATUALIZADO PARA USAR O CAMPO UNIDADE E CHAVE ESTRANGEIRA)
+    # CADASTRO: UGS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
         st.markdown("<h2 style='color: #003366;'>📌 Cadastro de UGs</h2>", unsafe_allow_html=True)
@@ -817,11 +818,11 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(display_text)
                     
-                    if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_cod}", help="Alterar dados da UG"):
+                    if c_btn_edit.button("✏️", key=f"edit_ug_btn_{ug_cod}", help="Alterar dados da UG", type="primary"):
                         st.session_state.editando_codigo_ug = ug_cod
                         st.rerun()
 
-                    if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_cod}", help="Excluir UG"):
+                    if c_btn_del.button("🗑️", key=f"del_ug_btn_{ug_cod}", help="Excluir UG", type="primary"):
                         try:
                             excluir_ug_banco(ug_cod)
                             st.success(f"UG [{ug_cod}] excluída com sucesso!")
@@ -867,7 +868,7 @@ if verificar_senha():
                                     except Exception as e:
                                         st.error(f"Erro ao atualizar UG: {e}")
 
-                            if c_canc.button("Cancelar", key=f"canc_ug_btn_{ug_cod}"):
+                            if c_canc.button("Cancelar", key=f"canc_ug_btn_{ug_cod}", type="primary"):
                                 st.session_state.editando_codigo_ug = None
                                 st.rerun()
                             st.markdown("---")
@@ -926,11 +927,11 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_str, unsafe_allow_html=True)
 
-                    if c_btn_edit.button("✏", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
+                    if c_btn_edit.button("✏", key=f"edit_cg_btn_{c_cod}", help="Editar Conta", type="primary"):
                         st.session_state.editando_codigo_conta = c_cod
                         st.rerun()
 
-                    if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_cod}", help="Excluir Conta"):
+                    if c_btn_del.button("🗑️", key=f"del_cg_btn_{c_cod}", help="Excluir Conta", type="primary"):
                         try:
                             excluir_conta_gerencial_banco(c_cod)
                             st.success(f"Conta [{c_cod}] excluída!")
@@ -964,7 +965,7 @@ if verificar_senha():
                                 except Exception as e:
                                     st.error(f"Erro ao atualizar conta: {e}")
 
-                            if c_canc.button("Cancelar", key=f"canc_cg_btn_{c_cod}"):
+                            if c_canc.button("Cancelar", key=f"canc_cg_btn_{c_cod}", type="primary"):
                                 st.session_state.editando_codigo_conta = None
                                 st.rerun()
                             st.markdown("---")
@@ -1031,11 +1032,11 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_ndd)
 
-                    if c_btn_edit.button("✏", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
+                    if c_btn_edit.button("✏", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD", type="primary"):
                         st.session_state.editando_codigo_ndd = n_cod
                         st.rerun()
 
-                    if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_cod}", help="Excluir NDD"):
+                    if c_btn_del.button("🗑️", key=f"del_ndd_btn_{n_cod}", help="Excluir NDD", type="primary"):
                         try:
                             excluir_ndd_banco(n_cod)
                             st.success("NDD excluída com sucesso!")
@@ -1077,7 +1078,7 @@ if verificar_senha():
                                 except Exception as e:
                                     st.error(f"Erro ao atualizar NDD: {e}")
 
-                            if c_canc.button("Cancelar", key=f"canc_ndd_btn_{n_cod}"):
+                            if c_canc.button("Cancelar", key=f"canc_ndd_btn_{n_cod}", type="primary"):
                                 st.session_state.editando_codigo_ndd = None
                                 st.rerun()
                             st.markdown("---")
@@ -1132,7 +1133,7 @@ if verificar_senha():
                 
                 with c_edit_pass:
                     nova_s = st.text_input(f"Nova senha para '{usr_selecionado}':", type="password", key="inp_nova_s")
-                    if st.button("Alterar Senha"):
+                    if st.button("Alterar Senha", type="primary"):
                         if nova_s:
                             dados_usr["senha"] = nova_s
                             st.success("Senha alterada com sucesso!")
@@ -1197,7 +1198,7 @@ if verificar_senha():
 
             if st.session_state.logo_personalizada is not None:
                 st.markdown("---")
-                if st.button("🗑️ Remover Logomarca Atual"):
+                if st.button("🗑️ Remover Logomarca Atual", type="primary"):
                     st.session_state.logo_personalizada = None
                     st.success("Logomarca removida com sucesso!")
                     st.rerun()
