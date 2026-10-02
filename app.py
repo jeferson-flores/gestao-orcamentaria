@@ -37,6 +37,49 @@ def executar_comando_sql(query: str, params: dict = None):
             conn.execute(text(query))
 
 # -----------------------------------------------------------------------------
+# FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UNIDADES
+# -----------------------------------------------------------------------------
+def buscar_unidades_banco():
+    try:
+        query = "SELECT codigo_unidade, nome_unidade, nivel, unidade_pai, ativo, criado_em FROM public.tb_unidades ORDER BY codigo_unidade ASC;"
+        return executar_consulta_sql(query)
+    except Exception as e:
+        st.error(f"Erro ao consultar tb_unidades no Supabase: {e}")
+        return pd.DataFrame()
+
+def inserir_unidade_banco(codigo_unidade: str, nome_unidade: str, nivel: str, unidade_pai: str, ativo: bool):
+    query = """
+    INSERT INTO public.tb_unidades (codigo_unidade, nome_unidade, nivel, unidade_pai, ativo)
+    VALUES (:codigo_unidade, :nome_unidade, :nivel, :unidade_pai, :ativo);
+    """
+    executar_comando_sql(query, {
+        "codigo_unidade": codigo_unidade, 
+        "nome_unidade": nome_unidade, 
+        "nivel": nivel, 
+        "unidade_pai": unidade_pai if unidade_pai else None, 
+        "ativo": ativo
+    })
+
+def atualizar_unidade_banco(codigo_unidade_orig: str, codigo_unidade_novo: str, nome_unidade: str, nivel: str, unidade_pai: str, ativo: bool):
+    query = """
+    UPDATE public.tb_unidades
+    SET codigo_unidade = :codigo_unidade_novo, nome_unidade = :nome_unidade, nivel = :nivel, unidade_pai = :unidade_pai, ativo = :ativo
+    WHERE codigo_unidade = :codigo_unidade_orig;
+    """
+    executar_comando_sql(query, {
+        "codigo_unidade_orig": codigo_unidade_orig,
+        "codigo_unidade_novo": codigo_unidade_novo,
+        "nome_unidade": nome_unidade,
+        "nivel": nivel,
+        "unidade_pai": unidade_pai if unidade_pai else None,
+        "ativo": ativo
+    })
+
+def excluir_unidade_banco(codigo_unidade: str):
+    query = "DELETE FROM public.tb_unidades WHERE codigo_unidade = :codigo_unidade;"
+    executar_comando_sql(query, {"codigo_unidade": codigo_unidade})
+
+# -----------------------------------------------------------------------------
 # FUNÇÕES DE CRUD PARA A TABELA PUBLIC.TB_UGS
 # -----------------------------------------------------------------------------
 def buscar_ugs_banco():
@@ -290,6 +333,9 @@ if "tot_expandidos_set" not in st.session_state:
 if "editando_codigo_ug" not in st.session_state:
     st.session_state.editando_codigo_ug = None
 
+if "editando_codigo_unidade" not in st.session_state:
+    st.session_state.editando_codigo_unidade = None
+
 if "editando_codigo_conta" not in st.session_state:
     st.session_state.editando_codigo_conta = None
 
@@ -427,7 +473,6 @@ if verificar_senha():
             </div>
         """, unsafe_allow_html=True)
 
-        # Campos solicitados para a aba Início (preparados para tabela de informações futura)
         st.subheader("Bem-vindo ao SiGeO")
         
         col_logo_ini, col_texto_ini = st.columns([1, 2])
@@ -467,7 +512,7 @@ if verificar_senha():
                 st.success(f"Arquivo carregado com sucesso! Total de {len(df):,} linhas encontradas.")
 
                 st.markdown("---")
-                st.subheader("⚙️️ Mapeamento Dinâmico de Colunas")
+                st.subheader("⚙ Mapeamento Dinâmico de Colunas")
                 st.info("Selecione abaixo a correspondência correta das colunas do seu arquivo para padronização:")
 
                 c_m1, c_m2, c_m3 = st.columns(3)
@@ -578,6 +623,138 @@ if verificar_senha():
 
                 except Exception as e:
                     st.error(f"Erro ao consultar o Supabase: {e}")
+
+    # -----------------------------------------------------------------------------
+    # CADASTRO: UNIDADES (`public.tb_unidades`)
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "unidades":
+        st.markdown("<h2 style='color: #003366;'>🏢 Cadastro de Unidades</h2>", unsafe_allow_html=True)
+        st.write("Gerencie o cadastro de Unidades (`public.tb_unidades`) com suporte a hierarquia (unidade pai).")
+
+        df_unidades = buscar_unidades_banco()
+        
+        # Opções para unidade pai
+        opcoes_unidade_pai = ["Nenhuma (Unidade Raiz)"]
+        if not df_unidades.empty:
+            for _, r_un in df_unidades.iterrows():
+                opcoes_unidade_pai.append(f"{r_un['codigo_unidade']} - {r_un['nome_unidade']}")
+
+        col_uni1, col_uni2 = st.columns([1, 2])
+        
+        with col_uni1:
+            st.subheader("➕ Adicionar Nova Unidade")
+            with st.form("form_add_unidade", clear_on_submit=True):
+                codigo_unidade_in = st.text_input("Código da Unidade * (Único):", placeholder="Ex: 01.01")
+                nome_unidade_in = st.text_input("Nome da Unidade *:", placeholder="Ex: Pró-Reitoria de Administração")
+                nivel_in = st.text_input("Nível:", value="1")
+                
+                pai_sel = st.selectbox("Unidade Pai:", opcoes_unidade_pai)
+                ativo_unidade_in = st.checkbox("Unidade Ativa", value=True)
+                
+                btn_salvar_unidade = st.form_submit_button("Salvar Unidade", use_container_width=True, type="primary")
+
+                if btn_salvar_unidade:
+                    if not codigo_unidade_in.strip() or not nome_unidade_in.strip():
+                        st.error("Os campos 'Código da Unidade' e 'Nome da Unidade' são obrigatórios.")
+                    else:
+                        try:
+                            unidade_pai_val = None
+                            if pai_sel != "Nenhuma (Unidade Raiz)":
+                                unidade_pai_val = pai_sel.split(" - ")[0].strip()
+
+                            inserir_unidade_banco(
+                                codigo_unidade=codigo_unidade_in.strip(),
+                                nome_unidade=nome_unidade_in.strip(),
+                                nivel=nivel_in.strip() if nivel_in else "1",
+                                unidade_pai=unidade_pai_val,
+                                ativo=ativo_unidade_in
+                            )
+                            st.success(f"Unidade '{codigo_unidade_in}' cadastrada com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao salvar unidade: {e}")
+
+        with col_uni2:
+            st.subheader(f"Unidades Cadastradas ({len(df_unidades)})")
+            
+            if df_unidades.empty:
+                st.info("Nenhuma unidade cadastrada na tabela `public.tb_unidades`.")
+            else:
+                for idx, row in df_unidades.iterrows():
+                    u_cod = row["codigo_unidade"]
+                    u_nome = row["nome_unidade"] if pd.notna(row["nome_unidade"]) else ""
+                    u_nivel = row["nivel"] if pd.notna(row["nivel"]) else "1"
+                    u_pai = row["unidade_pai"] if pd.notna(row["unidade_pai"]) else ""
+                    u_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+
+                    status_str = "🟢" if u_ativo else "🔴"
+                    pai_info = f" | Pai: {u_pai}" if u_pai else ""
+                    display_text = f"{status_str} **[{u_cod}]** {u_nome} *(Nível: {u_nivel}{pai_info})*"
+
+                    c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
+                    c_txt.markdown(display_text, unsafe_allow_html=True)
+                    
+                    if c_btn_edit.button("✏️", key=f"edit_unidade_btn_{u_cod}", help="Alterar dados da unidade"):
+                        st.session_state.editando_codigo_unidade = u_cod
+                        st.rerun()
+
+                    if c_btn_del.button("🗑️", key=f"del_unidade_btn_{u_cod}", help="Excluir unidade"):
+                        try:
+                            excluir_unidade_banco(u_cod)
+                            st.success(f"Unidade [{u_cod}] excluída com sucesso!")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Erro ao excluir unidade: {e}")
+
+                    if st.session_state.editando_codigo_unidade == u_cod:
+                        with st.container():
+                            st.markdown("---")
+                            st.markdown(f"**Editando Unidade Cod: {u_cod}**")
+                            
+                            edit_cod = st.text_input("Código Unidade:", value=str(u_cod), key=f"edit_un_cod_{u_cod}")
+                            edit_nome = st.text_input("Nome da Unidade:", value=u_nome, key=f"edit_un_nome_{u_cod}")
+                            edit_nivel = st.text_input("Nível:", value=str(u_nivel), key=f"edit_un_nivel_{u_cod}")
+                            
+                            opcoes_pai_edit = ["Nenhuma (Unidade Raiz)"]
+                            idx_pai_def = 0
+                            for _, r_op in df_unidades.iterrows():
+                                if r_op['codigo_unidade'] != u_cod:
+                                    opcoes_pai_edit.append(f"{r_op['codigo_unidade']} - {r_op['nome_unidade']}")
+                            
+                            if u_pai:
+                                for i_op, op in enumerate(opcoes_pai_edit):
+                                    if op.startswith(str(u_pai)):
+                                        idx_pai_def = i_op
+                                        break
+
+                            edit_pai_sel = st.selectbox("Unidade Pai:", opcoes_pai_edit, index=idx_pai_def, key=f"edit_un_pai_{u_cod}")
+                            edit_ativo = st.checkbox("Ativo", value=u_ativo, key=f"edit_un_ativo_{u_cod}")
+
+                            c_save, c_canc = st.columns(2)
+                            if c_save.button("💾 Salvar Alterações", key=f"save_unidade_btn_{u_cod}", type="primary"):
+                                try:
+                                    novo_pai_val = None
+                                    if edit_pai_sel != "Nenhuma (Unidade Raiz)":
+                                        novo_pai_val = edit_pai_sel.split(" - ")[0].strip()
+
+                                    atualizar_unidade_banco(
+                                        codigo_unidade_orig=u_cod,
+                                        codigo_unidade_novo=edit_cod.strip(),
+                                        nome_unidade=edit_nome.strip(),
+                                        nivel=edit_nivel.strip() if edit_nivel else "1",
+                                        unidade_pai=novo_pai_val,
+                                        ativo=edit_ativo
+                                    )
+                                    st.session_state.editando_codigo_unidade = None
+                                    st.success("Unidade alterada com sucesso!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Erro ao atualizar unidade: {e}")
+
+                            if c_canc.button("Cancelar", key=f"canc_unidade_btn_{u_cod}"):
+                                st.session_state.editando_codigo_unidade = None
+                                st.rerun()
+                            st.markdown("---")
 
     # -----------------------------------------------------------------------------
     # CADASTRO: UGS
@@ -836,7 +1013,7 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_ndd)
 
-                    if c_btn_edit.button("✏️️", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
+                    if c_btn_edit.button("✏", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
                         st.session_state.editando_codigo_ndd = n_cod
                         st.rerun()
 
@@ -946,20 +1123,13 @@ if verificar_senha():
 
                 with c_del_usr:
                     st.write("Excluir conta de acesso:")
-                    if st.button(f"🗑️ Excluir '{usr_selecionado}'", type="primary"):
+                    if st.button(f"🗑️️ Excluir '{usr_selecionado}'", type="primary"):
                         if len(st.session_state.tabela_usuarios) <= 1:
                             st.error("Não é possível remover o único usuário do sistema.")
                         else:
                             st.session_state.tabela_usuarios = [u for u in st.session_state.tabela_usuarios if u["usuario"] != usr_selecionado]
                             st.success(f"Usuário '{usr_selecionado}' removido com sucesso!")
                             st.rerun()
-
-    # -----------------------------------------------------------------------------
-    # CADASTRO: UNIDADES (OPÇÃO ADICIONAL)
-    # -----------------------------------------------------------------------------
-    elif st.session_state.pagina_atual == "unidades":
-        st.markdown("<h2 style='color: #003366;'>🏢 Cadastro de Unidades</h2>", unsafe_allow_html=True)
-        st.info("Módulo de Unidades orçamentárias/acadêmicas individuais estruturado para cadastros futuros.")
 
     # -----------------------------------------------------------------------------
     # GESTÃO DE DADOS: LANÇAMENTOS
