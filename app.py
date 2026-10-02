@@ -232,7 +232,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# 2. VARIÁVEIS DE ESTADO (DADOS PADRÃO REMOVIDOS E BUSCADOS DO SUPABASE)
+# 2. VARIÁVEIS DE ESTADO
 # -----------------------------------------------------------------------------
 USUARIOS_PADRAO = [
     {"usuario": "admin", "nome": "Administrador Geral", "senha": "ufsm2026", "perfil": "Administrador"},
@@ -274,23 +274,27 @@ def verificar_senha():
         st.title("SiGeO - Sistema de Gestão Orçamentária")
         st.subheader("Acesso ao Sistema")
         
-        c_user, c_pass = st.columns(2)
-        usuario_input = c_user.text_input("Usuário:")
-        senha_input = c_pass.text_input("Senha:", type="password")
-        
-        if st.button("Entrar", type="primary"):
-            usuario_encontrado = None
-            for u in st.session_state.tabela_usuarios:
-                if u["usuario"].lower() == usuario_input.strip().lower() and u["senha"] == senha_input:
-                    usuario_encontrado = u
-                    break
+        # Envolvemos o formulário de login com st.form para submeter com a tecla "Enter"
+        with st.form("form_login"):
+            c_user, c_pass = st.columns(2)
+            usuario_input = c_user.text_input("Usuário:")
+            senha_input = c_pass.text_input("Senha:", type="password")
             
-            if usuario_encontrado:
-                st.session_state.autenticado = True
-                st.session_state.usuario_logado = usuario_encontrado
-                st.rerun()
-            else:
-                st.error("Usuário ou senha incorretos.")
+            btn_entrar = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+            
+            if btn_entrar:
+                usuario_encontrado = None
+                for u in st.session_state.tabela_usuarios:
+                    if u["usuario"].lower() == usuario_input.strip().lower() and u["senha"] == senha_input:
+                        usuario_encontrado = u
+                        break
+                
+                if usuario_encontrado:
+                    st.session_state.autenticado = True
+                    st.session_state.usuario_logado = usuario_encontrado
+                    st.rerun()
+                else:
+                    st.error("Usuário ou senha incorretos.")
         return False
     return True
 
@@ -326,7 +330,7 @@ if verificar_senha():
             st.session_state.pagina_atual = "unidades_consolidadas"
             st.rerun()
 
-        if st.button("🏷️️ Contas Gerenciais", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+        if st.button("🏷 Contas Gerenciais", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
             st.session_state.pagina_atual = "contas"
             st.rerun()
 
@@ -352,7 +356,7 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 1: CARGA DA PLANILHA (OTIMIZADA COM MAPEAMENTO INTERativo DE COLUNAS)
+    # PÁGINA 1: CARGA DA PLANILHA (SEM A COLUNA DESCRIÇÃO_ND)
     # -----------------------------------------------------------------------------
     if st.session_state.pagina_atual == "carga":
         st.header("📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase")
@@ -381,9 +385,8 @@ if verificar_senha():
                     col_ug = st.selectbox("Coluna de UG Responsável:", colunas, index=min(6, len(colunas)-1))
                 with c_m2:
                     col_mes = st.selectbox("Coluna de Mês / Competência:", colunas, index=min(1, len(colunas)-1))
-                    col_nd = st.selectbox("Coluna de Natureza de Despesa (NDD):", colunas, index=min(11, len(colunas)-1))
                 with c_m3:
-                    col_desc_nd = st.selectbox("Coluna de Descrição da ND:", colunas, index=min(12, len(colunas)-1))
+                    col_nd = st.selectbox("Coluna de Natureza de Despesa (NDD):", colunas, index=min(11, len(colunas)-1))
                     col_val = st.selectbox("Coluna de Valor Liquidado:", colunas, index=len(colunas)-1)
 
                 if st.button("🔄 Processar e Visualizar Dados Tratados", type="primary"):
@@ -392,7 +395,6 @@ if verificar_senha():
                     df_tratado["mes_competencia"] = pd.to_datetime(df[col_mes].astype(str), errors="coerce").dt.month.fillna(1).astype(int)
                     df_tratado["ug_responsavel"] = df[col_ug].astype(str).str.strip()
                     df_tratado["natureza_despesa_detalhada"] = df[col_nd].astype(str).str.strip()
-                    df_tratado["descricao_nd"] = df[col_desc_nd].astype(str).str.strip()
                     df_tratado["valor_liquidado"] = df[col_val].apply(converter_valor)
 
                     st.session_state.dados_tg_raw = df_tratado
@@ -634,7 +636,7 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_str, unsafe_allow_html=True)
 
-                    if c_btn_edit.button("✏️", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
+                    if c_btn_edit.button("✏️️", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
                         st.session_state.editando_codigo_conta = c_cod
                         st.rerun()
 
