@@ -159,7 +159,7 @@ def excluir_conta_gerencial_banco(codigo_conta: str):
     executar_comando_sql(query, {"codigo_conta": codigo_conta})
 
 # -----------------------------------------------------------------------------
-# 1. INICIALIZAÇÃO DA SESSÃO
+# 1. INICIALIZAÇÃO DA SESSÃO E IDENTIDADE VISUAL INSTITUCIONAL (UFSM)
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
     st.session_state.logo_personalizada = None
@@ -167,13 +167,27 @@ if "logo_personalizada" not in st.session_state:
 icone_aba = st.session_state.logo_personalizada if st.session_state.logo_personalizada is not None else "🏛️"
 
 st.set_page_config(
-    page_title="SiGeO - Sistema de Gestão Orçamentária",
+    page_title="SiGeO - Sistema de Gestão Orçamentária | UFSM",
     page_icon=icone_aba,
     layout="wide"
 )
 
+# Injeção de CSS customizado seguindo estritamente a identidade visual da UFSM (Azul Institucional #003366)
 st.markdown("""
     <style>
+    /* Cores Institucionais UFSM */
+    :root {
+        --ufsm-azul-primario: #003366;
+        --ufsm-azul-secundario: #005599;
+        --ufsm-cinza-claro: #f4f6f9;
+    }
+
+    /* Ajustes Gerais de Sidebar e Botões */
+    div[data-testid="stSidebar"] {
+        background-color: var(--ufsm-cinza-claro);
+        border-right: 1px solid #e1e4e8;
+    }
+
     div[data-testid="stSidebar"] button {
         width: 100%;
         border-radius: 6px;
@@ -182,11 +196,24 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
+    /* Estilização de botões primários com o Azul UFSM */
+    .stButton button[kind="primary"] {
+        background-color: #003366 !important;
+        border-color: #003366 !important;
+        color: white !important;
+    }
+    
+    .stButton button[kind="primary"]:hover {
+        background-color: #002244 !important;
+        border-color: #002244 !important;
+    }
+
     div[data-testid="stColumn"] button[kind="secondary"] {
         padding: 0px !important;
         line-height: 1 !important;
     }
 
+    /* Estilização para Impressão e Relatórios Oficiais */
     @media print {
         [data-testid="stSidebar"], 
         header, 
@@ -213,7 +240,7 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 2px solid #003366;
+        border-bottom: 3px solid #003366;
         padding-bottom: 12px;
         margin-bottom: 20px;
     }
@@ -221,12 +248,14 @@ st.markdown("""
         margin: 0;
         color: #003366;
         font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
     }
     .titulo-impressao h4 {
         margin: 4px 0 0 0;
-        color: #555555;
+        color: #444444;
         font-size: 14px;
-        font-weight: normal;
+        font-weight: 600;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -271,16 +300,16 @@ def verificar_senha():
         st.session_state.autenticado = False
 
     if not st.session_state.autenticado:
-        st.title("SiGeO - Sistema de Gestão Orçamentária")
-        st.subheader("Acesso ao Sistema")
+        st.markdown("<h1 style='color: #003366; text-align: center;'>SiGeO - UFSM</h1>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #555;'>Sistema de Gestão Orçamentária</h3>", unsafe_allow_html=True)
+        st.markdown("---")
         
-        # Envolvemos o formulário de login com st.form para submeter com a tecla "Enter"
         with st.form("form_login"):
             c_user, c_pass = st.columns(2)
             usuario_input = c_user.text_input("Usuário:")
             senha_input = c_pass.text_input("Senha:", type="password")
             
-            btn_entrar = st.form_submit_button("Entrar", type="primary", use_container_width=True)
+            btn_entrar = st.form_submit_button("Entrar no Sistema", type="primary", use_container_width=True)
             
             if btn_entrar:
                 usuario_encontrado = None
@@ -301,12 +330,14 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL
+    # 4. MENU LATERAL COM IDENTIDADE VISUAL UFSM
     # -----------------------------------------------------------------------------
     if st.session_state.logo_personalizada is not None:
         st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
+    else:
+        st.sidebar.markdown("<h2 style='color: #003366; text-align: center; margin-bottom: 0;'>🏛️ UFSM</h2>", unsafe_allow_html=True)
     
-    st.sidebar.title("SiGeO - Sistema de Gestão Orçamentária")
+    st.sidebar.markdown("<h3 style='text-align: center; color: #003366; margin-top: 5px;'>SiGeO</h3>", unsafe_allow_html=True)
     st.sidebar.caption(f"Usuário: **{st.session_state.usuario_logado['nome']}** ({st.session_state.usuario_logado['perfil']})")
     
     if st.sidebar.button("🚪 Sair / Logout"):
@@ -326,7 +357,7 @@ if verificar_senha():
             st.rerun()
 
     with st.sidebar.expander("⚙️ Configurações", expanded=False):
-        if st.button("📌 Cadastro de Unidades Gestoras (UGs)", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
+        if st.button("📌 Cadastro de UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
             st.session_state.pagina_atual = "unidades_consolidadas"
             st.rerun()
 
@@ -347,6 +378,7 @@ if verificar_senha():
             st.rerun()
 
     st.sidebar.markdown("---")
+    st.sidebar.markdown("<p style='text-align: center; font-size: 11px; color: #666;'>Universidade Federal de Santa Maria<br>© 2026</p>", unsafe_allow_html=True)
 
     def converter_valor(val):
         if pd.isna(val): return 0.0
@@ -356,10 +388,10 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 1: CARGA DA PLANILHA (SEM A COLUNA DESCRIÇÃO_ND)
+    # PÁGINA 1: CARGA DA PLANILHA
     # -----------------------------------------------------------------------------
     if st.session_state.pagina_atual == "carga":
-        st.header("📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase")
+        st.markdown("<h2 style='color: #003366;'>📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase</h2>", unsafe_allow_html=True)
         st.write("Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx ou .csv) e mapeie as colunas para carregar no Supabase.")
 
         arquivo = st.file_uploader("Selecione o arquivo da UFSM", type=["csv", "xlsx"])
@@ -419,7 +451,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA
+    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA (PADRÃO UFSM)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -427,17 +459,21 @@ if verificar_senha():
             if st.session_state.logo_personalizada is not None:
                 st.image(st.session_state.logo_personalizada, width=130)
             else:
-                st.write("🏛️ **UFSM**")
+                st.markdown("<h2 style='color: #003366; margin: 0;'>🏛️ UFSM</h2>", unsafe_allow_html=True)
         with c_head2:
             st.markdown(f"""
-                <div class="titulo-impressao">
-                    <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA - UFSM</h2>
-                    <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - EXECUÇÃO ORÇAMENTÁRIA</h4>
-                    <p style="margin:2px 0 0 0; font-size:12px; color:#777;">Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}</p>
+                <div class="cabecalho-impressao">
+                    <div class="titulo-impressao">
+                        <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA</h2>
+                        <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA</h4>
+                    </div>
+                    <div style="text-align: right; font-size: 11px; color: #555;">
+                        <b>SiGeO</b> - Sistema de Gestão Orçamentária<br>
+                        Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
 
-        st.markdown("---")
         st.subheader("📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)")
         
         c_a1, c_a2 = st.columns(2)
@@ -488,7 +524,7 @@ if verificar_senha():
     # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
-        st.header("📌 Cadastro de Unidades Gestoras (UGs)")
+        st.markdown("<h2 style='color: #003366;'>📌 Cadastro de Unidades Gestoras (UGs)</h2>", unsafe_allow_html=True)
         st.write("Gestão das Unidades cadastradas no banco de dados (`public.tb_ugs`).")
 
         df_ugs = buscar_ugs_banco()
@@ -586,7 +622,7 @@ if verificar_senha():
     # CONTAS GERENCIAIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
-        st.header("🏷️ Gestão de Contas Gerenciais")
+        st.markdown("<h2 style='color: #003366;'>🏷️ Gestão de Contas Gerenciais</h2>", unsafe_allow_html=True)
         st.write("Gerencie o cadastro de Contas Gerenciais (`public.tb_contas_gerenciais`).")
 
         df_cg = buscar_contas_gerenciais_banco()
@@ -636,7 +672,7 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_str, unsafe_allow_html=True)
 
-                    if c_btn_edit.button("✏️️", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
+                    if c_btn_edit.button("✏", key=f"edit_cg_btn_{c_cod}", help="Editar Conta"):
                         st.session_state.editando_codigo_conta = c_cod
                         st.rerun()
 
@@ -683,7 +719,7 @@ if verificar_senha():
     # NATUREZA DE DESPESA DETALHADA (NDD)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "ndd":
-        st.header("📑 Natureza de Despesa Detalhada (NDD)")
+        st.markdown("<h2 style='color: #003366;'>📑 Natureza de Despesa Detalhada (NDD)</h2>", unsafe_allow_html=True)
         st.write("Gerencie a estrutura da Natureza de Despesa Detalhada (`public.tb_natureza_despesa_detalhada`).")
 
         df_cg_opcoes = buscar_contas_gerenciais_banco()
@@ -796,7 +832,7 @@ if verificar_senha():
     # CADASTRO DE USUÁRIOS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "usuarios":
-        st.header("⚙️ Gestão de Usuários e Permissões")
+        st.markdown("<h2 style='color: #003366;'>⚙️ Gestão de Usuários e Permissões</h2>", unsafe_allow_html=True)
         st.write("Cadastre e controle os usuários que possuem acesso ao sistema.")
 
         col_usr_add, col_usr_list = st.columns([1, 2])
@@ -808,7 +844,7 @@ if verificar_senha():
             novo_usr_pass = st.text_input("Senha:", type="password")
             novo_usr_perf = st.selectbox("Perfil:", ["Administrador", "Gestor", "Consulta"])
 
-            if st.button("Cadastrar Usuário", use_container_width=True):
+            if st.button("Cadastrar Usuário", use_container_width=True, type="primary"):
                 if not novo_usr_id or not novo_usr_pass or not novo_usr_nome:
                     st.error("Preencha todos os campos obrigatórios.")
                 elif any(u["usuario"].lower() == novo_usr_id.strip().lower() for u in st.session_state.tabela_usuarios):
@@ -863,8 +899,8 @@ if verificar_senha():
     # CONFIGURAÇÕES VISUAIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "config":
-        st.header("⚙️ Configuração Visual e Logomarca")
-        st.write("Carregue a imagem da logomarca oficial do seu computador. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone (favicon) na aba do navegador.")
+        st.markdown("<h2 style='color: #003366;'>⚙️ Configuração Visual e Logomarca</h2>", unsafe_allow_html=True)
+        st.write("Carregue a imagem da logomarca oficial da UFSM. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone na aba do navegador.")
 
         c_up, c_prev = st.columns([2, 1])
 
@@ -889,4 +925,4 @@ if verificar_senha():
             if st.session_state.logo_personalizada is not None:
                 st.image(st.session_state.logo_personalizada, caption="Logo Ativa no Sistema", width=200)
             else:
-                st.info("Nenhuma imagem carregada até o momento.")
+                st.info("Nenhuma imagem carregada até o momento. O sistema está exibindo o brasão padrão da UFSM.")
