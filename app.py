@@ -175,11 +175,49 @@ st.set_page_config(
 # Injeção de CSS customizado seguindo estritamente a identidade visual da UFSM (Azul Institucional #003366)
 st.markdown("""
     <style>
-    /* Cores Institucionais UFSM */
     :root {
         --ufsm-azul-primario: #003366;
         --ufsm-azul-secundario: #005599;
         --ufsm-cinza-claro: #f4f6f9;
+    }
+
+    /* Faixa Superior Institucional */
+    .faixa-superior-ufsm {
+        background: linear-gradient(90deg, #003366 0%, #005599 100%);
+        padding: 24px 30px;
+        border-radius: 8px;
+        color: white;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .faixa-superior-ufsm h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+    .faixa-superior-ufsm p {
+        margin: 5px 0 0 0;
+        font-size: 15px;
+        color: #e0e8f0;
+    }
+
+    /* Cards de Navegação Estilo Link */
+    .card-inicio {
+        background-color: white;
+        border: 1px solid #d1d9e0;
+        border-top: 4px solid #003366;
+        border-radius: 6px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        margin-bottom: 15px;
+    }
+    .card-inicio:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0,51,102,0.15);
+        border-color: #005599;
     }
 
     /* Ajustes Gerais de Sidebar e Botões */
@@ -196,7 +234,6 @@ st.markdown("""
         margin-bottom: 4px;
     }
 
-    /* Estilização de botões primários com o Azul UFSM */
     .stButton button[kind="primary"] {
         background-color: #003366 !important;
         border-color: #003366 !important;
@@ -206,11 +243,6 @@ st.markdown("""
     .stButton button[kind="primary"]:hover {
         background-color: #002244 !important;
         border-color: #002244 !important;
-    }
-
-    div[data-testid="stColumn"] button[kind="secondary"] {
-        padding: 0px !important;
-        line-height: 1 !important;
     }
 
     /* Estilização para Impressão e Relatórios Oficiais */
@@ -269,7 +301,7 @@ USUARIOS_PADRAO = [
 ]
 
 if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = "carga"
+    st.session_state.pagina_atual = "inicio"
 
 if "tabela_usuarios" not in st.session_state:
     st.session_state.tabela_usuarios = USUARIOS_PADRAO.copy()
@@ -347,7 +379,11 @@ if verificar_senha():
 
     st.sidebar.markdown("---")
 
-    if st.sidebar.button("📁 1. Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
+    if st.sidebar.button("🏠 Início / Dashboard", use_container_width=True, type="primary" if st.session_state.pagina_atual == "inicio" else "secondary"):
+        st.session_state.pagina_atual = "inicio"
+        st.rerun()
+
+    if st.sidebar.button("📁 Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
         st.session_state.pagina_atual = "carga"
         st.rerun()
 
@@ -388,9 +424,62 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
+    # TELA 0: INÍCIO / DASHBOARD COM FAIXA AZUL E BOTÕES HORIZONTAIS
+    # -----------------------------------------------------------------------------
+    if st.session_state.pagina_atual == "inicio":
+        st.markdown("""
+            <div class="faixa-superior-ufsm">
+                <h1>SiGeO - Sistema de Gestão Orçamentária</h1>
+                <p>Universidade Federal de Santa Maria (UFSM) | Pró-Reitoria de Administração</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("### 📌 Acesso Rápido aos Módulos do Sistema")
+        st.write("Selecione abaixo o módulo desejado para iniciar as operações:")
+
+        # Organização dos botões em formato horizontal (colunas)
+        col_h1, col_h2, col_h3 = st.columns(3)
+
+        with col_h1:
+            st.markdown("""
+                <div class="card-inicio">
+                    <h4>📁 Carga de Dados</h4>
+                    <p style="font-size: 13px; color: #555;">Importação de planilhas do Tesouro Gerencial e processamento em lote para o Supabase.</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if st.button("Acessar Carga", use_container_width=True, type="primary", key="btn_h_carga"):
+                st.session_state.pagina_atual = "carga"
+                st.rerun()
+
+        with col_h2:
+            st.markdown("""
+                <div class="card-inicio">
+                    <h4>📊 Relatórios</h4>
+                    <p style="font-size: 13px; color: #555;">Demonstrativos de execução orçamentária e comparativos plurianuais estruturados.</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if st.button("Acessar Relatórios", use_container_width=True, type="primary", key="btn_h_rel"):
+                st.session_state.pagina_atual = "relatorio"
+                st.rerun()
+
+        with col_h3:
+            st.markdown("""
+                <div class="card-inicio">
+                    <h4>⚙️ Configurações</h4>
+                    <p style="font-size: 13px; color: #555;">Gerenciamento de UGs, Contas Gerenciais, NDDs, Usuários e Identidade Visual.</p>
+                </div>
+            """, unsafe_allow_html=True)
+            if st.button("Acessar Configurações", use_container_width=True, type="primary", key="btn_h_conf"):
+                st.session_state.pagina_atual = "unidades_consolidadas"
+                st.rerun()
+
+        st.markdown("---")
+        st.info("💡 **Dica**: Utilize o menu lateral esquerdo para alternar diretamente entre as seções a qualquer momento.")
+
+    # -----------------------------------------------------------------------------
     # PÁGINA 1: CARGA DA PLANILHA
     # -----------------------------------------------------------------------------
-    if st.session_state.pagina_atual == "carga":
+    elif st.session_state.pagina_atual == "carga":
         st.markdown("<h2 style='color: #003366;'>📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase</h2>", unsafe_allow_html=True)
         st.write("Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx ou .csv) e mapeie as colunas para carregar no Supabase.")
 
