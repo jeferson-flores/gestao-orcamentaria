@@ -159,7 +159,7 @@ def excluir_conta_gerencial_banco(codigo_conta: str):
     executar_comando_sql(query, {"codigo_conta": codigo_conta})
 
 # -----------------------------------------------------------------------------
-# 1. INICIALIZAÇÃO DA SESSÃO E IDENTIDADE VISUAL INSTITUCIONAL (UFSM)
+# 1. INICIALIZAÇÃO DA SESSÃO E CONFIGURAÇÃO DA PÁGINA
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
     st.session_state.logo_personalizada = None
@@ -172,7 +172,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Injeção de CSS customizado seguindo estritamente a identidade visual da UFSM (Azul Institucional #003366)
+# Estilização CSS geral
 st.markdown("""
     <style>
     :root {
@@ -181,7 +181,6 @@ st.markdown("""
         --ufsm-cinza-claro: #f4f6f9;
     }
 
-    /* Faixa Superior Institucional */
     .faixa-superior-ufsm {
         background: linear-gradient(90deg, #003366 0%, #005599 100%);
         padding: 24px 30px;
@@ -202,25 +201,6 @@ st.markdown("""
         color: #e0e8f0;
     }
 
-    /* Cards de Navegação Estilo Link */
-    .card-inicio {
-        background-color: white;
-        border: 1px solid #d1d9e0;
-        border-top: 4px solid #003366;
-        border-radius: 6px;
-        padding: 20px;
-        text-align: center;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        margin-bottom: 15px;
-    }
-    .card-inicio:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(0,51,102,0.15);
-        border-color: #005599;
-    }
-
-    /* Ajustes Gerais de Sidebar e Botões */
     div[data-testid="stSidebar"] {
         background-color: var(--ufsm-cinza-claro);
         border-right: 1px solid #e1e4e8;
@@ -245,23 +225,15 @@ st.markdown("""
         border-color: #002244 !important;
     }
 
-    /* Estilização para Impressão e Relatórios Oficiais */
     @media print {
-        [data-testid="stSidebar"], 
-        header, 
-        footer, 
-        .stButton, 
-        .stSelectbox,
-        .no-print {
+        [data-testid="stSidebar"], header, footer, .stButton, .stSelectbox, .no-print {
             display: none !important;
         }
-        
         .main .block-container {
             padding: 0 !important;
             margin: 0 !important;
             width: 100% !important;
         }
-        
         body {
             background-color: white !important;
             color: black !important;
@@ -362,7 +334,7 @@ def verificar_senha():
 if verificar_senha():
 
     # -----------------------------------------------------------------------------
-    # 4. MENU LATERAL COM IDENTIDADE VISUAL UFSM
+    # 4. MENU LATERAL REORGANIZADO
     # -----------------------------------------------------------------------------
     if st.session_state.logo_personalizada is not None:
         st.sidebar.image(st.session_state.logo_personalizada, use_container_width=True)
@@ -372,48 +344,69 @@ if verificar_senha():
     st.sidebar.markdown("<h3 style='text-align: center; color: #003366; margin-top: 5px;'>SiGeO</h3>", unsafe_allow_html=True)
     st.sidebar.caption(f"Usuário: **{st.session_state.usuario_logado['nome']}** ({st.session_state.usuario_logado['perfil']})")
     
-    if st.sidebar.button("🚪 Sair / Logout"):
+    st.sidebar.markdown("---")
+
+    # 1. Início
+    if st.sidebar.button("🏠 Início", use_container_width=True, type="primary" if st.session_state.pagina_atual == "inicio" else "secondary"):
+        st.session_state.pagina_atual = "inicio"
+        st.rerun()
+
+    # 2. Configurações
+    with st.sidebar.expander("⚙️ Configurações", expanded=False):
+        if st.button("📝 Texto de Abertura", use_container_width=True, type="primary" if st.session_state.pagina_atual == "texto_abertura" else "secondary"):
+            st.session_state.pagina_atual = "texto_abertura"
+            st.rerun()
+        if st.button("🎨 Identidade Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
+            st.session_state.pagina_atual = "config"
+            st.rerun()
+
+    # 3. Cadastros
+    with st.sidebar.expander("🗂️ Cadastros", expanded=False):
+        if st.button("👤 Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
+            st.session_state.pagina_atual = "usuarios"
+            st.rerun()
+        if st.button("🏢 Unidades", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades" else "secondary"):
+            st.session_state.pagina_atual = "unidades"
+            st.rerun()
+        if st.button("📌 UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
+            st.session_state.pagina_atual = "unidades_consolidadas"
+            st.rerun()
+        if st.button("🏷️ Contas Gerenciais", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
+            st.session_state.pagina_atual = "contas"
+            st.rerun()
+        if st.button("📑 Naturezas de Despesas", use_container_width=True, type="primary" if st.session_state.pagina_atual == "ndd" else "secondary"):
+            st.session_state.pagina_atual = "ndd"
+            st.rerun()
+
+    # 4. Gestão de Dados
+    with st.sidebar.expander("📊 Gestão de Dados", expanded=False):
+        if st.button("📁 Carga do Relatório do Tesouro Gerencial", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
+            st.session_state.pagina_atual = "carga"
+            st.rerun()
+        if st.button("📥 Lançamentos", use_container_width=True, type="primary" if st.session_state.pagina_atual == "lancamentos" else "secondary"):
+            st.session_state.pagina_atual = "lancamentos"
+            st.rerun()
+        if st.button("🔮 Simulações (Gestão)", use_container_width=True, type="primary" if st.session_state.pagina_atual == "simulacoes_gestao" else "secondary"):
+            st.session_state.pagina_atual = "simulacoes_gestao"
+            st.rerun()
+
+    # 5. Relatórios
+    with st.sidebar.expander("📈 Relatórios", expanded=False):
+        if st.button("📋 Demonstrativo de Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
+            st.session_state.pagina_atual = "relatorio"
+            st.rerun()
+        if st.button("📊 Simulações Orçamentárias", use_container_width=True, type="primary" if st.session_state.pagina_atual == "simulacoes_orcamentarias" else "secondary"):
+            st.session_state.pagina_atual = "simulacoes_orcamentarias"
+            st.rerun()
+
+    st.sidebar.markdown("---")
+    
+    # 6. Sair
+    if st.sidebar.button("🚪 Sair", use_container_width=True):
         st.session_state.autenticado = False
         st.session_state.usuario_logado = None
         st.rerun()
 
-    st.sidebar.markdown("---")
-
-    if st.sidebar.button("🏠 Início / Dashboard", use_container_width=True, type="primary" if st.session_state.pagina_atual == "inicio" else "secondary"):
-        st.session_state.pagina_atual = "inicio"
-        st.rerun()
-
-    if st.sidebar.button("📁 Carga da Planilha", use_container_width=True, type="primary" if st.session_state.pagina_atual == "carga" else "secondary"):
-        st.session_state.pagina_atual = "carga"
-        st.rerun()
-
-    with st.sidebar.expander("📊 Relatórios", expanded=False):
-        if st.button("📈 Execução Orçamentária", use_container_width=True, type="primary" if st.session_state.pagina_atual == "relatorio" else "secondary"):
-            st.session_state.pagina_atual = "relatorio"
-            st.rerun()
-
-    with st.sidebar.expander("⚙️ Configurações", expanded=False):
-        if st.button("📌 Cadastro de UGs", use_container_width=True, type="primary" if st.session_state.pagina_atual == "unidades_consolidadas" else "secondary"):
-            st.session_state.pagina_atual = "unidades_consolidadas"
-            st.rerun()
-
-        if st.button("🏷 Contas Gerenciais", use_container_width=True, type="primary" if st.session_state.pagina_atual == "contas" else "secondary"):
-            st.session_state.pagina_atual = "contas"
-            st.rerun()
-
-        if st.button("📑 Naturezas de Despesa", use_container_width=True, type="primary" if st.session_state.pagina_atual == "ndd" else "secondary"):
-            st.session_state.pagina_atual = "ndd"
-            st.rerun()
-
-        if st.button("👤 Cadastro de Usuários", use_container_width=True, type="primary" if st.session_state.pagina_atual == "usuarios" else "secondary"):
-            st.session_state.pagina_atual = "usuarios"
-            st.rerun()
-
-        if st.button("🎨 Configuração Visual", use_container_width=True, type="primary" if st.session_state.pagina_atual == "config" else "secondary"):
-            st.session_state.pagina_atual = "config"
-            st.rerun()
-
-    st.sidebar.markdown("---")
     st.sidebar.markdown("<p style='text-align: center; font-size: 11px; color: #666;'>Universidade Federal de Santa Maria<br>© 2026</p>", unsafe_allow_html=True)
 
     def converter_valor(val):
@@ -424,7 +417,7 @@ if verificar_senha():
         except: return 0.0
 
     # -----------------------------------------------------------------------------
-    # TELA 0: INÍCIO / DASHBOARD COM FAIXA AZUL E BOTÕES HORIZONTAIS
+    # TELA: INÍCIO / DASHBOARD
     # -----------------------------------------------------------------------------
     if st.session_state.pagina_atual == "inicio":
         st.markdown("""
@@ -434,50 +427,27 @@ if verificar_senha():
             </div>
         """, unsafe_allow_html=True)
 
-        st.markdown("### 📌 Acesso Rápido aos Módulos do Sistema")
-        st.write("Selecione abaixo o módulo desejado para iniciar as operações:")
+        # Campos solicitados para a aba Início (preparados para tabela de informações futura)
+        st.subheader("Bem-vindo ao SiGeO")
+        
+        col_logo_ini, col_texto_ini = st.columns([1, 2])
+        
+        with col_logo_ini:
+            st.markdown("### 🖼️ Campo para Logo")
+            if st.session_state.logo_personalizada is not None:
+                st.image(st.session_state.logo_personalizada, width=180)
+            else:
+                st.info("Logo institucional padrão ou a ser configurada.")
 
-        # Organização dos botões em formato horizontal (colunas)
-        col_h1, col_h2, col_h3 = st.columns(3)
-
-        with col_h1:
-            st.markdown("""
-                <div class="card-inicio">
-                    <h4>📁 Carga de Dados</h4>
-                    <p style="font-size: 13px; color: #555;">Importação de planilhas do Tesouro Gerencial e processamento em lote para o Supabase.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Acessar Carga", use_container_width=True, type="primary", key="btn_h_carga"):
-                st.session_state.pagina_atual = "carga"
-                st.rerun()
-
-        with col_h2:
-            st.markdown("""
-                <div class="card-inicio">
-                    <h4>📊 Relatórios</h4>
-                    <p style="font-size: 13px; color: #555;">Demonstrativos de execução orçamentária e comparativos plurianuais estruturados.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Acessar Relatórios", use_container_width=True, type="primary", key="btn_h_rel"):
-                st.session_state.pagina_atual = "relatorio"
-                st.rerun()
-
-        with col_h3:
-            st.markdown("""
-                <div class="card-inicio">
-                    <h4>⚙️ Configurações</h4>
-                    <p style="font-size: 13px; color: #555;">Gerenciamento de UGs, Contas Gerenciais, NDDs, Usuários e Identidade Visual.</p>
-                </div>
-            """, unsafe_allow_html=True)
-            if st.button("Acessar Configurações", use_container_width=True, type="primary", key="btn_h_conf"):
-                st.session_state.pagina_atual = "unidades_consolidadas"
-                st.rerun()
+        with col_texto_ini:
+            st.markdown("### 📝 Campo para Texto Inicial")
+            st.info("Este espaço exibirá o texto inicial cadastrado no sistema (a ser integrado com tabela dedicada no banco de dados em breve).")
 
         st.markdown("---")
-        st.info("💡 **Dica**: Utilize o menu lateral esquerdo para alternar diretamente entre as seções a qualquer momento.")
+        st.info("💡 **Dica**: Utilize o menu lateral esquerdo para navegar entre os módulos de Cadastros, Gestão de Dados e Relatórios.")
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 1: CARGA DA PLANILHA
+    # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "carga":
         st.markdown("<h2 style='color: #003366;'>📁 Carga do Relatório do Tesouro Gerencial e Gravação no Supabase</h2>", unsafe_allow_html=True)
@@ -497,7 +467,7 @@ if verificar_senha():
                 st.success(f"Arquivo carregado com sucesso! Total de {len(df):,} linhas encontradas.")
 
                 st.markdown("---")
-                st.subheader("⚙️ Mapeamento Dinâmico de Colunas")
+                st.subheader("⚙️️ Mapeamento Dinâmico de Colunas")
                 st.info("Selecione abaixo a correspondência correta das colunas do seu arquivo para padronização:")
 
                 c_m1, c_m2, c_m3 = st.columns(3)
@@ -540,7 +510,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA 2: RELATÓRIO DE EXECUÇÃO ORÇAMENTÁRIA (PADRÃO UFSM)
+    # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -610,11 +580,11 @@ if verificar_senha():
                     st.error(f"Erro ao consultar o Supabase: {e}")
 
     # -----------------------------------------------------------------------------
-    # CADASTRO DE UNIDADES GESTORAS (PUBLIC.TB_UGS)
+    # CADASTRO: UGS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "unidades_consolidadas":
-        st.markdown("<h2 style='color: #003366;'>📌 Cadastro de Unidades Gestoras (UGs)</h2>", unsafe_allow_html=True)
-        st.write("Gestão das Unidades cadastradas no banco de dados (`public.tb_ugs`).")
+        st.markdown("<h2 style='color: #003366;'>📌 Cadastro de UGs</h2>", unsafe_allow_html=True)
+        st.write("Gestão das Unidades Gestoras cadastradas no banco de dados (`public.tb_ugs`).")
 
         df_ugs = buscar_ugs_banco()
 
@@ -647,7 +617,7 @@ if verificar_senha():
                             st.error(f"Erro ao salvar UG: {e}")
 
         with col_u2:
-            st.subheader(f"Unidades Cadastradas ({len(df_ugs)})")
+            st.subheader(f"Unidades Gestoras Cadastradas ({len(df_ugs)})")
             
             if df_ugs.empty:
                 st.info("Nenhuma UG cadastrada na tabela `public.tb_ugs`.")
@@ -708,7 +678,7 @@ if verificar_senha():
                             st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # CONTAS GERENCIAIS
+    # CADASTRO: CONTAS GERENCIAIS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "contas":
         st.markdown("<h2 style='color: #003366;'>🏷️ Gestão de Contas Gerenciais</h2>", unsafe_allow_html=True)
@@ -805,7 +775,7 @@ if verificar_senha():
                             st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # NATUREZA DE DESPESA DETALHADA (NDD)
+    # CADASTRO: NATUREZAS DE DESPESAS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "ndd":
         st.markdown("<h2 style='color: #003366;'>📑 Natureza de Despesa Detalhada (NDD)</h2>", unsafe_allow_html=True)
@@ -866,7 +836,7 @@ if verificar_senha():
                     c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
                     c_txt.markdown(disp_ndd)
 
-                    if c_btn_edit.button("✏️", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
+                    if c_btn_edit.button("✏️️", key=f"edit_ndd_btn_{n_cod}", help="Editar NDD"):
                         st.session_state.editando_codigo_ndd = n_cod
                         st.rerun()
 
@@ -918,10 +888,10 @@ if verificar_senha():
                             st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # CADASTRO DE USUÁRIOS
+    # CADASTRO: USUÁRIOS
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "usuarios":
-        st.markdown("<h2 style='color: #003366;'>⚙️ Gestão de Usuários e Permissões</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: #003366;'>👤 Cadastro de Usuários</h2>", unsafe_allow_html=True)
         st.write("Cadastre e controle os usuários que possuem acesso ao sistema.")
 
         col_usr_add, col_usr_list = st.columns([1, 2])
@@ -985,11 +955,46 @@ if verificar_senha():
                             st.rerun()
 
     # -----------------------------------------------------------------------------
-    # CONFIGURAÇÕES VISUAIS
+    # CADASTRO: UNIDADES (OPÇÃO ADICIONAL)
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "unidades":
+        st.markdown("<h2 style='color: #003366;'>🏢 Cadastro de Unidades</h2>", unsafe_allow_html=True)
+        st.info("Módulo de Unidades orçamentárias/acadêmicas individuais estruturado para cadastros futuros.")
+
+    # -----------------------------------------------------------------------------
+    # GESTÃO DE DADOS: LANÇAMENTOS
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "lancamentos":
+        st.markdown("<h2 style='color: #003366;'>📥 Lançamentos Manuais / Adicionais</h2>", unsafe_allow_html=True)
+        st.info("Módulo de Lançamentos manuais em desenvolvimento conforme especificado.")
+
+    # -----------------------------------------------------------------------------
+    # GESTÃO DE DADOS: SIMULAÇÕES (GESTÃO)
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "simulacoes_gestao":
+        st.markdown("<h2 style='color: #003366;'>🔮 Simulações (Gestão de Dados)</h2>", unsafe_allow_html=True)
+        st.info("Módulo de simulações e cenários de gestão de dados em desenvolvimento.")
+
+    # -----------------------------------------------------------------------------
+    # RELATÓRIOS: SIMULAÇÕES ORÇAMENTÁRIAS
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "simulacoes_orcamentarias":
+        st.markdown("<h2 style='color: #003366;'>📊 Simulações Orçamentárias</h2>", unsafe_allow_html=True)
+        st.info("Módulo de relatório de simulações orçamentárias em desenvolvimento.")
+
+    # -----------------------------------------------------------------------------
+    # CONFIGURAÇÕES: TEXTO DE ABERTURA
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "texto_abertura":
+        st.markdown("<h2 style='color: #003366;'>📝 Configuração do Texto de Abertura</h2>", unsafe_allow_html=True)
+        st.info("Módulo para gerenciar o texto de abertura exibido na página inicial (a ser criado com tabela dedicada).")
+
+    # -----------------------------------------------------------------------------
+    # CONFIGURAÇÕES: IDENTIDADE VISUAL
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "config":
-        st.markdown("<h2 style='color: #003366;'>⚙️ Configuração Visual e Logomarca</h2>", unsafe_allow_html=True)
-        st.write("Carregue a imagem da logomarca oficial da UFSM. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone na aba do navegador.")
+        st.markdown("<h2 style='color: #003366;'>🎨 Identidade Visual (Configuração Visual)</h2>", unsafe_allow_html=True)
+        st.write("Carregue a imagem da logomarca oficial. Ela será exibida no menu à esquerda, no cabeçalho do relatório e como ícone na aba do navegador.")
 
         c_up, c_prev = st.columns([2, 1])
 
@@ -1014,4 +1019,4 @@ if verificar_senha():
             if st.session_state.logo_personalizada is not None:
                 st.image(st.session_state.logo_personalizada, caption="Logo Ativa no Sistema", width=200)
             else:
-                st.info("Nenhuma imagem carregada até o momento. O sistema está exibindo o brasão padrão da UFSM.")
+                st.info("Nenhuma imagem carregada até o momento. O sistema está exibindo o brasão padrão.")
