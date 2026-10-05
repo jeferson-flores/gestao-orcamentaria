@@ -867,7 +867,7 @@ if verificar_senha():
         st.rerun()
 
   # -----------------------------------------------------------------------------
-  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS)
+  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
     c_head1, c_head2 = st.columns([1, 4])
@@ -931,16 +931,34 @@ if verificar_senha():
     except Exception:
       contas_opcoes = []
 
+    # Nomes dos meses para o seletor unificado
+    meses_nomes = {
+        1: "Janeiro",
+        2: "Fevereiro",
+        3: "Março",
+        4: "Abril",
+        5: "Maio",
+        6: "Junho",
+        7: "Julho",
+        8: "Agosto",
+        9: "Setembro",
+        10: "Outubro",
+        11: "Novembro",
+        12: "Dezembro",
+    }
+    lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
+
     # Layout de Filtros
     c_f1, c_f2, c_f3, c_f4 = st.columns(4)
     with c_f1:
-      ano_atual_sel = st.number_input(
-          "Ano Atual:", value=datetime.now().year, step=1
-      )
+      # Seletor unificado de Mês/Ano Encerrado
+      anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
+      ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
     with c_f2:
-      ano_ant_sel = st.number_input(
-          "Ano Comparativo:", value=datetime.now().year - 1, step=1
+      mes_ano_selecionado_str = st.selectbox(
+          "Mês/Ano Encerrado:", options=lista_meses_ano, index=min(datetime.now().month - 1, 11)
       )
+      mes_encerrado = int(mes_ano_selecionado_str.split(" - ")[0])
     with c_f3:
       unidade_selecionada = st.selectbox(
           "Unidade (UG):", options=["Todas"] + unidades_opcoes
@@ -955,19 +973,26 @@ if verificar_senha():
           "Buscando e processando dados diretamente do Supabase..."
       ):
         try:
-          # Construção da query dinâmica com os filtros de Unidade e Conta Gerencial
-          # Nota: '%%' evita o erro de interpolação do psycopg/sqlalchemy no LIKE
+          # Construção da query dinâmica para extrair as contas e a execução mês a mês do ano selecionado
+          meses_esquerda = list(range(1, mes_encerrado + 1))
+          meses_direita = list(range(mes_encerrado + 1, 13))
+
+          # Montando sumparizações condicionais por mês
+          case_meses_sql = ""
+          for m in range(1, 13):
+            case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND e.mes_competencia = {m} THEN e.valor_liquidado ELSE 0 END) AS "mes_{m}",\n'
+
           query_relatorio = f"""
                     SELECT 
                         COALESCE(cg.nivel, 'Nível 1') AS "Nível",
                         COALESCE(cg.codigo_conta, 'S/C') AS "Código",
                         COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
-                        SUM(CASE WHEN e.exercicio = {ano_ant_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior",
-                        SUM(CASE WHEN e.exercicio = {ano_atual_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Atual"
+                        {case_meses_sql}
+                        SUM(CASE WHEN e.exercicio = {ano_selecionado - 1} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior"
                     FROM tb_execucao_despesa e
                     LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                     LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
-                    WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel})
+                    WHERE e.exercicio IN ({ano_selecionado}, {ano_selecionado - 1})
                     """
 
           params = {}
@@ -986,30 +1011,75 @@ if verificar_senha():
                     ORDER BY "Código" ASC, "Conta Gerencial" ASC;
                     """
 
-          df_relatorio_sql = executar_consulta_sql(
+          df_sql = executar_consulta_sql(
               query_relatorio, params=params if params else None
           )
 
-          if df_relatorio_sql.empty:
+          if df_sql.empty:
             st.warning(
                 "Nenhum registro encontrado no Supabase para os filtros"
                 " selecionados."
             )
           else:
-            df_relatorio_sql["Variação (%)"] = (
+            # Montar DataFrame final formatado com os blocos solicitados
+            df_final = pd.DataFrame()
+            df_final["Nível"] = df_sql["Nível"]
+            df_final["Código"] = df_sql["Código"]
+            df_final["Conta Gerencial"] = df_sql["Conta Gerencial"]
+
+            # Colunas à esquerda: Meses anteriores ou iguais ao mês encerrado (Executados)
+            cols_executadas = []
+            for m in meses_esquerda:
+              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]} (Exec.)"
+              df_final[nome_col] = df_sql[f"mes_{m}"]
+              cols_executadas.append(nome_col)
+
+            # Totalizador da execução até o mês encerrado
+            if cols_executadas:
+              df_final["Total Executado"] = df_final[cols_executadas].sum(axis=1)
+            else:
+              df_final["Total Executado"] = 0.0
+
+            # Colunas à direita: Meses restantes para completar o ano (Orçados / Zerados inicialmente)
+            cols_orcadas = []
+            for m in meses_direita:
+              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]} (Orç.)"
+              df_final[nome_col] = 0.0  # Inicialmente zerados conforme instrução
+              cols_orcadas.append(nome_col)
+
+            # Totalizador dos meses orçados
+            if cols_orcadas:
+              df_final["Total Orçado"] = df_final[cols_orcadas].sum(axis=1)
+            else:
+              df_final["Total Orçado"] = 0.0
+
+            # Total Geral Projetado (Executado + Orçado)
+            df_final["Total Geral"] = df_final["Total Executado"] + df_final["Total Orçado"]
+            
+            # Comparativo com o Ano Anterior
+            df_final["Ano Anterior"] = df_sql["Ano Anterior"]
+            df_final["Variação (%)"] = (
                 (
-                    df_relatorio_sql["Ano Atual"]
-                    - df_relatorio_sql["Ano Anterior"]
+                    df_final["Total Geral"]
+                    - df_final["Ano Anterior"]
                 )
-                / df_relatorio_sql["Ano Anterior"].replace(0, float("nan"))
+                / df_final["Ano Anterior"].replace(0, float("nan"))
             ) * 100.0
 
+            # Formatação visual do DataFrame
+            format_dict = {
+                "Ano Anterior": "R$ {:,.2f}",
+                "Total Executado": "R$ {:,.2f}",
+                "Total Orçado": "R$ {:,.2f}",
+                "Total Geral": "R$ {:,.2f}",
+                "Variação (%)": "{:+.2f}%",
+            }
+            for col in cols_executadas + cols_orcadas:
+              format_dict[col] = "R$ {:,.2f}"
+
+            st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             st.dataframe(
-                df_relatorio_sql.style.format({
-                    "Ano Anterior": "R$ {:,.2f}",
-                    "Ano Atual": "R$ {:,.2f}",
-                    "Variação (%)": "{:+.2f}%",
-                }),
+                df_final.style.format(format_dict),
                 use_container_width=True,
             )
 
@@ -1710,7 +1780,7 @@ if verificar_senha():
       st.dataframe(df_usr_view, use_container_width=True)
 
       st.markdown("---")
-      st.subheader("⚙️️ Ações nos Usuários")
+      st.subheader("⚙ Ações nos Usuários")
 
       usrs_existentes = [u["usuario"] for u in st.session_state.tabela_usuarios]
       usr_selecionado = st.selectbox(
