@@ -558,7 +558,7 @@ if verificar_senha():
                 st.rerun()
 
     # -----------------------------------------------------------------------------
-    # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA
+    # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (ATUALIZADA E REFEITA COM SUPABASE)
     # -----------------------------------------------------------------------------
     elif st.session_state.pagina_atual == "relatorio":
         c_head1, c_head2 = st.columns([1, 4])
@@ -581,42 +581,74 @@ if verificar_senha():
                 </div>
             """, unsafe_allow_html=True)
 
-        st.subheader("📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)")
-        
-        c_a1, c_a2 = st.columns(2)
-        ano_atual_sel = c_a1.number_input("Ano Atual:", value=datetime.now().year, step=1)
-        ano_ant_sel = c_a2.number_input("Ano Comparativo:", value=datetime.now().year - 1, step=1)
+        st.subheader("📊 Demonstrativo Financeiro Comparativo (Supabase)")
+        st.write("Visualize o demonstrativo consolidado de execução orçamentária cruzando as tabelas de despesas, naturezas detalhadas e contas gerenciais no Supabase.")
 
-        if st.button("🔍 Executar Consulta SQL no Supabase", type="primary"):
-            with st.spinner("Buscando e processando dados diretamente do Supabase..."):
+        # Filtros de seleção de Anos e Unidade Gestora (UG)
+        c_f1, c_f2, c_f3 = st.columns(3)
+        ano_atual_sel = c_f1.number_input("Ano Atual:", value=datetime.now().year, step=1)
+        ano_ant_sel = c_f2.number_input("Ano Comparativo:", value=datetime.now().year - 1, step=1)
+
+        # Buscar UGs cadastradas para filtro opcional
+        df_ugs_filtro = buscar_ugs_banco()
+        opcoes_ugs_filtro = ["Todas as UGs"]
+        if not df_ugs_filtro.empty:
+            for _, r_ug in df_ugs_filtro.iterrows():
+                opcoes_ugs_filtro.append(f"{r_ug['codigo_ug']} - {r_ug['nome']}")
+        
+        ug_selecionada_filtro = c_f3.selectbox("Filtrar por UG:", opcoes_ugs_filtro)
+
+        if st.button("🔍 Gerar Demonstrativo do Supabase", type="primary"):
+            with st.spinner("Consultando dados consolidados diretamente no Supabase..."):
                 try:
-                    query_relatorio = f"""
+                    # Montagem da cláusula WHERE para UG, se selecionada
+                    condicao_ug = ""
+                    if ug_selecionada_filtro != "Todas as UGs":
+                        codigo_ug_filtro_val = ug_selecionada_filtro.split(" - ")[0].strip()
+                        condicao_ug = f"AND e.ug_responsavel = '{codigo_ug_filtro_val}'"
+
+                    query_demonstrativo = f"""
                     SELECT 
                         COALESCE(cg.nivel, 'Nível 1') AS "Nível",
-                        COALESCE(cg.codigo_conta, 'S/C') AS "Código",
-                        COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
+                        COALESCE(cg.codigo_conta, 'S/C') AS "Código Conta",
+                        COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial / NDD",
                         SUM(CASE WHEN e.exercicio = {ano_ant_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior",
                         SUM(CASE WHEN e.exercicio = {ano_atual_sel} THEN e.valor_liquidado ELSE 0 END) AS "Ano Atual"
                     FROM tb_execucao_despesa e
                     LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                     LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%' || cg.codigo_conta || '%'
-                    WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel})
-                    GROUP BY "Nível", "Código", "Conta Gerencial"
-                    ORDER BY "Código" ASC, "Conta Gerencial" ASC;
+                    WHERE e.exercicio IN ({ano_ant_sel}, {ano_atual_sel}) {condicao_ug}
+                    GROUP BY "Nível", "Código Conta", "Conta Gerencial / NDD"
+                    ORDER BY "Código Conta" ASC, "Conta Gerencial / NDD" ASC;
                     """
-                    
-                    df_relatorio_sql = executar_consulta_sql(query_relatorio)
 
-                    if df_relatorio_sql.empty:
-                        st.warning("Nenhum registro encontrado no Supabase para os anos selecionados.")
+                    df_demonstrativo = executar_consulta_sql(query_demonstrativo)
+
+                    if df_demonstrativo.empty:
+                        st.warning("Nenhum registro encontrado no Supabase para os critérios e anos selecionados.")
                     else:
-                        df_relatorio_sql['Variação (%)'] = (
-                            (df_relatorio_sql['Ano Atual'] - df_relatorio_sql['Ano Anterior']) 
-                            / df_relatorio_sql['Ano Anterior'].replace(0, float('nan'))
+                        # Cálculo da variação percentual
+                        df_demonstrativo['Variação (%)'] = (
+                            (df_demonstrativo['Ano Atual'] - df_demonstrativo['Ano Anterior']) 
+                            / df_demonstrativo['Ano Anterior'].replace(0, float('nan'))
                         ) * 100.0
 
+                        # Métricas sumárias superiores
+                        tot_ant = df_demonstrativo['Ano Anterior'].sum()
+                        tot_atu = df_demonstrativo['Ano Atual'].sum()
+                        dif_tot = tot_atu - tot_ant
+                        var_tot = (dif_tot / tot_ant * 100) if tot_ant != 0 else 0.0
+
+                        m1, m2, m3 = st.columns(3)
+                        m1.metric(f"Total {ano_ant_sel}", f"R$ {tot_ant:,.2f}")
+                        m2.metric(f"Total {ano_atual_sel}", f"R$ {tot_atu:,.2f}", f"{var_tot:+.2f}%")
+                        m3.metric("Variação Absoluta", f"R$ {dif_tot:,.2f}")
+
+                        st.markdown("---")
+
+                        # Exibição formatada da tabela
                         st.dataframe(
-                            df_relatorio_sql.style.format({
+                            df_demonstrativo.style.format({
                                 'Ano Anterior': 'R$ {:,.2f}',
                                 'Ano Atual': 'R$ {:,.2f}',
                                 'Variação (%)': '{:+.2f}%'
@@ -624,8 +656,28 @@ if verificar_senha():
                             use_container_width=True
                         )
 
+                        # Gráfico comparativo gerado via Plotly
+                        st.markdown("### 📊 Gráfico Comparativo por Conta Gerencial")
+                        df_melted = df_demonstrativo.melt(
+                            id_vars=['Conta Gerencial / NDD'], 
+                            value_vars=['Ano Anterior', 'Ano Atual'],
+                            var_name='Exercício', 
+                            value_name='Valor Liquidado (R$)'
+                        )
+                        
+                        fig = px.bar(
+                            df_melted, 
+                            x='Conta Gerencial / NDD', 
+                            y='Valor Liquidado (R$)', 
+                            color='Exercício', 
+                            barmode='group',
+                            color_discrete_map={'Ano Anterior': '#7f8c8d', 'Ano Atual': '#003366'}
+                        )
+                        fig.update_layout(xaxis_tickangle=-45, margin=dict(t=20, b=100))
+                        st.plotly_chart(fig, use_container_width=True)
+
                 except Exception as e:
-                    st.error(f"Erro ao consultar o Supabase: {e}")
+                    st.error(f"Erro ao executar a consulta demonstrativa no Supabase: {e}")
 
     # -----------------------------------------------------------------------------
     # CADASTRO: UNIDADES (`public.tb_unidades`)
