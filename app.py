@@ -873,16 +873,16 @@ if verificar_senha():
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
-    # Injeção de CSS para garantir a centralização real dos cabeçalhos no Streamlit
+    # Injeção de CSS robusta para centralizar cabeçalhos da tabela
     st.markdown("""
         <style>
-        [data-testid="stDataFrame"] th {
+        [data-testid="stDataFrame"] th, 
+        [data-testid="stDataFrame"] div[data-testid="stMarkdownContainer"] p {
             text-align: center !important;
             justify-content: center !important;
         }
-        [data-testid="stDataFrame"] th div {
+        th {
             text-align: center !important;
-            justify-content: center !important;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -975,6 +975,13 @@ if verificar_senha():
           ano_ant_2 = ano_selecionado - 2
           ano_ant_3 = ano_selecionado - 3
 
+          # Carregar dicionário com os nomes das contas gerenciais da tabela tb_contas_gerenciais
+          df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
+          dict_nomes_contas = (
+              dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
+              if not df_nomes_contas.empty else {}
+          )
+
           case_meses_sql = ""
           for m in range(1, 13):
             case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
@@ -1017,14 +1024,13 @@ if verificar_senha():
           else:
             registros_processados = []
             
-            # Agrupar por prefixo do código (ex: '1' para 1.1, 1.2, etc.) para criar o totalizador 1.0, 2.0...
             df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
             grupos_unicos = df_sql["grupo_principal"].unique()
             
             for grupo in sorted(grupos_unicos):
               df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
               
-              # Adicionar linhas detalhadas do grupo
+              # Adicionar linhas detalhadas
               for _, row in df_grupo.iterrows():
                 item = {
                     "Nível": row["Nível"],
@@ -1039,12 +1045,14 @@ if verificar_senha():
                 item["ano_ant_3"] = row["ano_ant_3"]
                 registros_processados.append(item)
 
-              # Adicionar linha de Totalizador do Grupo (Ex: 1.0, 2.0)
+              # Adicionar linha de Subtotal buscando o nome real da conta X.0 na tabela tb_contas_gerenciais
               codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
+              nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
+              
               subtotal = {
                   "Nível": df_grupo["Nível"].iloc[0],
                   "Código": codigo_total,
-                  "Conta Gerencial": f"TOTAL DA CONTA GERENCIAL {codigo_total}",
+                  "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
                   "tipo_linha": "total"
               }
               for m in range(1, 13):
@@ -1053,6 +1061,20 @@ if verificar_senha():
               subtotal["ano_ant_2"] = df_grupo["ano_ant_2"].sum()
               subtotal["ano_ant_3"] = df_grupo["ano_ant_3"].sum()
               registros_processados.append(subtotal)
+
+            # Adicionar Linha de Total Geral ao final do relatório
+            total_geral_row = {
+                "Nível": "",
+                "Código": "",
+                "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
+                "tipo_linha": "grand_total"
+            }
+            for m in range(1, 13):
+              total_geral_row[f"mes_{m}"] = df_sql[f"mes_{m}"].sum()
+            total_geral_row["ano_ant_1"] = df_sql["ano_ant_1"].sum()
+            total_geral_row["ano_ant_2"] = df_sql["ano_ant_2"].sum()
+            total_geral_row["ano_ant_3"] = df_sql["ano_ant_3"].sum()
+            registros_processados.append(total_geral_row)
 
             df_processado = pd.DataFrame(registros_processados)
 
@@ -1103,7 +1125,6 @@ if verificar_senha():
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             
-            # Estilização CSS auxiliar para alinhamentos de células
             df_estilizado = df_final.style.format(format_dict).set_table_styles([
                 {"selector": "td", "props": "text-align: right;"},
                 {"selector": "td:nth-child(1), td:nth-child(2), td:nth-child(3)", "props": "text-align: left;"}
