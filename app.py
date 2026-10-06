@@ -1111,10 +1111,6 @@ if verificar_senha():
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             
-            st.markdown(
-                f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)"
-            )
-
             # -----------------------------------------------------------------
             # FORMATAÇÃO DA TABELA
             # -----------------------------------------------------------------
