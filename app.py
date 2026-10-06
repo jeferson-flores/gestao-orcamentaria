@@ -748,7 +748,7 @@ if verificar_senha():
         " módulos de Cadastros, Gestão de Dados e Relatórios."
     )
 
-  # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "carga":
@@ -829,11 +829,14 @@ if verificar_senha():
               .fillna(datetime.now().year)
               .astype(int)
           )
-          df_tratado["mes_competencia"] = (
-              pd.to_datetime(df[col_mes].astype(str), errors="coerce")
-              .dt.month.fillna(1)
-              .astype(int)
-          )
+          
+          # EXTRAÇÃO ROBUSTA DO MÊS (Trata números, textos e códigos do Tesouro Gerencial)
+          s_mes = df[col_mes].astype(str).str.strip()
+          mes_extraido = pd.to_numeric(s_mes.str.extract(r'(\d+)', expand=False), errors="coerce")
+          if mes_extraido.isna().all():
+              mes_extraido = pd.to_datetime(s_mes, errors="coerce").dt.month
+          df_tratado["mes_competencia"] = mes_extraido.fillna(1).astype(int)
+
           df_tratado["ug_responsavel"] = df[col_ug].astype(str).str.strip()
           df_tratado["natureza_despesa_detalhada"] = (
               df[col_nd].astype(str).str.strip()
@@ -865,7 +868,7 @@ if verificar_senha():
       if st.button("Remover e Enviar Nova Planilha", type="primary"):
         st.session_state.dados_tg_raw = None
         st.rerun()
-
+        
   # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
