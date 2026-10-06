@@ -1,7 +1,6 @@
 import streamlit as st
 from datetime import datetime
 import pandas as pd
-import re
 import plotly.express as px
 from sqlalchemy import create_engine, text
 from supabase import Client, create_client
@@ -711,33 +710,6 @@ if verificar_senha():
       return 0.0
 
 
-  def extrair_mes(val):
-    if pd.isna(val):
-      return 1
-    if isinstance(val, (int, float)):
-      m = int(val)
-      return m if 1 <= m <= 12 else 1
-    val_str = str(val).strip()
-    try:
-      m = int(float(val_str))
-      if 1 <= m <= 12:
-        return m
-    except:
-      pass
-    match = re.search(r'\d+', val_str)
-    if match:
-      m = int(match.group())
-      if 1 <= m <= 12:
-        return m
-    try:
-      dt = pd.to_datetime(val_str, errors='coerce')
-      if pd.notna(dt):
-        return dt.month
-    except:
-      pass
-    return 1
-
-
   # -----------------------------------------------------------------------------
   # TELA: INÍCIO / DASHBOARD
   # -----------------------------------------------------------------------------
@@ -857,7 +829,11 @@ if verificar_senha():
               .fillna(datetime.now().year)
               .astype(int)
           )
-          df_tratado["mes_competencia"] = df[col_mes].apply(extrair_mes)
+          df_tratado["mes_competencia"] = (
+              pd.to_datetime(df[col_mes].astype(str), errors="coerce")
+              .dt.month.fillna(1)
+              .astype(int)
+          )
           df_tratado["ug_responsavel"] = df[col_ug].astype(str).str.strip()
           df_tratado["natureza_despesa_detalhada"] = (
               df[col_nd].astype(str).str.strip()
@@ -975,15 +951,8 @@ if verificar_senha():
     # Layout de Filtros
     c_f1, c_f2, c_f3, c_f4 = st.columns(4)
     with c_f1:
-      # Busca dinâmica dos anos disponíveis no banco de dados (incluindo 2022, 2023, etc.)
-      try:
-        df_anos_db = executar_consulta_sql(
-            "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
-        )
-        anos_disponiveis = df_anos_db["exercicio"].tolist() if not df_anos_db.empty else [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
-      except Exception:
-        anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
-      
+      # Seletor unificado de Mês/Ano Encerrado
+      anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
       ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
     with c_f2:
       mes_ano_selecionado_str = st.selectbox(
@@ -1097,28 +1066,16 @@ if verificar_senha():
                 / df_final["Ano Anterior"].replace(0, float("nan"))
             ) * 100.0
 
-            # Formatação visual do DataFrame (Padrão brasileiro sem "R$")
-            def fmt_moeda(val):
-              if pd.isna(val):
-                return ""
-              s = f"{val:,.2f}"
-              return s.replace(",", "X").replace(".", ",").replace("X", ".")
-
-            def fmt_perc(val):
-              if pd.isna(val):
-                return ""
-              s = f"{val:+.2f}%"
-              return s.replace(".", ",")
-
+            # Formatação visual do DataFrame
             format_dict = {
-                "Ano Anterior": fmt_moeda,
-                "Total Executado": fmt_moeda,
-                "Total Orçado": fmt_moeda,
-                "Total Geral": fmt_moeda,
-                "Variação (%)": fmt_perc,
+                "Ano Anterior": "R$ {:,.2f}",
+                "Total Executado": "R$ {:,.2f}",
+                "Total Orçado": "R$ {:,.2f}",
+                "Total Geral": "R$ {:,.2f}",
+                "Variação (%)": "{:+.2f}%",
             }
             for col in cols_executadas + cols_orcadas:
-              format_dict[col] = fmt_moeda
+              format_dict[col] = "R$ {:,.2f}"
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             st.dataframe(
@@ -1758,4 +1715,211 @@ if verificar_senha():
                       conta_gerencial=e_ndd_cg_sel,
                   )
                   st.session_state.editando_codigo_ndd = None
-                  st.success("NDD alterada com sucesso
+                  st.success("NDD alterada com sucesso!")
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"Erro ao atualizar NDD: {e}")
+
+              if c_canc.button(
+                  "Cancelar", key=f"canc_ndd_btn_{n_cod}", type="secondary"
+              ):
+                st.session_state.editando_codigo_ndd = None
+                st.rerun()
+              st.markdown("---")
+
+  # -----------------------------------------------------------------------------
+  # CADASTRO: USUÁRIOS
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "usuarios":
+    st.markdown(
+        "<h2 style='color: #003366;'>👤 Cadastro de Usuários</h2>",
+        unsafe_allow_html=True,
+    )
+    st.write(
+        "Cadastre e controle os usuários que possuem acesso ao sistema."
+    )
+
+    col_usr_add, col_usr_list = st.columns([1, 2])
+
+    with col_usr_add:
+      st.subheader("➕ Novo Usuário")
+      novo_usr_id = st.text_input("Usuário (Login):")
+      novo_usr_nome = st.text_input("Nome Completo:")
+      novo_usr_pass = st.text_input("Senha:", type="password")
+      novo_usr_perf = st.selectbox(
+          "Perfil:", ["Administrador", "Gestor", "Consulta"]
+      )
+
+      if st.button("Cadastrar Usuário", use_container_width=True, type="primary"):
+        if not novo_usr_id or not novo_usr_pass or not novo_usr_nome:
+          st.error("Preencha todos os campos obrigatórios.")
+        elif any(
+            u["usuario"].lower() == novo_usr_id.strip().lower()
+            for u in st.session_state.tabela_usuarios
+        ):
+          st.error("Este nome de usuário já existe.")
+        else:
+          st.session_state.tabela_usuarios.append({
+              "usuario": novo_usr_id.strip(),
+              "nome": novo_usr_nome.strip(),
+              "senha": novo_usr_pass,
+              "perfil": novo_usr_perf,
+          })
+          st.success(f"Usuário '{novo_usr_id}' cadastrado com sucesso!")
+          st.rerun()
+
+    with col_usr_list:
+      st.subheader(
+          f"Usuários Cadastradas ({len(st.session_state.tabela_usuarios)})"
+      )
+
+      df_usr_view = pd.DataFrame(st.session_state.tabela_usuarios)[
+          ["usuario", "nome", "perfil"]
+      ]
+      df_usr_view.columns = ["Login", "Nome Completo", "Perfil"]
+      st.dataframe(df_usr_view, use_container_width=True)
+
+      st.markdown("---")
+      st.subheader("⚙ Ações nos Usuários")
+
+      usrs_existentes = [u["usuario"] for u in st.session_state.tabela_usuarios]
+      usr_selecionado = st.selectbox(
+          "Selecione um usuário para editar/excluir:", usrs_existentes
+      )
+
+      if usr_selecionado:
+        dados_usr = next(
+            u
+            for u in st.session_state.tabela_usuarios
+            if u["usuario"] == usr_selecionado
+        )
+        c_edit_pass, c_del_usr = st.columns(2)
+
+        with c_edit_pass:
+          nova_s = st.text_input(
+              f"Nova senha para '{usr_selecionado}':",
+              type="password",
+              key="inp_nova_s",
+          )
+          if st.button("Alterar Senha", type="primary"):
+            if nova_s:
+              dados_usr["senha"] = nova_s
+              st.success("Senha alterada com sucesso!")
+            else:
+              st.warning("Digite a nova senha.")
+
+        with c_del_usr:
+          st.write("Excluir conta de acesso:")
+          if st.button(f"🗑️ Excluir '{usr_selecionado}'", type="secondary"):
+            if len(st.session_state.tabela_usuarios) <= 1:
+              st.error("Não é possível remover o único usuário do sistema.")
+            else:
+              st.session_state.tabela_usuarios = [
+                  u
+                  for u in st.session_state.tabela_usuarios
+                  if u["usuario"] != usr_selecionado
+              ]
+              st.success(
+                  f"Usuário '{usr_selecionado}' removido com sucesso!"
+              )
+              st.rerun()
+
+  # -----------------------------------------------------------------------------
+  # GESTÃO DE DADOS: LANÇAMENTOS
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "lancamentos":
+    st.markdown(
+        "<h2 style='color: #003366;'>📥 Lançamentos Manuais / Adicionais</h2>",
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Módulo de Lançamentos manuais em desenvolvimento conforme"
+        " especificado."
+    )
+
+  # -----------------------------------------------------------------------------
+  # GESTÃO DE DADOS: SIMULAÇÕES (GESTÃO)
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "simulacoes_gestao":
+    st.markdown(
+        "<h2 style='color: #003366;'>🔮 Simulações (Gestão de Dados)</h2>",
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Módulo de simulações e cenários de gestão de dados em desenvolvimento."
+    )
+
+  # -----------------------------------------------------------------------------
+  # RELATÓRIOS: SIMULAÇÕES ORÇAMENTÁRIAS
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "simulacoes_orcamentarias":
+    st.markdown(
+        "<h2 style='color: #003366;'>📊 Simulações Orçamentárias</h2>",
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Módulo de relatório de simulações orçamentárias em desenvolvimento."
+    )
+
+  # -----------------------------------------------------------------------------
+  # CONFIGURAÇÕES: TEXTO DE ABERTURA
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "texto_abertura":
+    st.markdown(
+        "<h2 style='color: #003366;'>📝 Configuração do Texto de"
+        " Abertura</h2>",
+        unsafe_allow_html=True,
+    )
+    st.info(
+        "Módulo para gerenciar o texto de abertura exibido na página inicial (a"
+        " ser criado com tabela dedicada)."
+    )
+
+  # -----------------------------------------------------------------------------
+  # CONFIGURAÇÕES: IDENTIDADE VISUAL
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "config":
+    st.markdown(
+        "<h2 style='color: #003366;'>🎨 Identidade Visual (Configuração"
+        " Visual)</h2>",
+        unsafe_allow_html=True,
+    )
+    st.write(
+        "Carregue a imagem da logomarca oficial. Ela será exibida no menu à"
+        " esquerda, no cabeçalho do relatório e como ícone na aba do navegador."
+    )
+
+    c_up, c_prev = st.columns([2, 1])
+
+    with c_up:
+      st.subheader("Fazer Upload da Logo")
+      arquivo_logo = st.file_uploader(
+          "Selecione uma imagem (.png, .jpg, .jpeg):",
+          type=["png", "jpg", "jpeg"],
+      )
+
+      if arquivo_logo is not None:
+        st.session_state.logo_personalizada = arquivo_logo.getvalue()
+        st.success("Logomarca carregada com sucesso!")
+        st.rerun()
+
+      if st.session_state.logo_personalizada is not None:
+        st.markdown("---")
+        if st.button("🗑️ Remover Logomarca Atual", type="secondary"):
+          st.session_state.logo_personalizada = None
+          st.success("Logomarca removida com sucesso!")
+          st.rerun()
+
+    with c_prev:
+      st.subheader("Pré-visualização")
+      if st.session_state.logo_personalizada is not None:
+        st.image(
+            st.session_state.logo_personalizada,
+            caption="Logo Ativa no Sistema",
+            width=200,
+        )
+      else:
+        st.info(
+            "Nenhuma imagem carregada até o momento. O sistema está exibindo"
+            " o brasão padrão."
+        )
