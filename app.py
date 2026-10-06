@@ -869,10 +869,24 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-# -----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
+    # Injeção de CSS para garantir a centralização real dos cabeçalhos no Streamlit
+    st.markdown("""
+        <style>
+        [data-testid="stDataFrame"] th {
+            text-align: center !important;
+            justify-content: center !important;
+        }
+        [data-testid="stDataFrame"] th div {
+            text-align: center !important;
+            justify-content: center !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     c_head1, c_head2 = st.columns([1, 4])
     with c_head1:
       if st.session_state.logo_personalizada is not None:
@@ -1001,17 +1015,17 @@ if verificar_senha():
           if df_sql.empty:
             st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
           else:
-            # Geração das linhas de dados normais e cálculo de totalizadores por Nível
             registros_processados = []
             
-            # Agrupar por Nível para calcular subtotais
-            niveis_unicos = df_sql["Nível"].unique()
+            # Agrupar por prefixo do código (ex: '1' para 1.1, 1.2, etc.) para criar o totalizador 1.0, 2.0...
+            df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
+            grupos_unicos = df_sql["grupo_principal"].unique()
             
-            for nivel in sorted(niveis_unicos):
-              df_nivel = df_sql[df_sql["Nível"] == nivel]
+            for grupo in sorted(grupos_unicos):
+              df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
               
-              # Adicionar linhas detalhadas
-              for _, row in df_nivel.iterrows():
+              # Adicionar linhas detalhadas do grupo
+              for _, row in df_grupo.iterrows():
                 item = {
                     "Nível": row["Nível"],
                     "Código": row["Código"],
@@ -1025,18 +1039,19 @@ if verificar_senha():
                 item["ano_ant_3"] = row["ano_ant_3"]
                 registros_processados.append(item)
 
-              # Adicionar linha de Subtotal por Nível
+              # Adicionar linha de Totalizador do Grupo (Ex: 1.0, 2.0)
+              codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
               subtotal = {
-                  "Nível": str(nivel),
-                  "Código": f"Total Nível {nivel}",
-                  "Conta Gerencial": f"TOTAL DO NÍVEL {nivel}",
+                  "Nível": df_grupo["Nível"].iloc[0],
+                  "Código": codigo_total,
+                  "Conta Gerencial": f"TOTAL DA CONTA GERENCIAL {codigo_total}",
                   "tipo_linha": "total"
               }
               for m in range(1, 13):
-                subtotal[f"mes_{m}"] = df_nivel[f"mes_{m}"].sum()
-              subtotal["ano_ant_1"] = df_nivel["ano_ant_1"].sum()
-              subtotal["ano_ant_2"] = df_nivel["ano_ant_2"].sum()
-              subtotal["ano_ant_3"] = df_nivel["ano_ant_3"].sum()
+                subtotal[f"mes_{m}"] = df_grupo[f"mes_{m}"].sum()
+              subtotal["ano_ant_1"] = df_grupo["ano_ant_1"].sum()
+              subtotal["ano_ant_2"] = df_grupo["ano_ant_2"].sum()
+              subtotal["ano_ant_3"] = df_grupo["ano_ant_3"].sum()
               registros_processados.append(subtotal)
 
             df_processado = pd.DataFrame(registros_processados)
@@ -1088,12 +1103,8 @@ if verificar_senha():
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             
-            # Estilização CSS completa para centralizar cabeçalhos e alinhar valores à direita
+            # Estilização CSS auxiliar para alinhamentos de células
             df_estilizado = df_final.style.format(format_dict).set_table_styles([
-                {"selector": "th", "props": "text-align: center !important;"},
-                {"selector": "th.col_heading", "props": "text-align: center !important;"},
-                {"selector": "th.level0", "props": "text-align: center !important; font-weight: bold;"},
-                {"selector": "th.level1", "props": "text-align: center !important;"},
                 {"selector": "td", "props": "text-align: right;"},
                 {"selector": "td:nth-child(1), td:nth-child(2), td:nth-child(3)", "props": "text-align: left;"}
             ])
