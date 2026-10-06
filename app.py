@@ -869,7 +869,7 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-    # -----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
@@ -1065,7 +1065,7 @@ if verificar_senha():
             df_processado = pd.DataFrame(registros_processados)
 
             df_final = pd.DataFrame()
-            df_final[("Identificação", "Nível")] = df_processado["Nível"]
+            # Mantemos a coluna Nível oculta na estrutura final construída para visualização
             df_final[("Identificação", "Código")] = df_processado["Código"]
             df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
 
@@ -1110,24 +1110,21 @@ if verificar_senha():
                 format_dict[col] = lambda x: fmt_br(x)
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
-            
-            # -----------------------------------------------------------------
-            # FORMATAÇÃO DA TABELA
-            # -----------------------------------------------------------------
-            # Mantém:
-            # - Identificação (Nível, Código e Conta Gerencial) à esquerda;
-            # - valores numéricos à direita;
-            # - cabeçalhos das colunas numéricas centralizados.
-            #
-            # A tabela é renderizada como HTML em vez de st.dataframe(),
-            # permitindo controlar diretamente o alinhamento dos <th>.
-            # -----------------------------------------------------------------
+
+            # Função de estilização condicional via Styler para destacar subtotais e o total geral
+            def destacar_linhas_totais(row):
+              # Identifica se a linha é subtotal ou total geral pelo conteúdo da segunda coluna (Conta Gerencial)
+              texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
+              if texto_conta.startswith("TOTAL "):
+                return ["font-weight: bold; background-color: #f0f2f6;"] * len(row)
+              return [""] * len(row)
 
             df_estilizado = (
                 df_final.style
                 .format(format_dict)
+                .apply(destacar_linhas_totais, axis=1)
                 .set_table_styles([
-                    # Cabeçalhos dos grupos: Executado, Orçado, Totais e Análise
+                    # Cabeçalhos dos grupos centralizados
                     {
                         "selector": "th.col_heading.level0",
                         "props": [
@@ -1136,8 +1133,6 @@ if verificar_senha():
                             ("font-weight", "600"),
                         ],
                     },
-
-                    # Subcabeçalhos das colunas
                     {
                         "selector": "th.col_heading.level1",
                         "props": [
@@ -1145,8 +1140,7 @@ if verificar_senha():
                             ("vertical-align", "middle"),
                         ],
                     },
-
-                    # Identificação: manter alinhada à esquerda
+                    # Identificação à esquerda
                     {
                         "selector": "th.col_heading.level0.col0",
                         "props": [
@@ -1154,47 +1148,34 @@ if verificar_senha():
                         ],
                     },
                     {
-                        "selector": "th.col_heading.level1.col0, "
-                                   "th.col_heading.level1.col1, "
-                                   "th.col_heading.level1.col2",
+                        "selector": "th.col_heading.level1.col0, th.col_heading.level1.col1",
                         "props": [
                             ("text-align", "left"),
                         ],
                     },
-
-                    # Corpo da tabela: números à direita
+                    # Valores numéricos à direita
                     {
                         "selector": "td",
                         "props": [
                             ("text-align", "right"),
+                            ("white-space", "nowrap"),
                         ],
                     },
-
-                    # Primeiras três colunas: texto à esquerda
+                    # Colunas de texto sem quebra de linha (impede o encolhimento irregular das linhas)
                     {
-                        "selector": "td.col0, td.col1, td.col2",
+                        "selector": "td.col0, td.col1",
                         "props": [
                             ("text-align", "left"),
+                            ("white-space", "nowrap"),
                         ],
                     },
-
-                    # Cabeçalho da tabela
                     {
                         "selector": "thead th",
                         "props": [
                             ("border-bottom", "1px solid #d0d0d0"),
-                        ],
-                    },
-
-                    # Evita que os cabeçalhos quebrem de forma estranha
-                    {
-                        "selector": "th",
-                        "props": [
                             ("white-space", "nowrap"),
                         ],
                     },
-
-                    # Tabela ocupa toda a largura disponível
                     {
                         "selector": "table",
                         "props": [
@@ -1206,7 +1187,6 @@ if verificar_senha():
                 .hide(axis="index")
             )
 
-            # Container com rolagem horizontal para tabelas muito largas
             html_tabela = df_estilizado.to_html()
 
             st.markdown(
