@@ -866,7 +866,7 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-# -----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
@@ -876,7 +876,7 @@ if verificar_senha():
         st.image(st.session_state.logo_personalizada, width=130)
       else:
         st.markdown(
-            "<h2 style='color: #003366; margin: 0;'>🏛️️ UFSM</h2>",
+            "<h2 style='color: #003366; margin: 0;'>🏛 UFSM</h2>",
             unsafe_allow_html=True,
         )
     with c_head2:
@@ -934,7 +934,7 @@ if verificar_senha():
     }
     lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
-    # Layout de Filtros (Apenas 3 colunas agora, sem o filtro de conta gerencial)[cite: 5]
+    # Layout de Filtros (Apenas 3 colunas, sem o filtro de conta gerencial)[cite: 5]
     c_f1, c_f2, c_f3 = st.columns(3)
     with c_f1:
       ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
@@ -961,7 +961,7 @@ if verificar_senha():
 
           case_meses_sql = ""
           for m in range(1, 13):
-            case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND e.mes_competencia = {m} THEN e.valor_liquidado ELSE 0 END) AS "mes_{m}",\n'
+            case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
 
           query_relatorio = f"""
                     SELECT 
@@ -969,9 +969,9 @@ if verificar_senha():
                         COALESCE(cg.codigo_conta, 'S/C') AS "Código",
                         COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
                         {case_meses_sql}
-                        SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN e.valor_liquidado ELSE 0 END) AS "ano_ant_1",
-                        SUM(CASE WHEN e.exercicio = {ano_ant_2} THEN e.valor_liquidado ELSE 0 END) AS "ano_ant_2",
-                        SUM(CASE WHEN e.exercicio = {ano_ant_3} THEN e.valor_liquidado ELSE 0 END) AS "ano_ant_3"
+                        SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1",
+                        SUM(CASE WHEN e.exercicio = {ano_ant_2} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_2",
+                        SUM(CASE WHEN e.exercicio = {ano_ant_3} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_3"
                     FROM tb_execucao_despesa e
                     LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                     LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
@@ -1012,9 +1012,9 @@ if verificar_senha():
               df_final[("Orçado", nome_col)] = df_sql[f"mes_{m}"]
               cols_orcadas.append(("Orçado", nome_col))
 
-            # Total Geral Calculado
+            # Total Geral Calculado (soma apenas das colunas executadas até o mês encerrado)
             todas_cols_meses_chaves = [c for c in cols_executadas + cols_orcadas]
-            df_final[("Totais", "Total Geral")] = df_final[todas_cols_meses_chaves].sum(axis=1) if todas_cols_meses_chaves else 0.0
+            df_final[("Totais", "Total Geral")] = df_final[cols_executadas].sum(axis=1) if cols_executadas else 0.0
 
             # Colunas dos 3 Anos Anteriores[cite: 5]
             df_final[("Totais", str(ano_ant_1))] = df_sql["ano_ant_1"]
