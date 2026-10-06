@@ -897,15 +897,13 @@ if verificar_senha():
       )
 
     st.subheader(
-        "📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do"
-        " Supabase)"
+        "📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)"
     )
 
-    # --- CARREGAR OPÇÕES PARA OS FILTROS DE UNIDADES E CONTAS GERENCIAIS ---
+    # --- CARREGAR OPÇÕES PARA OS FILTROS DE UNIDADES, CONTAS E ANOS ---
     try:
       df_unidades_filtro = executar_consulta_sql(
-          "SELECT DISTINCT ug_responsavel FROM tb_execucao_despesa WHERE"
-          " ug_responsavel IS NOT NULL ORDER BY ug_responsavel;"
+          "SELECT DISTINCT ug_responsavel FROM tb_execucao_despesa WHERE ug_responsavel IS NOT NULL ORDER BY ug_responsavel;"
       )
       unidades_opcoes = (
           df_unidades_filtro["ug_responsavel"].tolist()
@@ -917,8 +915,7 @@ if verificar_senha():
 
     try:
       df_contas_filtro = executar_consulta_sql(
-          "SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais ORDER BY"
-          " codigo_conta;"
+          "SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais ORDER BY codigo_conta;"
       )
       contas_opcoes = (
           [
@@ -931,28 +928,30 @@ if verificar_senha():
     except Exception:
       contas_opcoes = []
 
+    # Buscar anos disponíveis diretamente na base de dados para incluir 2022, 2023, etc.
+    try:
+      df_anos_filtro = executar_consulta_sql(
+          "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
+      )
+      anos_disponiveis = (
+          df_anos_filtro["exercicio"].tolist()
+          if not df_anos_filtro.empty
+          else [datetime.now().year, datetime.now().year - 1]
+      )
+    except Exception:
+      anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
+
     # Nomes dos meses para o seletor unificado
     meses_nomes = {
-        1: "Janeiro",
-        2: "Fevereiro",
-        3: "Março",
-        4: "Abril",
-        5: "Maio",
-        6: "Junho",
-        7: "Julho",
-        8: "Agosto",
-        9: "Setembro",
-        10: "Outubro",
-        11: "Novembro",
-        12: "Dezembro",
+        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
     }
     lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
     # Layout de Filtros
     c_f1, c_f2, c_f3, c_f4 = st.columns(4)
     with c_f1:
-      # Seletor unificado de Mês/Ano Encerrado
-      anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
       ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
     with c_f2:
       mes_ano_selecionado_str = st.selectbox(
@@ -969,15 +968,11 @@ if verificar_senha():
       )
 
     if st.button("🔍 Executar Consulta SQL no Supabase", type="primary"):
-      with st.spinner(
-          "Buscando e processando dados diretamente do Supabase..."
-      ):
+      with st.spinner("Buscando e processando dados diretamente do Supabase..."):
         try:
-          # Construção da query dinâmica para extrair as contas e a execução mês a mês do ano selecionado
           meses_esquerda = list(range(1, mes_encerrado + 1))
           meses_direita = list(range(mes_encerrado + 1, 13))
 
-          # Montando sumparizações condicionais por mês
           case_meses_sql = ""
           for m in range(1, 13):
             case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND e.mes_competencia = {m} THEN e.valor_liquidado ELSE 0 END) AS "mes_{m}",\n'
@@ -1016,66 +1011,48 @@ if verificar_senha():
           )
 
           if df_sql.empty:
-            st.warning(
-                "Nenhum registro encontrado no Supabase para os filtros"
-                " selecionados."
-            )
+            st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
           else:
-            # Montar DataFrame final formatado com os blocos solicitados
             df_final = pd.DataFrame()
             df_final["Nível"] = df_sql["Nível"]
             df_final["Código"] = df_sql["Código"]
             df_final["Conta Gerencial"] = df_sql["Conta Gerencial"]
 
-            # Colunas à esquerda: Meses anteriores ou iguais ao mês encerrado (Executados)
             cols_executadas = []
             for m in meses_esquerda:
-              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]} (Exec.)"
+              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
               df_final[nome_col] = df_sql[f"mes_{m}"]
               cols_executadas.append(nome_col)
 
-            # Totalizador da execução até o mês encerrado
-            if cols_executadas:
-              df_final["Total Executado"] = df_final[cols_executadas].sum(axis=1)
-            else:
-              df_final["Total Executado"] = 0.0
-
-            # Colunas à direita: Meses restantes para completar o ano (Orçados / Zerados inicialmente)
             cols_orcadas = []
             for m in meses_direita:
-              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]} (Orç.)"
-              df_final[nome_col] = 0.0  # Inicialmente zerados conforme instrução
+              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
+              df_final[nome_col] = 0.0
               cols_orcadas.append(nome_col)
 
-            # Totalizador dos meses orçados
-            if cols_orcadas:
-              df_final["Total Orçado"] = df_final[cols_orcadas].sum(axis=1)
-            else:
-              df_final["Total Orçado"] = 0.0
-
-            # Total Geral Projetado (Executado + Orçado)
-            df_final["Total Geral"] = df_final["Total Executado"] + df_final["Total Orçado"]
+            # Total Geral Calculado diretamente sem colunas intermediárias extensas
+            todas_cols_meses = cols_executadas + cols_orcadas
+            df_final["Total Geral"] = df_final[todas_cols_meses].sum(axis=1) if todas_cols_meses else 0.0
             
-            # Comparativo com o Ano Anterior
             df_final["Ano Anterior"] = df_sql["Ano Anterior"]
             df_final["Variação (%)"] = (
-                (
-                    df_final["Total Geral"]
-                    - df_final["Ano Anterior"]
-                )
+                (df_final["Total Geral"] - df_final["Ano Anterior"])
                 / df_final["Ano Anterior"].replace(0, float("nan"))
             ) * 100.0
 
-            # Formatação visual do DataFrame
+            # Função auxiliar para formatação estilo brasileiro (ponto para milhar, vírgula para decimal, sem R$)
+            def fmt_br(val):
+              if pd.isna(val):
+                return ""
+              return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
             format_dict = {
-                "Ano Anterior": "R$ {:,.2f}",
-                "Total Executado": "R$ {:,.2f}",
-                "Total Orçado": "R$ {:,.2f}",
-                "Total Geral": "R$ {:,.2f}",
-                "Variação (%)": "{:+.2f}%",
+                "Ano Anterior": lambda x: fmt_br(x),
+                "Total Geral": lambda x: fmt_br(x),
+                "Variação (%)": lambda x: f"{x:+.2f}%".replace(".", ",") if not pd.isna(x) else "",
             }
-            for col in cols_executadas + cols_orcadas:
-              format_dict[col] = "R$ {:,.2f}"
+            for col in todas_cols_meses:
+              format_dict[col] = lambda x: fmt_br(x)
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             st.dataframe(
@@ -1085,7 +1062,7 @@ if verificar_senha():
 
         except Exception as e:
           st.error(f"Erro ao consultar o Supabase: {e}")
-
+          
   # -----------------------------------------------------------------------------
   # CADASTRO: UNIDADES (`public.tb_unidades`)
   # -----------------------------------------------------------------------------
