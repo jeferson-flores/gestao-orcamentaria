@@ -877,10 +877,10 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-    # -----------------------------------------------------------------------------
-    # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COMPARATIVO)
-    # -----------------------------------------------------------------------------
-    if st.session_state.pagina_atual == "relatorio":
+  # -----------------------------------------------------------------------------
+  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COMPARATIVO)
+  # -----------------------------------------------------------------------------
+  if st.session_state.pagina_atual == "relatorio":
       c_head1, c_head2 = st.columns([1, 4])
       with c_head1:
         if st.session_state.logo_personalizada is not None:
@@ -1124,10 +1124,10 @@ if verificar_senha():
             st.error(f"Erro ao consultar o Supabase: {e}")
 
 
-    # -----------------------------------------------------------------------------
-    # PÁGINA: EXECUÇÃO X LOA
-    # -----------------------------------------------------------------------------
-    elif st.session_state.pagina_atual == "execucao_loa":
+  # -----------------------------------------------------------------------------
+  # PÁGINA: EXECUÇÃO X LOA
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "execucao_loa":
       c_head1, c_head2 = st.columns([1, 4])
       with c_head1:
         if st.session_state.logo_personalizada is not None:
