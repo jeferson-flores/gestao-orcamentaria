@@ -866,7 +866,7 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-  # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
@@ -876,7 +876,7 @@ if verificar_senha():
         st.image(st.session_state.logo_personalizada, width=130)
       else:
         st.markdown(
-            "<h2 style='color: #003366; margin: 0;'>🏛️ UFSM</h2>",
+            "<h2 style='color: #003366; margin: 0;'>🏛️️ UFSM</h2>",
             unsafe_allow_html=True,
         )
     with c_head2:
@@ -900,7 +900,7 @@ if verificar_senha():
         "📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)"
     )
 
-    # --- CARREGAR OPÇÕES PARA OS FILTROS DE UNIDADES, CONTAS E ANOS ---
+    # --- CARREGAR OPÇÕES PARA OS FILTROS DE UNIDADES E ANOS ---
     try:
       df_unidades_filtro = executar_consulta_sql(
           "SELECT DISTINCT ug_responsavel FROM tb_execucao_despesa WHERE ug_responsavel IS NOT NULL ORDER BY ug_responsavel;"
@@ -913,22 +913,7 @@ if verificar_senha():
     except Exception:
       unidades_opcoes = []
 
-    try:
-      df_contas_filtro = executar_consulta_sql(
-          "SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais ORDER BY codigo_conta;"
-      )
-      contas_opcoes = (
-          [
-              f"{row['codigo_conta']} - {row['nome_conta']}"
-              for _, row in df_contas_filtro.iterrows()
-          ]
-          if not df_contas_filtro.empty
-          else []
-      )
-    except Exception:
-      contas_opcoes = []
-
-    # Buscar anos disponíveis diretamente na base de dados para incluir 2022, 2023, etc.
+    # Buscar anos disponíveis diretamente na base de dados
     try:
       df_anos_filtro = executar_consulta_sql(
           "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
@@ -949,8 +934,8 @@ if verificar_senha():
     }
     lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
-    # Layout de Filtros
-    c_f1, c_f2, c_f3, c_f4 = st.columns(4)
+    # Layout de Filtros (Apenas 3 colunas agora, sem o filtro de conta gerencial)[cite: 5]
+    c_f1, c_f2, c_f3 = st.columns(3)
     with c_f1:
       ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
     with c_f2:
@@ -962,16 +947,17 @@ if verificar_senha():
       unidade_selecionada = st.selectbox(
           "Unidade (UG):", options=["Todas"] + unidades_opcoes
       )
-    with c_f4:
-      conta_selecionada = st.selectbox(
-          "Conta Gerencial:", options=["Todas"] + contas_opcoes
-      )
 
     if st.button("🔍 Executar Consulta SQL no Supabase", type="primary"):
       with st.spinner("Buscando e processando dados diretamente do Supabase..."):
         try:
           meses_esquerda = list(range(1, mes_encerrado + 1))
           meses_direita = list(range(mes_encerrado + 1, 13))
+
+          # Definir anos anteriores solicitados (3 anos anteriores)[cite: 5]
+          ano_ant_1 = ano_selecionado - 1
+          ano_ant_2 = ano_selecionado - 2
+          ano_ant_3 = ano_selecionado - 3
 
           case_meses_sql = ""
           for m in range(1, 13):
@@ -983,23 +969,19 @@ if verificar_senha():
                         COALESCE(cg.codigo_conta, 'S/C') AS "Código",
                         COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
                         {case_meses_sql}
-                        SUM(CASE WHEN e.exercicio = {ano_selecionado - 1} THEN e.valor_liquidado ELSE 0 END) AS "Ano Anterior"
+                        SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN e.valor_liquidado ELSE 0 END) AS "ano_ant_1",
+                        SUM(CASE WHEN e.exercicio = {ano_ant_2} THEN e.valor_liquidado ELSE 0 END) AS "ano_ant_2",
+                        SUM(CASE WHEN e.exercicio = {ano_ant_3} THEN e.valor_liquidado ELSE 0 END) AS "ano_ant_3"
                     FROM tb_execucao_despesa e
                     LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                     LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
-                    WHERE e.exercicio IN ({ano_selecionado}, {ano_selecionado - 1})
+                    WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1}, {ano_ant_2}, {ano_ant_3})
                     """
 
           params = {}
-
           if unidade_selecionada != "Todas":
             query_relatorio += " AND e.ug_responsavel = :unidade"
             params["unidade"] = unidade_selecionada
-
-          if conta_selecionada != "Todas":
-            codigo_conta_limpo = conta_selecionada.split(" - ")[0]
-            query_relatorio += " AND cg.codigo_conta = :conta"
-            params["conta"] = codigo_conta_limpo
 
           query_relatorio += """
                     GROUP BY "Nível", "Código", "Conta Gerencial"
@@ -1014,31 +996,39 @@ if verificar_senha():
             st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
           else:
             df_final = pd.DataFrame()
-            df_final["Nível"] = df_sql["Nível"]
-            df_final["Código"] = df_sql["Código"]
-            df_final["Conta Gerencial"] = df_sql["Conta Gerencial"]
+            df_final[("Identificação", "Nível")] = df_sql["Nível"]
+            df_final[("Identificação", "Código")] = df_sql["Código"]
+            df_final[("Identificação", "Conta Gerencial")] = df_sql["Conta Gerencial"]
 
             cols_executadas = []
             for m in meses_esquerda:
               nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-              df_final[nome_col] = df_sql[f"mes_{m}"]
-              cols_executadas.append(nome_col)
+              df_final[("Executado", nome_col)] = df_sql[f"mes_{m}"]
+              cols_executadas.append(("Executado", nome_col))
 
             cols_orcadas = []
             for m in meses_direita:
               nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-              df_final[nome_col] = 0.0
-              cols_orcadas.append(nome_col)
+              df_final[("Orçado", nome_col)] = df_sql[f"mes_{m}"]
+              cols_orcadas.append(("Orçado", nome_col))
 
-            # Total Geral Calculado diretamente sem colunas intermediárias extensas
-            todas_cols_meses = cols_executadas + cols_orcadas
-            df_final["Total Geral"] = df_final[todas_cols_meses].sum(axis=1) if todas_cols_meses else 0.0
-            
-            df_final["Ano Anterior"] = df_sql["Ano Anterior"]
-            df_final["Variação (%)"] = (
-                (df_final["Total Geral"] - df_final["Ano Anterior"])
-                / df_final["Ano Anterior"].replace(0, float("nan"))
+            # Total Geral Calculado
+            todas_cols_meses_chaves = [c for c in cols_executadas + cols_orcadas]
+            df_final[("Totais", "Total Geral")] = df_final[todas_cols_meses_chaves].sum(axis=1) if todas_cols_meses_chaves else 0.0
+
+            # Colunas dos 3 Anos Anteriores[cite: 5]
+            df_final[("Totais", str(ano_ant_1))] = df_sql["ano_ant_1"]
+            df_final[("Totais", str(ano_ant_2))] = df_sql["ano_ant_2"]
+            df_final[("Totais", str(ano_ant_3))] = df_sql["ano_ant_3"]
+
+            # Variação (%) comparando com o ano anterior imediato (ano_ant_1)
+            df_final[("Análise", "Variação (%)")] = (
+                (df_final[("Totais", "Total Geral")] - df_final[("Totais", str(ano_ant_1))])
+                / df_final[("Totais", str(ano_ant_1))].replace(0, float("nan"))
             ) * 100.0
+
+            # Atribuir o MultiIndex criado ao DataFrame[cite: 5]
+            df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
             # Função auxiliar para formatação estilo brasileiro (ponto para milhar, vírgula para decimal, sem R$)
             def fmt_br(val):
@@ -1046,13 +1036,12 @@ if verificar_senha():
                 return ""
               return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-            format_dict = {
-                "Ano Anterior": lambda x: fmt_br(x),
-                "Total Geral": lambda x: fmt_br(x),
-                "Variação (%)": lambda x: f"{x:+.2f}%".replace(".", ",") if not pd.isna(x) else "",
-            }
-            for col in todas_cols_meses:
-              format_dict[col] = lambda x: fmt_br(x)
+            format_dict = {}
+            for col in df_final.columns:
+              if col[1] == "Variação (%)":
+                format_dict[col] = lambda x: f"{x:+.2f}%".replace(".", ",") if not pd.isna(x) else ""
+              elif col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
+                format_dict[col] = lambda x: fmt_br(x)
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             st.dataframe(
@@ -1062,7 +1051,7 @@ if verificar_senha():
 
         except Exception as e:
           st.error(f"Erro ao consultar o Supabase: {e}")
-          
+  
   # -----------------------------------------------------------------------------
   # CADASTRO: UNIDADES (`public.tb_unidades`)
   # -----------------------------------------------------------------------------
