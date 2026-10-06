@@ -877,421 +877,421 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-# -----------------------------------------------------------------------------
-# PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COMPARATIVO)
-# -----------------------------------------------------------------------------
-elif st.session_state.pagina_atual == "relatorio":
-  c_head1, c_head2 = st.columns([1, 4])
-  with c_head1:
-    if st.session_state.logo_personalizada is not None:
-      st.image(st.session_state.logo_personalizada, width=130)
-    else:
-      st.markdown(
-          "<h2 style='color: #003366; margin: 0;'>🏛 UFSM</h2>",
-          unsafe_allow_html=True,
-      )
-  with c_head2:
-    st.markdown(
-        f"""
-              <div class="cabecalho-impressao">
-                  <div class="titulo-impressao">
-                      <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA</h2>
-                      <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA</h4>
+    # -----------------------------------------------------------------------------
+    # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COMPARATIVO)
+    # -----------------------------------------------------------------------------
+    if st.session_state.pagina_atual == "relatorio":
+      c_head1, c_head2 = st.columns([1, 4])
+      with c_head1:
+        if st.session_state.logo_personalizada is not None:
+          st.image(st.session_state.logo_personalizada, width=130)
+        else:
+          st.markdown(
+              "<h2 style='color: #003366; margin: 0;'>🏛 UFSM</h2>",
+              unsafe_allow_html=True,
+          )
+      with c_head2:
+        st.markdown(
+            f"""
+                  <div class="cabecalho-impressao">
+                      <div class="titulo-impressao">
+                          <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA</h2>
+                          <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA</h4>
+                      </div>
+                      <div style="text-align: right; font-size: 11px; color: #555;">
+                          <b>SiGeO</b> - Sistema de Gestão Orçamentária<br>
+                          Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
+                      </div>
                   </div>
-                  <div style="text-align: right; font-size: 11px; color: #555;">
-                      <b>SiGeO</b> - Sistema de Gestão Orçamentária<br>
-                      Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
-                  </div>
-              </div>
-          """,
-        unsafe_allow_html=True,
-    )
-
-  st.subheader("📊 Demonstrativo Financeiro Comparativo")
-
-  try:
-    df_unidades_filtro = executar_consulta_sql(
-        "SELECT DISTINCT unidade FROM tb_ugs WHERE unidade IS NOT NULL ORDER BY unidade;"
-    )
-    unidades_opcoes = (
-        df_unidades_filtro["unidade"].tolist()
-        if not df_unidades_filtro.empty
-        else []
-    )
-  except Exception:
-    unidades_opcoes = []
-
-  try:
-    df_anos_filtro = executar_consulta_sql(
-        "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
-    )
-    anos_disponiveis = (
-        df_anos_filtro["exercicio"].tolist()
-        if not df_anos_filtro.empty
-        else [datetime.now().year, datetime.now().year - 1]
-    )
-  except Exception:
-    anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
-
-  meses_nomes = {
-      1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
-      5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
-      9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
-  }
-  lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
-
-  c_f1, c_f2, c_f3 = st.columns(3)
-  with c_f1:
-    ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0, key="comp_ano")
-  with c_f2:
-    mes_ano_selecionado_str = st.selectbox(
-        "Mês/Ano Encerrado:", options=lista_meses_ano, index=min(datetime.now().month - 1, 11), key="comp_mes"
-    )
-    mes_encerrado = int(mes_ano_selecionado_str.split(" - ")[0])
-  with c_f3:
-    unidade_selecionada = st.selectbox(
-        "Unidade:", options=["Todas"] + unidades_opcoes, key="comp_unidade"
-    )
-
-  if st.button("🔍 Executar Consulta SQL no Supabase", type="primary", key="btn_comp"):
-    with st.spinner("Buscando e processando dados diretamente do Supabase..."):
-      try:
-        meses_esquerda = list(range(1, mes_encerrado + 1))
-        meses_direita = list(range(mes_encerrado + 1, 13))
-
-        ano_ant_1 = ano_selecionado - 1
-        ano_ant_2 = ano_selecionado - 2
-        ano_ant_3 = ano_selecionado - 3
-
-        df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
-        dict_nomes_contas = (
-            dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
-            if not df_nomes_contas.empty else {}
+              """,
+            unsafe_allow_html=True,
         )
 
-        case_meses_sql = ""
-        for m in range(1, 13):
-          case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
+      st.subheader("📊 Demonstrativo Financeiro Comparativo")
 
-        query_relatorio = f"""
-                  SELECT 
-                      COALESCE(cg.nivel, '1') AS "Nível",
-                      COALESCE(cg.codigo_conta, 'S/C') AS "Código",
-                      COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
-                      {case_meses_sql}
-                      SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1",
-                      SUM(CASE WHEN e.exercicio = {ano_ant_2} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_2",
-                      SUM(CASE WHEN e.exercicio = {ano_ant_3} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_3"
-                  FROM tb_execucao_despesa e
-                  LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
-                  LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
-                  """
+      try:
+        df_unidades_filtro = executar_consulta_sql(
+            "SELECT DISTINCT unidade FROM tb_ugs WHERE unidade IS NOT NULL ORDER BY unidade;"
+        )
+        unidades_opcoes = (
+            df_unidades_filtro["unidade"].tolist()
+            if not df_unidades_filtro.empty
+            else []
+        )
+      except Exception:
+        unidades_opcoes = []
 
-        params = {}
-        if unidade_selecionada != "Todas":
-          query_relatorio += """
-                  INNER JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
-                  WHERE u.unidade = :unidade AND e.exercicio IN ({}, {}, {}, {})
-                  """.format(ano_selecionado, ano_ant_1, ano_ant_2, ano_ant_3)
-          params["unidade"] = unidade_selecionada
-        else:
-          query_relatorio += f" WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1}, {ano_ant_2}, {ano_ant_3})"
+      try:
+        df_anos_filtro = executar_consulta_sql(
+            "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
+        )
+        anos_disponiveis = (
+            df_anos_filtro["exercicio"].tolist()
+            if not df_anos_filtro.empty
+            else [datetime.now().year, datetime.now().year - 1]
+        )
+      except Exception:
+        anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
 
-        query_relatorio += """
-                  GROUP BY "Nível", "Código", "Conta Gerencial"
-                  ORDER BY "Código" ASC, "Conta Gerencial" ASC;
-                  """
+      meses_nomes = {
+          1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+          5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+          9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+      }
+      lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
-        df_sql = executar_consulta_sql(query_relatorio, params=params if params else None)
+      c_f1, c_f2, c_f3 = st.columns(3)
+      with c_f1:
+        ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0, key="comp_ano")
+      with c_f2:
+        mes_ano_selecionado_str = st.selectbox(
+            "Mês/Ano Encerrado:", options=lista_meses_ano, index=min(datetime.now().month - 1, 11), key="comp_mes"
+        )
+        mes_encerrado = int(mes_ano_selecionado_str.split(" - ")[0])
+      with c_f3:
+        unidade_selecionada = st.selectbox(
+            "Unidade:", options=["Todas"] + unidades_opcoes, key="comp_unidade"
+        )
 
-        if df_sql.empty:
-          st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
-        else:
-          registros_processados = []
-          df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
-          grupos_unicos = df_sql["grupo_principal"].unique()
-          
-          for grupo in sorted(grupos_unicos):
-            df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
-            for _, row in df_grupo.iterrows():
-              item = {
-                  "Nível": row["Nível"],
-                  "Código": row["Código"],
-                  "Conta Gerencial": row["Conta Gerencial"],
-                  "tipo_linha": "detalhe"
+      if st.button("🔍 Executar Consulta SQL no Supabase", type="primary", key="btn_comp"):
+        with st.spinner("Buscando e processando dados diretamente do Supabase..."):
+          try:
+            meses_esquerda = list(range(1, mes_encerrado + 1))
+            meses_direita = list(range(mes_encerrado + 1, 13))
+
+            ano_ant_1 = ano_selecionado - 1
+            ano_ant_2 = ano_selecionado - 2
+            ano_ant_3 = ano_selecionado - 3
+
+            df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
+            dict_nomes_contas = (
+                dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
+                if not df_nomes_contas.empty else {}
+            )
+
+            case_meses_sql = ""
+            for m in range(1, 13):
+              case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
+
+            query_relatorio = f"""
+                      SELECT 
+                          COALESCE(cg.nivel, '1') AS "Nível",
+                          COALESCE(cg.codigo_conta, 'S/C') AS "Código",
+                          COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
+                          {case_meses_sql}
+                          SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1",
+                          SUM(CASE WHEN e.exercicio = {ano_ant_2} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_2",
+                          SUM(CASE WHEN e.exercicio = {ano_ant_3} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_3"
+                      FROM tb_execucao_despesa e
+                      LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                      LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
+                      """
+
+            params = {}
+            if unidade_selecionada != "Todas":
+              query_relatorio += """
+                      INNER JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
+                      WHERE u.unidade = :unidade AND e.exercicio IN ({}, {}, {}, {})
+                      """.format(ano_selecionado, ano_ant_1, ano_ant_2, ano_ant_3)
+              params["unidade"] = unidade_selecionada
+            else:
+              query_relatorio += f" WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1}, {ano_ant_2}, {ano_ant_3})"
+
+            query_relatorio += """
+                      GROUP BY "Nível", "Código", "Conta Gerencial"
+                      ORDER BY "Código" ASC, "Conta Gerencial" ASC;
+                      """
+
+            df_sql = executar_consulta_sql(query_relatorio, params=params if params else None)
+
+            if df_sql.empty:
+              st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
+            else:
+              registros_processados = []
+              df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
+              grupos_unicos = df_sql["grupo_principal"].unique()
+              
+              for grupo in sorted(grupos_unicos):
+                df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
+                for _, row in df_grupo.iterrows():
+                  item = {
+                      "Nível": row["Nível"],
+                      "Código": row["Código"],
+                      "Conta Gerencial": row["Conta Gerencial"],
+                      "tipo_linha": "detalhe"
+                  }
+                  for m in range(1, 13):
+                    item[f"mes_{m}"] = row[f"mes_{m}"]
+                  item["ano_ant_1"] = row["ano_ant_1"]
+                  item["ano_ant_2"] = row["ano_ant_2"]
+                  item["ano_ant_3"] = row["ano_ant_3"]
+                  registros_processados.append(item)
+
+                codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
+                nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
+                
+                subtotal = {
+                    "Nível": df_grupo["Nível"].iloc[0],
+                    "Código": codigo_total,
+                    "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
+                    "tipo_linha": "total"
+                }
+                for m in range(1, 13):
+                  subtotal[f"mes_{m}"] = df_grupo[f"mes_{m}"].sum()
+                subtotal["ano_ant_1"] = df_grupo["ano_ant_1"].sum()
+                subtotal["ano_ant_2"] = df_grupo["ano_ant_2"].sum()
+                subtotal["ano_ant_3"] = df_grupo["ano_ant_3"].sum()
+                registros_processados.append(subtotal)
+
+              total_geral_row = {
+                  "Nível": "",
+                  "Código": "",
+                  "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
+                  "tipo_linha": "grand_total"
               }
               for m in range(1, 13):
-                item[f"mes_{m}"] = row[f"mes_{m}"]
-              item["ano_ant_1"] = row["ano_ant_1"]
-              item["ano_ant_2"] = row["ano_ant_2"]
-              item["ano_ant_3"] = row["ano_ant_3"]
-              registros_processados.append(item)
+                total_geral_row[f"mes_{m}"] = df_sql[f"mes_{m}"].sum()
+              total_geral_row["ano_ant_1"] = df_sql["ano_ant_1"].sum()
+              total_geral_row["ano_ant_2"] = df_sql["ano_ant_2"].sum()
+              total_geral_row["ano_ant_3"] = df_sql["ano_ant_3"].sum()
+              registros_processados.append(total_geral_row)
 
-            codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
-            nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
-            
-            subtotal = {
-                "Nível": df_grupo["Nível"].iloc[0],
-                "Código": codigo_total,
-                "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
-                "tipo_linha": "total"
-            }
-            for m in range(1, 13):
-              subtotal[f"mes_{m}"] = df_grupo[f"mes_{m}"].sum()
-            subtotal["ano_ant_1"] = df_grupo["ano_ant_1"].sum()
-            subtotal["ano_ant_2"] = df_grupo["ano_ant_2"].sum()
-            subtotal["ano_ant_3"] = df_grupo["ano_ant_3"].sum()
-            registros_processados.append(subtotal)
+              df_processado = pd.DataFrame(registros_processados)
+              df_final = pd.DataFrame()
+              df_final[("Identificação", "Código")] = df_processado["Código"]
+              df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
 
-          total_geral_row = {
-              "Nível": "",
-              "Código": "",
-              "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
-              "tipo_linha": "grand_total"
-          }
-          for m in range(1, 13):
-            total_geral_row[f"mes_{m}"] = df_sql[f"mes_{m}"].sum()
-          total_geral_row["ano_ant_1"] = df_sql["ano_ant_1"].sum()
-          total_geral_row["ano_ant_2"] = df_sql["ano_ant_2"].sum()
-          total_geral_row["ano_ant_3"] = df_sql["ano_ant_3"].sum()
-          registros_processados.append(total_geral_row)
+              for m in meses_esquerda:
+                nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
+                df_final[("Executado", nome_col)] = df_processado[f"mes_{m}"]
 
-          df_processado = pd.DataFrame(registros_processados)
-          df_final = pd.DataFrame()
-          df_final[("Identificação", "Código")] = df_processado["Código"]
-          df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
+              for m in meses_direita:
+                nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
+                df_final[("Orçado", nome_col)] = 0.0
 
-          for m in meses_esquerda:
-            nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-            df_final[("Executado", nome_col)] = df_processado[f"mes_{m}"]
+              df_final[("Totais", "Total Geral")] = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
+              df_final[("Totais", str(ano_ant_1))] = df_processado["ano_ant_1"]
+              df_final[("Totais", str(ano_ant_2))] = df_processado["ano_ant_2"]
+              df_final[("Totais", str(ano_ant_3))] = df_processado["ano_ant_3"]
 
-          for m in meses_direita:
-            nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-            df_final[("Orçado", nome_col)] = 0.0
+              df_final[("Análise", "Variação (%)")] = (
+                  (df_final[("Totais", "Total Geral")] - df_final[("Totais", str(ano_ant_1))])
+                  / df_final[("Totais", str(ano_ant_1))].replace(0, float("nan"))
+              ) * 100.0
 
-          df_final[("Totais", "Total Geral")] = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
-          df_final[("Totais", str(ano_ant_1))] = df_processado["ano_ant_1"]
-          df_final[("Totais", str(ano_ant_2))] = df_processado["ano_ant_2"]
-          df_final[("Totais", str(ano_ant_3))] = df_processado["ano_ant_3"]
+              df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
-          df_final[("Análise", "Variação (%)")] = (
-              (df_final[("Totais", "Total Geral")] - df_final[("Totais", str(ano_ant_1))])
-              / df_final[("Totais", str(ano_ant_1))].replace(0, float("nan"))
-          ) * 100.0
+              def fmt_br(val):
+                if pd.isna(val):
+                  return ""
+                return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-          df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
+              format_dict = {}
+              for col in df_final.columns:
+                if col[1] == "Variação (%)":
+                  format_dict[col] = lambda x: f"{x:+.2f}%".replace(".", ",") if not pd.isna(x) else ""
+                elif col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
+                  format_dict[col] = lambda x: fmt_br(x)
 
-          def fmt_br(val):
-            if pd.isna(val):
-              return ""
-            return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+              st.markdown(f"### Demonstrativo Orçamentário Comparativo (Mês Encerrado: **{mes_ano_selecionado_str}**)")
 
-          format_dict = {}
-          for col in df_final.columns:
-            if col[1] == "Variação (%)":
-              format_dict[col] = lambda x: f"{x:+.2f}%".replace(".", ",") if not pd.isna(x) else ""
-            elif col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
-              format_dict[col] = lambda x: fmt_br(x)
+              def destacar_linhas_totais(row):
+                texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
+                if texto_conta.startswith("TOTAL "):
+                  return ["font-weight: bold; background-color: #f0f2f6;"] * len(row)
+                return [""] * len(row)
 
-          st.markdown(f"### Demonstrativo Orçamentário Comparativo (Mês Encerrado: **{mes_ano_selecionado_str}**)")
+              df_estilizado = (
+                  df_final.style
+                  .format(format_dict)
+                  .apply(destacar_linhas_totais, axis=1)
+                  .set_table_styles([
+                      {"selector": "th.col_heading.level0", "props": [("text-align", "center"), ("vertical-align", "middle"), ("font-weight", "600")]},
+                      {"selector": "th.col_heading.level1", "props": [("text-align", "center"), ("vertical-align", "middle")]},
+                      {"selector": "th.col_heading.level0.col0", "props": [("text-align", "left")]},
+                      {"selector": "th.col_heading.level1.col0, th.col_heading.level1.col1", "props": [("text-align", "left")]},
+                      {"selector": "td", "props": [("text-align", "right"), ("white-space", "nowrap")]},
+                      {"selector": "td.col0, td.col1", "props": [("text-align", "left"), ("white-space", "nowrap")]},
+                      {"selector": "thead th", "props": [("border-bottom", "1px solid #d0d0d0"), ("white-space", "nowrap")]},
+                      {"selector": "table", "props": [("width", "100%"), ("border-collapse", "collapse")]},
+                  ])
+                  .hide(axis="index")
+              )
 
-          def destacar_linhas_totais(row):
-            texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
-            if texto_conta.startswith("TOTAL "):
-              return ["font-weight: bold; background-color: #f0f2f6;"] * len(row)
-            return [""] * len(row)
+              st.markdown(f'<div style="width: 100%; overflow-x: auto; border: 1px solid #e6e6e6; border-radius: 6px;">{df_estilizado.to_html()}</div>', unsafe_allow_html=True)
 
-          df_estilizado = (
-              df_final.style
-              .format(format_dict)
-              .apply(destacar_linhas_totais, axis=1)
-              .set_table_styles([
-                  {"selector": "th.col_heading.level0", "props": [("text-align", "center"), ("vertical-align", "middle"), ("font-weight", "600")]},
-                  {"selector": "th.col_heading.level1", "props": [("text-align", "center"), ("vertical-align", "middle")]},
-                  {"selector": "th.col_heading.level0.col0", "props": [("text-align", "left")]},
-                  {"selector": "th.col_heading.level1.col0, th.col_heading.level1.col1", "props": [("text-align", "left")]},
-                  {"selector": "td", "props": [("text-align", "right"), ("white-space", "nowrap")]},
-                  {"selector": "td.col0, td.col1", "props": [("text-align", "left"), ("white-space", "nowrap")]},
-                  {"selector": "thead th", "props": [("border-bottom", "1px solid #d0d0d0"), ("white-space", "nowrap")]},
-                  {"selector": "table", "props": [("width", "100%"), ("border-collapse", "collapse")]},
-              ])
-              .hide(axis="index")
+          except Exception as e:
+            st.error(f"Erro ao consultar o Supabase: {e}")
+
+
+    # -----------------------------------------------------------------------------
+    # PÁGINA: EXECUÇÃO X LOA
+    # -----------------------------------------------------------------------------
+    elif st.session_state.pagina_atual == "execucao_loa":
+      c_head1, c_head2 = st.columns([1, 4])
+      with c_head1:
+        if st.session_state.logo_personalizada is not None:
+          st.image(st.session_state.logo_personalizada, width=130)
+        else:
+          st.markdown(
+              "<h2 style='color: #003366; margin: 0;'>🏛 UFSM</h2>",
+              unsafe_allow_html=True,
           )
-
-          st.markdown(f'<div style="width: 100%; overflow-x: auto; border: 1px solid #e6e6e6; border-radius: 6px;">{df_estilizado.to_html()}</div>', unsafe_allow_html=True)
-
-      except Exception as e:
-        st.error(f"Erro ao consultar o Supabase: {e}")
-
-# -----------------------------------------------------------------------------
-# PÁGINA: EXECUÇÃO X LOA
-# -----------------------------------------------------------------------------
-elif st.session_state.pagina_atual == "execucao_loa":
-  c_head1, c_head2 = st.columns([1, 4])
-  with c_head1:
-    if st.session_state.logo_personalizada is not None:
-      st.image(st.session_state.logo_personalizada, width=130)
-    else:
-      st.markdown(
-          "<h2 style='color: #003366; margin: 0;'>🏛 UFSM</h2>",
-          unsafe_allow_html=True,
-      )
-  with c_head2:
-    st.markdown(
-        f"""
-              <div class="cabecalho-impressao">
-                  <div class="titulo-impressao">
-                      <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA</h2>
-                      <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - DEMONSTRATIVO EXECUÇÃO X LOA</h4>
+      with c_head2:
+        st.markdown(
+            f"""
+                  <div class="cabecalho-impressao">
+                      <div class="titulo-impressao">
+                          <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA</h2>
+                          <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - DEMONSTRATIVO EXECUÇÃO X LOA</h4>
+                      </div>
+                      <div style="text-align: right; font-size: 11px; color: #555;">
+                          <b>SiGeO</b> - Sistema de Gestão Orçamentária<br>
+                          Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
+                      </div>
                   </div>
-                  <div style="text-align: right; font-size: 11px; color: #555;">
-                      <b>SiGeO</b> - Sistema de Gestão Orçamentária<br>
-                      Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
-                  </div>
-              </div>
-          """,
-        unsafe_allow_html=True,
-    )
-
-  st.subheader("📊 Demonstrativo Execução X LOA (Global por Anos)")
-
-  try:
-    df_anos_filtro = executar_consulta_sql(
-        "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
-    )
-    anos_disponiveis = (
-        df_anos_filtro["exercicio"].tolist()
-        if not df_anos_filtro.empty
-        else [datetime.now().year, datetime.now().year - 1]
-    )
-  except Exception:
-    anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
-
-  # Apenas o seletor de Ano, sem seletor de unidade
-  c_f1 = st.columns(1)[0]
-  with c_f1:
-    ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0, key="loa_ano")
-
-  if st.button("🔍 Executar Consulta Execução X LOA", type="primary", key="btn_loa"):
-    with st.spinner("Buscando dados no Supabase..."):
-      try:
-        df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
-        dict_nomes_contas = (
-            dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
-            if not df_nomes_contas.empty else {}
+              """,
+            unsafe_allow_html=True,
         )
 
-        query_loa = f"""
-                  SELECT 
-                      COALESCE(cg.nivel, '1') AS "Nível",
-                      COALESCE(cg.codigo_conta, 'S/C') AS "Código",
-                      COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
-                      SUM(CASE WHEN e.exercicio = {ano_selecionado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "total_executado"
-                  FROM tb_execucao_despesa e
-                  LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
-                  LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
-                  WHERE e.exercicio = {ano_selecionado}
-                  GROUP BY "Nível", "Código", "Conta Gerencial"
-                  ORDER BY "Código" ASC, "Conta Gerencial" ASC;
-                  """
+      st.subheader("📊 Demonstrativo Execução X LOA (Global por Anos)")
 
-        df_sql = executar_consulta_sql(query_loa)
+      try:
+        df_anos_filtro = executar_consulta_sql(
+            "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
+        )
+        anos_disponiveis = (
+            df_anos_filtro["exercicio"].tolist()
+            if not df_anos_filtro.empty
+            else [datetime.now().year, datetime.now().year - 1]
+        )
+      except Exception:
+        anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
 
-        if df_sql.empty:
-          st.warning("Nenhum registro encontrado no Supabase para o ano selecionado.")
-        else:
-          registros_processados = []
-          df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
-          grupos_unicos = df_sql["grupo_principal"].unique()
+      c_f1 = st.columns(1)[0]
+      with c_f1:
+        ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0, key="loa_ano")
 
-          for grupo in sorted(grupos_unicos):
-            df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
-            for _, row in df_grupo.iterrows():
-              item = {
-                  "Nível": row["Nível"],
-                  "Código": row["Código"],
-                  "Conta Gerencial": row["Conta Gerencial"],
-                  "total_executado": row["total_executado"],
+      if st.button("🔍 Executar Consulta Execução X LOA", type="primary", key="btn_loa"):
+        with st.spinner("Buscando dados no Supabase..."):
+          try:
+            df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
+            dict_nomes_contas = (
+                dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
+                if not df_nomes_contas.empty else {}
+            )
+
+            query_loa = f"""
+                      SELECT 
+                          COALESCE(cg.nivel, '1') AS "Nível",
+                          COALESCE(cg.codigo_conta, 'S/C') AS "Código",
+                          COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
+                          SUM(CASE WHEN e.exercicio = {ano_selecionado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "total_executado"
+                      FROM tb_execucao_despesa e
+                      LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                      LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
+                      WHERE e.exercicio = {ano_selecionado}
+                      GROUP BY "Nível", "Código", "Conta Gerencial"
+                      ORDER BY "Código" ASC, "Conta Gerencial" ASC;
+                      """
+
+            df_sql = executar_consulta_sql(query_loa)
+
+            if df_sql.empty:
+              st.warning("Nenhum registro encontrado no Supabase para o ano selecionado.")
+            else:
+              registros_processados = []
+              df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
+              grupos_unicos = df_sql["grupo_principal"].unique()
+
+              for grupo in sorted(grupos_unicos):
+                df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
+                for _, row in df_grupo.iterrows():
+                  item = {
+                      "Nível": row["Nível"],
+                      "Código": row["Código"],
+                      "Conta Gerencial": row["Conta Gerencial"],
+                      "total_executado": row["total_executado"],
+                      "loa_detalhada": 0.0,
+                      "a_executar": 0.0 - row["total_executado"]
+                  }
+                  registros_processados.append(item)
+
+                codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
+                nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
+                
+                executado_subtotal = df_grupo["total_executado"].sum()
+                subtotal = {
+                    "Nível": df_grupo["Nível"].iloc[0],
+                    "Código": codigo_total,
+                    "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
+                    "total_executado": executado_subtotal,
+                    "loa_detalhada": 0.0,
+                    "a_executar": 0.0 - executado_subtotal
+                }
+                registros_processados.append(subtotal)
+
+              total_geral_exec = df_sql["total_executado"].sum()
+              total_geral_row = {
+                  "Nível": "",
+                  "Código": "",
+                  "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
+                  "total_executado": total_geral_exec,
                   "loa_detalhada": 0.0,
-                  "a_executar": 0.0 - row["total_executado"]
+                  "a_executar": 0.0 - total_geral_exec
               }
-              registros_processados.append(item)
+              registros_processados.append(total_geral_row)
 
-            codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
-            nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
-            
-            executado_subtotal = df_grupo["total_executado"].sum()
-            subtotal = {
-                "Nível": df_grupo["Nível"].iloc[0],
-                "Código": codigo_total,
-                "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
-                "total_executado": executado_subtotal,
-                "loa_detalhada": 0.0,
-                "a_executar": 0.0 - executado_subtotal
-            }
-            registros_processados.append(subtotal)
+              df_processado = pd.DataFrame(registros_processados)
 
-          total_geral_exec = df_sql["total_executado"].sum()
-          total_geral_row = {
-              "Nível": "",
-              "Código": "",
-              "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
-              "total_executado": total_geral_exec,
-              "loa_detalhada": 0.0,
-              "a_executar": 0.0 - total_geral_exec
-          }
-          registros_processados.append(total_geral_row)
+              df_final = pd.DataFrame()
+              df_final[("Identificação", "Código")] = df_processado["Código"]
+              df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
+              df_final[("Orçamento", f"Executado {ano_selecionado}")] = df_processado["total_executado"]
+              df_final[("Orçamento", "LOA Detalhada")] = df_processado["loa_detalhada"]
+              df_final[("Orçamento", "A executar")] = df_processado["a_executar"]
 
-          df_processado = pd.DataFrame(registros_processados)
+              df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
-          df_final = pd.DataFrame()
-          df_final[("Identificação", "Código")] = df_processado["Código"]
-          df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
-          df_final[("Orçamento", f"Executado {ano_selecionado}")] = df_processado["total_executado"]
-          df_final[("Orçamento", "LOA Detalhada")] = df_processado["loa_detalhada"]
-          df_final[("Orçamento", "A executar")] = df_processado["a_executar"]
+              def fmt_br(val):
+                if pd.isna(val):
+                  return ""
+                return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-          df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
+              format_dict = {}
+              for col in df_final.columns:
+                if col[0] == "Orçamento":
+                  format_dict[col] = lambda x: fmt_br(x)
 
-          def fmt_br(val):
-            if pd.isna(val):
-              return ""
-            return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+              st.markdown(f"### Demonstrativo Execução X LOA (Ano: **{ano_selecionado}**)")
 
-          format_dict = {}
-          for col in df_final.columns:
-            if col[0] == "Orçamento":
-              format_dict[col] = lambda x: fmt_br(x)
+              def destacar_linhas_totais_loa(row):
+                texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
+                if texto_conta.startswith("TOTAL "):
+                  return ["font-weight: bold; background-color: #f0f2f6;"] * len(row)
+                return [""] * len(row)
 
-          st.markdown(f"### Demonstrativo Execução X LOA (Ano: **{ano_selecionado}**)")
+              df_estilizado = (
+                  df_final.style
+                  .format(format_dict)
+                  .apply(destacar_linhas_totais_loa, axis=1)
+                  .set_table_styles([
+                      {"selector": "th.col_heading.level0", "props": [("text-align", "center"), ("vertical-align", "middle"), ("font-weight", "600")]},
+                      {"selector": "th.col_heading.level1", "props": [("text-align", "center"), ("vertical-align", "middle")]},
+                      {"selector": "th.col_heading.level0.col0", "props": [("text-align", "left")]},
+                      {"selector": "th.col_heading.level1.col0, th.col_heading.level1.col1", "props": [("text-align", "left")]},
+                      {"selector": "td", "props": [("text-align", "right"), ("white-space", "nowrap")]},
+                      {"selector": "td.col0, td.col1", "props": [("text-align", "left"), ("white-space", "nowrap")]},
+                      {"selector": "thead th", "props": [("border-bottom", "1px solid #d0d0d0"), ("white-space", "nowrap")]},
+                      {"selector": "table", "props": [("width", "100%"), ("border-collapse", "collapse")]},
+                  ])
+                  .hide(axis="index")
+              )
 
-          def destacar_linhas_totais_loa(row):
-            texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
-            if texto_conta.startswith("TOTAL "):
-              return ["font-weight: bold; background-color: #f0f2f6;"] * len(row)
-            return [""] * len(row)
+              st.markdown(f'<div style="width: 100%; overflow-x: auto; border: 1px solid #e6e6e6; border-radius: 6px;">{df_estilizado.to_html()}</div>', unsafe_allow_html=True)
 
-          df_estilizado = (
-              df_final.style
-              .format(format_dict)
-              .apply(destacar_linhas_totais_loa, axis=1)
-              .set_table_styles([
-                  {"selector": "th.col_heading.level0", "props": [("text-align", "center"), ("vertical-align", "middle"), ("font-weight", "600")]},
-                  {"selector": "th.col_heading.level1", "props": [("text-align", "center"), ("vertical-align", "middle")]},
-                  {"selector": "th.col_heading.level0.col0", "props": [("text-align", "left")]},
-                  {"selector": "th.col_heading.level1.col0, th.col_heading.level1.col1", "props": [("text-align", "left")]},
-                  {"selector": "td", "props": [("text-align", "right"), ("white-space", "nowrap")]},
-                  {"selector": "td.col0, td.col1", "props": [("text-align", "left"), ("white-space", "nowrap")]},
-                  {"selector": "thead th", "props": [("border-bottom", "1px solid #d0d0d0"), ("white-space", "nowrap")]},
-                  {"selector": "table", "props": [("width", "100%"), ("border-collapse", "collapse")]},
-              ])
-              .hide(axis="index")
-          )
-
-          st.markdown(f'<div style="width: 100%; overflow-x: auto; border: 1px solid #e6e6e6; border-radius: 6px;">{df_estilizado.to_html()}</div>', unsafe_allow_html=True)
-
-      except Exception as e:
-        st.error(f"Erro ao consultar o Supabase para Execução X LOA: {e}")
+          except Exception as e:
+            st.error(f"Erro ao consultar o Supabase para Execução X LOA: {e}")
 
   # -----------------------------------------------------------------------------
   # CADASTRO: UNIDADES (`public.tb_unidades`)
