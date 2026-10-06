@@ -869,24 +869,10 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-  # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
-    # Injeção de CSS robusta para centralizar cabeçalhos da tabela
-    st.markdown("""
-        <style>
-        [data-testid="stDataFrame"] th, 
-        [data-testid="stDataFrame"] div[data-testid="stMarkdownContainer"] p {
-            text-align: center !important;
-            justify-content: center !important;
-        }
-        th {
-            text-align: center !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
     c_head1, c_head2 = st.columns([1, 4])
     with c_head1:
       if st.session_state.logo_personalizada is not None:
@@ -1125,15 +1111,120 @@ if verificar_senha():
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             
-            df_estilizado = df_final.style.format(format_dict).set_table_styles([
-                {"selector": "td", "props": "text-align: right;"},
-                {"selector": "td:nth-child(1), td:nth-child(2), td:nth-child(3)", "props": "text-align: left;"}
-            ])
+            st.markdown(
+                f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)"
+            )
 
-            st.dataframe(
-                df_estilizado,
-                use_container_width=True,
-                hide_index=True
+            # -----------------------------------------------------------------
+            # FORMATAÇÃO DA TABELA
+            # -----------------------------------------------------------------
+            # Mantém:
+            # - Identificação (Nível, Código e Conta Gerencial) à esquerda;
+            # - valores numéricos à direita;
+            # - cabeçalhos das colunas numéricas centralizados.
+            #
+            # A tabela é renderizada como HTML em vez de st.dataframe(),
+            # permitindo controlar diretamente o alinhamento dos <th>.
+            # -----------------------------------------------------------------
+
+            df_estilizado = (
+                df_final.style
+                .format(format_dict)
+                .set_table_styles([
+                    # Cabeçalhos dos grupos: Executado, Orçado, Totais e Análise
+                    {
+                        "selector": "th.col_heading.level0",
+                        "props": [
+                            ("text-align", "center"),
+                            ("vertical-align", "middle"),
+                            ("font-weight", "600"),
+                        ],
+                    },
+
+                    # Subcabeçalhos das colunas
+                    {
+                        "selector": "th.col_heading.level1",
+                        "props": [
+                            ("text-align", "center"),
+                            ("vertical-align", "middle"),
+                        ],
+                    },
+
+                    # Identificação: manter alinhada à esquerda
+                    {
+                        "selector": "th.col_heading.level0.col0",
+                        "props": [
+                            ("text-align", "left"),
+                        ],
+                    },
+                    {
+                        "selector": "th.col_heading.level1.col0, "
+                                   "th.col_heading.level1.col1, "
+                                   "th.col_heading.level1.col2",
+                        "props": [
+                            ("text-align", "left"),
+                        ],
+                    },
+
+                    # Corpo da tabela: números à direita
+                    {
+                        "selector": "td",
+                        "props": [
+                            ("text-align", "right"),
+                        ],
+                    },
+
+                    # Primeiras três colunas: texto à esquerda
+                    {
+                        "selector": "td.col0, td.col1, td.col2",
+                        "props": [
+                            ("text-align", "left"),
+                        ],
+                    },
+
+                    # Cabeçalho da tabela
+                    {
+                        "selector": "thead th",
+                        "props": [
+                            ("border-bottom", "1px solid #d0d0d0"),
+                        ],
+                    },
+
+                    # Evita que os cabeçalhos quebrem de forma estranha
+                    {
+                        "selector": "th",
+                        "props": [
+                            ("white-space", "nowrap"),
+                        ],
+                    },
+
+                    # Tabela ocupa toda a largura disponível
+                    {
+                        "selector": "table",
+                        "props": [
+                            ("width", "100%"),
+                            ("border-collapse", "collapse"),
+                        ],
+                    },
+                ])
+                .hide(axis="index")
+            )
+
+            # Container com rolagem horizontal para tabelas muito largas
+            html_tabela = df_estilizado.to_html()
+
+            st.markdown(
+                f"""
+                <div style="
+                    width: 100%;
+                    overflow-x: auto;
+                    border: 1px solid #e6e6e6;
+                    border-radius: 6px;
+                ">
+                    {html_tabela}
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         except Exception as e:
