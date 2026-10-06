@@ -869,7 +869,7 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-  # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "relatorio":
@@ -903,13 +903,13 @@ if verificar_senha():
         "📊 Demonstrativo Financeiro Comparativo (Consulta SQL Direta do Supabase)"
     )
 
-    # --- CARREGAR OPÇÕES PARA OS FILTROS DE UNIDADES E ANOS ---
+    # --- CARREGAR OPÇÕES PARA O FILTRO DE UNIDADES (Tabela tb_ugs) ---
     try:
       df_unidades_filtro = executar_consulta_sql(
-          "SELECT DISTINCT ug_responsavel FROM tb_execucao_despesa WHERE ug_responsavel IS NOT NULL ORDER BY ug_responsavel;"
+          "SELECT DISTINCT unidade FROM tb_ugs WHERE unidade IS NOT NULL ORDER BY unidade;"
       )
       unidades_opcoes = (
-          df_unidades_filtro["ug_responsavel"].tolist()
+          df_unidades_filtro["unidade"].tolist()
           if not df_unidades_filtro.empty
           else []
       )
@@ -937,7 +937,7 @@ if verificar_senha():
     }
     lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
-    # Layout de Filtros (3 colunas, ajustado para Unidade)[cite: 9]
+    # Layout de Filtros (3 colunas)
     c_f1, c_f2, c_f3 = st.columns(3)
     with c_f1:
       ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
@@ -957,7 +957,6 @@ if verificar_senha():
           meses_esquerda = list(range(1, mes_encerrado + 1))
           meses_direita = list(range(mes_encerrado + 1, 13))
 
-          # Definir anos anteriores solicitados (3 anos anteriores)[cite: 9]
           ano_ant_1 = ano_selecionado - 1
           ano_ant_2 = ano_selecionado - 2
           ano_ant_3 = ano_selecionado - 3
@@ -968,7 +967,7 @@ if verificar_senha():
 
           query_relatorio = f"""
                     SELECT 
-                        COALESCE(cg.nivel, 'Nível 1') AS "Nível",
+                        COALESCE(cg.nivel, '1') AS "Nível",
                         COALESCE(cg.codigo_conta, 'S/C') AS "Código",
                         COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
                         {case_meses_sql}
@@ -978,13 +977,17 @@ if verificar_senha():
                     FROM tb_execucao_despesa e
                     LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                     LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
-                    WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1}, {ano_ant_2}, {ano_ant_3})
                     """
 
           params = {}
           if unidade_selecionada != "Todas":
-            query_relatorio += " AND e.ug_responsavel = :unidade"
+            query_relatorio += """
+                    INNER JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
+                    WHERE u.unidade = :unidade AND e.exercicio IN ({}, {}, {}, {})
+                    """.format(ano_selecionado, ano_ant_1, ano_ant_2, ano_ant_3)
             params["unidade"] = unidade_selecionada
+          else:
+            query_relatorio += f" WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1}, {ano_ant_2}, {ano_ant_3})"
 
           query_relatorio += """
                     GROUP BY "Nível", "Código", "Conta Gerencial"
@@ -998,42 +1001,79 @@ if verificar_senha():
           if df_sql.empty:
             st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
           else:
+            # Geração das linhas de dados normais e cálculo de totalizadores por Nível
+            registros_processados = []
+            
+            # Agrupar por Nível para calcular subtotais
+            niveis_unicos = df_sql["Nível"].unique()
+            
+            for nivel in sorted(niveis_unicos):
+              df_nivel = df_sql[df_sql["Nível"] == nivel]
+              
+              # Adicionar linhas detalhadas
+              for _, row in df_nivel.iterrows():
+                item = {
+                    "Nível": row["Nível"],
+                    "Código": row["Código"],
+                    "Conta Gerencial": row["Conta Gerencial"],
+                    "tipo_linha": "detalhe"
+                }
+                for m in range(1, 13):
+                  item[f"mes_{m}"] = row[f"mes_{m}"]
+                item["ano_ant_1"] = row["ano_ant_1"]
+                item["ano_ant_2"] = row["ano_ant_2"]
+                item["ano_ant_3"] = row["ano_ant_3"]
+                registros_processados.append(item)
+
+              # Adicionar linha de Subtotal por Nível
+              subtotal = {
+                  "Nível": str(nivel),
+                  "Código": f"Total Nível {nivel}",
+                  "Conta Gerencial": f"TOTAL DO NÍVEL {nivel}",
+                  "tipo_linha": "total"
+              }
+              for m in range(1, 13):
+                subtotal[f"mes_{m}"] = df_nivel[f"mes_{m}"].sum()
+              subtotal["ano_ant_1"] = df_nivel["ano_ant_1"].sum()
+              subtotal["ano_ant_2"] = df_nivel["ano_ant_2"].sum()
+              subtotal["ano_ant_3"] = df_nivel["ano_ant_3"].sum()
+              registros_processados.append(subtotal)
+
+            df_processado = pd.DataFrame(registros_processados)
+
             df_final = pd.DataFrame()
-            df_final[("Identificação", "Nível")] = df_sql["Nível"]
-            df_final[("Identificação", "Código")] = df_sql["Código"]
-            df_final[("Identificação", "Conta Gerencial")] = df_sql["Conta Gerencial"]
+            df_final[("Identificação", "Nível")] = df_processado["Nível"]
+            df_final[("Identificação", "Código")] = df_processado["Código"]
+            df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
 
             cols_executadas = []
             for m in meses_esquerda:
               nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-              df_final[("Executado", nome_col)] = df_sql[f"mes_{m}"]
+              df_final[("Executado", nome_col)] = df_processado[f"mes_{m}"]
               cols_executadas.append(("Executado", nome_col))
 
             cols_orcadas = []
             for m in meses_direita:
               nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-              # Força zeramento para meses posteriores ao mês encerrado[cite: 9]
-              df_final[("Orçado", nome_col)] = 0.0
+              df_final[("Orçado", nome_col)] = 0.0  # Forçado zerado após mês encerrado
               cols_orcadas.append(("Orçado", nome_col))
 
-            # Total Geral Calculado (soma apenas das colunas executadas até o mês encerrado)[cite: 9]
-            df_final[("Totais", "Total Geral")] = df_final[cols_executadas].sum(axis=1) if cols_executadas else 0.0
+            # Total Geral Calculado (soma apenas das colunas executadas)
+            df_final[("Totais", "Total Geral")] = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
 
-            # Colunas dos 3 Anos Anteriores[cite: 9]
-            df_final[("Totais", str(ano_ant_1))] = df_sql["ano_ant_1"]
-            df_final[("Totais", str(ano_ant_2))] = df_sql["ano_ant_2"]
-            df_final[("Totais", str(ano_ant_3))] = df_sql["ano_ant_3"]
+            # Colunas dos Anos Anteriores
+            df_final[("Totais", str(ano_ant_1))] = df_processado["ano_ant_1"]
+            df_final[("Totais", str(ano_ant_2))] = df_processado["ano_ant_2"]
+            df_final[("Totais", str(ano_ant_3))] = df_processado["ano_ant_3"]
 
-            # Variação (%) comparando com o ano anterior imediato (ano_ant_1)[cite: 9]
+            # Variação (%)
             df_final[("Análise", "Variação (%)")] = (
                 (df_final[("Totais", "Total Geral")] - df_final[("Totais", str(ano_ant_1))])
                 / df_final[("Totais", str(ano_ant_1))].replace(0, float("nan"))
             ) * 100.0
 
-            # Atribuir o MultiIndex criado ao DataFrame[cite: 9]
             df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
-            # Função auxiliar para formatação estilo brasileiro (ponto para milhar, vírgula para decimal, sem R$)
             def fmt_br(val):
               if pd.isna(val):
                 return ""
@@ -1048,15 +1088,16 @@ if verificar_senha():
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
             
-            # Aplicar estilos CSS para centralizar os cabeçalhos e colunas numéricas/rótulos
+            # Estilização CSS completa para centralizar cabeçalhos e alinhar valores à direita
             df_estilizado = df_final.style.format(format_dict).set_table_styles([
-                {"selector": "th.col_heading", "props": "text-align: center;"},
-                {"selector": "th.level0", "props": "text-align: center; font-weight: bold;"},
-                {"selector": "th.level1", "props": "text-align: center;"},
-                {"selector": "td", "props": "text-align: right;"}
+                {"selector": "th", "props": "text-align: center !important;"},
+                {"selector": "th.col_heading", "props": "text-align: center !important;"},
+                {"selector": "th.level0", "props": "text-align: center !important; font-weight: bold;"},
+                {"selector": "th.level1", "props": "text-align: center !important;"},
+                {"selector": "td", "props": "text-align: right;"},
+                {"selector": "td:nth-child(1), td:nth-child(2), td:nth-child(3)", "props": "text-align: left;"}
             ])
 
-            # Exibir tabela ocultando o índice numérico (0, 1, 2...)[cite: 9]
             st.dataframe(
                 df_estilizado,
                 use_container_width=True,
