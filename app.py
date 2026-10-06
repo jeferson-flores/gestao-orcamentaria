@@ -868,7 +868,7 @@ if verificar_senha():
       if st.button("Remover e Enviar Nova Planilha", type="primary"):
         st.session_state.dados_tg_raw = None
         st.rerun()
-        
+
   # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM FILTROS E MESES)
   # -----------------------------------------------------------------------------
@@ -937,7 +937,7 @@ if verificar_senha():
     }
     lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
-    # Layout de Filtros (Apenas 3 colunas, sem o filtro de conta gerencial)[cite: 5]
+    # Layout de Filtros (3 colunas, ajustado para Unidade)[cite: 9]
     c_f1, c_f2, c_f3 = st.columns(3)
     with c_f1:
       ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0)
@@ -948,7 +948,7 @@ if verificar_senha():
       mes_encerrado = int(mes_ano_selecionado_str.split(" - ")[0])
     with c_f3:
       unidade_selecionada = st.selectbox(
-          "Unidade (UG):", options=["Todas"] + unidades_opcoes
+          "Unidade:", options=["Todas"] + unidades_opcoes
       )
 
     if st.button("🔍 Executar Consulta SQL no Supabase", type="primary"):
@@ -957,7 +957,7 @@ if verificar_senha():
           meses_esquerda = list(range(1, mes_encerrado + 1))
           meses_direita = list(range(mes_encerrado + 1, 13))
 
-          # Definir anos anteriores solicitados (3 anos anteriores)[cite: 5]
+          # Definir anos anteriores solicitados (3 anos anteriores)[cite: 9]
           ano_ant_1 = ano_selecionado - 1
           ano_ant_2 = ano_selecionado - 2
           ano_ant_3 = ano_selecionado - 3
@@ -1012,25 +1012,25 @@ if verificar_senha():
             cols_orcadas = []
             for m in meses_direita:
               nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-              df_final[("Orçado", nome_col)] = df_sql[f"mes_{m}"]
+              # Força zeramento para meses posteriores ao mês encerrado[cite: 9]
+              df_final[("Orçado", nome_col)] = 0.0
               cols_orcadas.append(("Orçado", nome_col))
 
-            # Total Geral Calculado (soma apenas das colunas executadas até o mês encerrado)
-            todas_cols_meses_chaves = [c for c in cols_executadas + cols_orcadas]
+            # Total Geral Calculado (soma apenas das colunas executadas até o mês encerrado)[cite: 9]
             df_final[("Totais", "Total Geral")] = df_final[cols_executadas].sum(axis=1) if cols_executadas else 0.0
 
-            # Colunas dos 3 Anos Anteriores[cite: 5]
+            # Colunas dos 3 Anos Anteriores[cite: 9]
             df_final[("Totais", str(ano_ant_1))] = df_sql["ano_ant_1"]
             df_final[("Totais", str(ano_ant_2))] = df_sql["ano_ant_2"]
             df_final[("Totais", str(ano_ant_3))] = df_sql["ano_ant_3"]
 
-            # Variação (%) comparando com o ano anterior imediato (ano_ant_1)
+            # Variação (%) comparando com o ano anterior imediato (ano_ant_1)[cite: 9]
             df_final[("Análise", "Variação (%)")] = (
                 (df_final[("Totais", "Total Geral")] - df_final[("Totais", str(ano_ant_1))])
                 / df_final[("Totais", str(ano_ant_1))].replace(0, float("nan"))
             ) * 100.0
 
-            # Atribuir o MultiIndex criado ao DataFrame[cite: 5]
+            # Atribuir o MultiIndex criado ao DataFrame[cite: 9]
             df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
             # Função auxiliar para formatação estilo brasileiro (ponto para milhar, vírgula para decimal, sem R$)
@@ -1047,9 +1047,20 @@ if verificar_senha():
                 format_dict[col] = lambda x: fmt_br(x)
 
             st.markdown(f"### Demonstrativo Orçamentário (Mês Encerrado: **{mes_ano_selecionado_str}**)")
+            
+            # Aplicar estilos CSS para centralizar os cabeçalhos e colunas numéricas/rótulos
+            df_estilizado = df_final.style.format(format_dict).set_table_styles([
+                {"selector": "th.col_heading", "props": "text-align: center;"},
+                {"selector": "th.level0", "props": "text-align: center; font-weight: bold;"},
+                {"selector": "th.level1", "props": "text-align: center;"},
+                {"selector": "td", "props": "text-align: right;"}
+            ])
+
+            # Exibir tabela ocultando o índice numérico (0, 1, 2...)[cite: 9]
             st.dataframe(
-                df_final.style.format(format_dict),
+                df_estilizado,
                 use_container_width=True,
+                hide_index=True
             )
 
         except Exception as e:
