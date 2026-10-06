@@ -672,15 +672,15 @@ if verificar_senha():
       st.session_state.pagina_atual = "relatorio"
       st.rerun()
     if st.button(
-        "📊 Simulações Orçamentárias",
+        "📈 Evolução Anual",
         use_container_width=True,
         type=(
             "primary"
-            if st.session_state.pagina_atual == "simulacoes_orcamentarias"
+            if st.session_state.pagina_atual == "evolucao_anual"
             else "secondary"
         ),
     ):
-      st.session_state.pagina_atual = "simulacoes_orcamentarias"
+      st.session_state.pagina_atual = "evolucao_anual"
       st.rerun()
     if st.button(
         "📈 Execução X LOA",
@@ -692,6 +692,17 @@ if verificar_senha():
         ),
     ):
       st.session_state.pagina_atual = "execucao_loa"
+      st.rerun()
+    if st.button(
+        "📊 Simulações Orçamentárias",
+        use_container_width=True,
+        type=(
+            "primary"
+            if st.session_state.pagina_atual == "simulacoes_orcamentarias"
+            else "secondary"
+        ),
+    ):
+      st.session_state.pagina_atual = "simulacoes_orcamentarias"
       st.rerun()
 
   st.sidebar.markdown("---")
@@ -1123,6 +1134,226 @@ if verificar_senha():
           except Exception as e:
             st.error(f"Erro ao consultar o Supabase: {e}")
 
+
+  # -----------------------------------------------------------------------------
+  # PÁGINA: EVOLUÇÃO ANUAL
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "evolucao_anual":
+    c_head1, c_head2 = st.columns([1, 4])
+    with c_head1:
+      if st.session_state.logo_personalizada is not None:
+        st.image(st.session_state.logo_personalizada, width=130)
+      else:
+        st.markdown(
+            "<h2 style='color: #003366; margin: 0;'>🏛 UFSM</h2>",
+            unsafe_allow_html=True,
+        )
+    with c_head2:
+      st.markdown(
+          f"""
+                <div class="cabecalho-impressao">
+                    <div class="titulo-impressao">
+                        <h2>UNIVERSIDADE FEDERAL DE SANTA MARIA</h2>
+                        <h4>PRÓ-REITORIA DE ADMINISTRAÇÃO - EVOLUÇÃO ANUAL</h4>
+                    </div>
+                    <div style="text-align: right; font-size: 11px; color: #555;">
+                        <b>SiGeO</b> - Sistema de Gestão Orçamentária<br>
+                        Emitido em: {datetime.now().strftime('%d/%m/%Y às %H:%M')}
+                    </div>
+                </div>
+            """,
+          unsafe_allow_html=True,
+      )
+
+    st.subheader("📊 Relatório de Evolução Anual")
+
+    try:
+      df_unidades_filtro = executar_consulta_sql(
+          "SELECT DISTINCT unidade FROM tb_ugs WHERE unidade IS NOT NULL ORDER BY unidade;"
+      )
+      unidades_opcoes = (
+          df_unidades_filtro["unidade"].tolist()
+          if not df_unidades_filtro.empty
+          else []
+      )
+    except Exception:
+      unidades_opcoes = []
+
+    try:
+      df_anos_filtro = executar_consulta_sql(
+          "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS NOT NULL ORDER BY exercicio DESC;"
+      )
+      anos_disponiveis = (
+          df_anos_filtro["exercicio"].tolist()
+          if not df_anos_filtro.empty
+          else [datetime.now().year, datetime.now().year - 1]
+      )
+    except Exception:
+      anos_disponiveis = [datetime.now().year]
+
+    meses_nomes = {
+        1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
+        5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+        9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+    }
+    lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
+
+    c_f1, c_f2, c_f3 = st.columns(3)
+    with c_f1:
+      ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0, key="evo_ano")
+    with c_f2:
+      mes_ano_selecionado_str = st.selectbox(
+          "Mês/Ano Encerrado:", options=lista_meses_ano, index=min(datetime.now().month - 1, 11), key="evo_mes"
+      )
+      mes_encerrado = int(mes_ano_selecionado_str.split(" - ")[0])
+    with c_f3:
+      unidade_selecionada = st.selectbox(
+          "Unidade:", options=["Todas"] + unidades_opcoes, key="evo_unidade"
+      )
+
+    if st.button("🔍 Executar Consulta SQL no Supabase", type="primary", key="btn_evo"):
+      with st.spinner("Buscando e processando dados diretamente do Supabase..."):
+        try:
+          meses_esquerda = list(range(1, mes_encerrado + 1))
+          meses_direita = list(range(mes_encerrado + 1, 13))
+
+          df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
+          dict_nomes_contas = (
+              dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
+              if not df_nomes_contas.empty else {}
+          )
+
+          case_meses_sql = ""
+          for m in range(1, 13):
+            case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
+
+          query_relatorio = f"""
+                    SELECT 
+                        COALESCE(cg.nivel, '1') AS "Nível",
+                        COALESCE(cg.codigo_conta, 'S/C') AS "Código",
+                        COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
+                        {case_meses_sql.rstrip(',\n')}
+                    FROM tb_execucao_despesa e
+                    LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                    LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
+                    """
+
+          params = {}
+          if unidade_selecionada != "Todas":
+            query_relatorio += """
+                    INNER JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
+                    WHERE u.unidade = :unidade AND e.exercicio = {}
+                    """.format(ano_selecionado)
+            params["unidade"] = unidade_selecionada
+          else:
+            query_relatorio += f" WHERE e.exercicio = {ano_selecionado}"
+
+          query_relatorio += """
+                    GROUP BY "Nível", "Código", "Conta Gerencial"
+                    ORDER BY "Código" ASC, "Conta Gerencial" ASC;
+                    """
+
+          df_sql = executar_consulta_sql(query_relatorio, params=params if params else None)
+
+          if df_sql.empty:
+            st.warning("Nenhum registro encontrado no Supabase para os filtros selecionados.")
+          else:
+            registros_processados = []
+            df_sql["grupo_principal"] = df_sql["Código"].astype(str).apply(lambda x: x.split(".")[0] if "." in x else x)
+            grupos_unicos = df_sql["grupo_principal"].unique()
+            
+            for grupo in sorted(grupos_unicos):
+              df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
+              for _, row in df_grupo.iterrows():
+                item = {
+                    "Nível": row["Nível"],
+                    "Código": row["Código"],
+                    "Conta Gerencial": row["Conta Gerencial"],
+                    "tipo_linha": "detalhe"
+                }
+                for m in range(1, 13):
+                  item[f"mes_{m}"] = row[f"mes_{m}"]
+                registros_processados.append(item)
+
+              codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
+              nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
+              
+              subtotal = {
+                  "Nível": df_grupo["Nível"].iloc[0],
+                  "Código": codigo_total,
+                  "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
+                  "tipo_linha": "total"
+              }
+              for m in range(1, 13):
+                subtotal[f"mes_{m}"] = df_grupo[f"mes_{m}"].sum()
+              registros_processados.append(subtotal)
+
+            total_geral_row = {
+                "Nível": "",
+                "Código": "",
+                "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
+                "tipo_linha": "grand_total"
+            }
+            for m in range(1, 13):
+              total_geral_row[f"mes_{m}"] = df_sql[f"mes_{m}"].sum()
+            registros_processados.append(total_geral_row)
+
+            df_processado = pd.DataFrame(registros_processados)
+            df_final = pd.DataFrame()
+            df_final[("Identificação", "Código")] = df_processado["Código"]
+            df_final[("Identificação", "Conta Gerencial")] = df_processado["Conta Gerencial"]
+
+            for m in meses_esquerda:
+              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
+              df_final[("Executado", nome_col)] = df_processado[f"mes_{m}"]
+
+            for m in meses_direita:
+              nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
+              df_final[("Orçado", nome_col)] = 0.0
+
+            df_final[("Totais", "Total Geral")] = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
+
+            df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
+
+            def fmt_br(val):
+              if pd.isna(val):
+                return ""
+              return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+            format_dict = {}
+            for col in df_final.columns:
+              if col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
+                format_dict[col] = lambda x: fmt_br(x)
+
+            st.markdown(f"### Relatório de Evolução Anual (Mês Encerrado: **{mes_ano_selecionado_str}**)")
+
+            def destacar_linhas_totais(row):
+              texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
+              if texto_conta.startswith("TOTAL "):
+                return ["font-weight: bold; background-color: #f0f2f6;"] * len(row)
+              return [""] * len(row)
+
+            df_estilizado = (
+                df_final.style
+                .format(format_dict)
+                .apply(destacar_linhas_totais, axis=1)
+                .set_table_styles([
+                    {"selector": "th.col_heading.level0", "props": [("text-align", "center"), ("vertical-align", "middle"), ("font-weight", "600")]},
+                    {"selector": "th.col_heading.level1", "props": [("text-align", "center"), ("vertical-align", "middle")]},
+                    {"selector": "th.col_heading.level0.col0", "props": [("text-align", "left")]},
+                    {"selector": "th.col_heading.level1.col0, th.col_heading.level1.col1", "props": [("text-align", "left")]},
+                    {"selector": "td", "props": [("text-align", "right"), ("white-space", "nowrap")]},
+                    {"selector": "td.col0, td.col1", "props": [("text-align", "left"), ("white-space", "nowrap")]},
+                    {"selector": "thead th", "props": [("border-bottom", "1px solid #d0d0d0"), ("white-space", "nowrap")]},
+                    {"selector": "table", "props": [("width", "100%"), ("border-collapse", "collapse")]},
+                ])
+                .hide(axis="index")
+            )
+
+            st.markdown(f'<div style="width: 100%; overflow-x: auto; border: 1px solid #e6e6e6; border-radius: 6px;">{df_estilizado.to_html()}</div>', unsafe_allow_html=True)
+
+        except Exception as e:
+          st.error(f"Erro ao consultar o Supabase: {e}")
 
   # -----------------------------------------------------------------------------
   # PÁGINA: EXECUÇÃO X LOA
