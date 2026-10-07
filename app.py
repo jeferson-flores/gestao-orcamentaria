@@ -704,8 +704,6 @@ if verificar_senha():
     ):
       st.session_state.pagina_atual = "simulacoes_orcamentarias"
       st.rerun()
-
-  st.sidebar.markdown("---")
     if st.sidebar.button(
         "🏛️ Central de Gestão Orçamentária",
         use_container_width=True,
@@ -717,6 +715,7 @@ if verificar_senha():
     ):
       st.session_state.pagina_atual = "central_gestao"
       st.rerun()
+  st.sidebar.markdown("---")
 
   # 6. Sair
   if st.sidebar.button("🚪 Sair", use_container_width=True):
