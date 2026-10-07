@@ -1014,6 +1014,98 @@ if verificar_senha():
         " Encerramento**."
     )
 
+    # -----------------------------------------------------------------------------
+    # 5. LINHA DO TEMPO ORÇAMENTÁRIA (REAL vs PLANEJADO)
+    # -----------------------------------------------------------------------------
+    st.markdown("### 🗓️ Linha do Tempo Orçamentária do Exercício")
+    st.caption("Evolução mensal dividida entre o realizado (passado) e o planejado (futuro).")
+
+    # Criando os meses do ano para exibição visual
+    meses_abrev = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
+    
+    # Montando colunas visuais para os 12 meses
+    cols_tempo = st.columns(12)
+    for i, m_nome in enumerate(meses_abrev, start=1):
+        with cols_tempo[i-1]:
+            if i <= mes_encerrado:
+                # Mês Real (Passado/Encerrado)
+                st.markdown(
+                    f"""<div style="background-color: #003366; color: white; padding: 8px 4px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: bold;">
+                        {m_nome}<br><span style="font-size: 9px; color: #a0c4ff;">REAL</span>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+            else:
+                # Mês Planejado (Futuro)
+                st.markdown(
+                    f"""<div style="background-color: #f0f2f6; color: #333333; padding: 8px 4px; text-align: center; border-radius: 4px; font-size: 11px; border: 1px dashed #003366;">
+                        {m_nome}<br><span style="font-size: 9px; color: #666666;">PLANEJADO</span>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
+
+    st.markdown("")
+
+    # -----------------------------------------------------------------------------
+    # 6. BLOCO DE PROJEÇÃO DE ENCERRAMENTO DO EXERCÍCIO
+    # -----------------------------------------------------------------------------
+    st.markdown("### 🔮 Projeção de Encerramento do Exercício")
+    
+    # Cálculo dinâmico baseado na fórmula gerencial
+    # Planejamento futuro estimado proporcional aos meses restantes (exemplo base ou dados reais)
+    meses_restantes = max(0, 12 - mes_encerrado)
+    planejamento_futuro = (valor_executado / max(1, mes_encerrado)) * meses_restantes
+    
+    projecao_total = valor_executado + comprometido + planejamento_futuro
+    saldo_final_projetado = orcamento_total - projecao_total
+
+    # Exibição estruturada do demonstrativo de projeção
+    c_proj1, c_proj2 = st.columns([2, 1])
+
+    with c_proj1:
+        st.markdown(
+            f"""
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dcdcdc;">
+                <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; color: #333;"><b>ORÇAMENTO DO EXERCÍCIO</b></td>
+                        <td style="padding: 8px 0; text-align: right; color: #003366;"><b>{fmt_moeda(orcamento_total)}</b></td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; color: #555;">(-) Executado (Até {meses_nomes[mes_encerrado]})</td>
+                        <td style="padding: 8px 0; text-align: right; color: #333;">{fmt_moeda(valor_executado)}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; color: #555;">(-) Comprometido / Empenhos</td>
+                        <td style="padding: 8px 0; text-align: right; color: #333;">{fmt_moeda(comprometido)}</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px 0; color: #555;">(-) Planejamento Futuro ({meses_restantes} meses)</td>
+                        <td style="padding: 8px 0; text-align: right; color: #333;">{fmt_moeda(planejamento_futuro)}</td>
+                    </tr>
+                    <tr style="border-top: 2px solid #003366; background-color: #e9ecef;">
+                        <td style="padding: 10px 0; color: #003366;"><b>PROJEÇÃO TOTAL DE ENCERRAMENTO</b></td>
+                        <td style="padding: 10px 0; text-align: right; color: #003366;"><b>{fmt_moeda(projecao_total)}</b></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 12px 0 0 0; font-size: 15px; color: {'#28a745' if saldo_final_projetado >= 0 else '#dc3545'};"><b>SALDO PROJETADO</b></td>
+                        <td style="padding: 12px 0 0 0; text-align: right; font-size: 15px; color: {'#28a745' if saldo_final_projetado >= 0 else '#dc3545'};"><b>{fmt_moeda(saldo_final_projetado)}</b></td>
+                    </tr>
+                </table>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with c_proj2:
+        st.info(
+            "📌 **Como ler esta projeção:**\n\n"
+            "A projeção combina o **real** já executado com os **compromissos** atuais e o **planejamento** para os meses restantes do ano.\n\n"
+            "Isso permite ao gestor antecipar desvios antes do fim do exercício."
+        )
+
+    st.markdown("---")
+
   # -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
   # -----------------------------------------------------------------------------
