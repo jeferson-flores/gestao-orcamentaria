@@ -1106,6 +1106,112 @@ if verificar_senha():
 
     st.markdown("---")
 
+    # -----------------------------------------------------------------------------
+    # 7. MOTOR DO SIMULADOR DE CENÁRIOS (ST.SESSION_STATE)
+    # -----------------------------------------------------------------------------
+    st.markdown("---")
+    st.markdown("### 🔮 Simulador de Cenários Orçamentários")
+    st.caption("Experimente remanejamentos virtuais de recursos. Nenhuma alteração será gravada nas bases oficiais.")
+
+    # Inicialização do estado em memória para os cenários simulados
+    if "lista_cenarios" not in st.session_state:
+        st.session_state.lista_cenarios = []
+
+    # Buscar contas/grupos disponíveis para origem e destino
+    try:
+        df_contas_sim = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais WHERE ativo = true ORDER BY codigo_conta ASC;")
+        opcoes_contas_sim = [f"{row['codigo_conta']} - {row['nome_conta']}" for _, row in df_contas_sim.iterrows()] if not df_contas_sim.empty else ["1.1 - Serviços Terceirizados", "1.2 - Investimentos", "1.3 - Material de Consumo"]
+    except Exception:
+        opcoes_contas_sim = ["1.1 - Serviços Terceirizados", "1.2 - Investimentos", "1.3 - Material de Consumo"]
+
+    # Botão de destaque para abrir/ativar a área de simulação
+    col_btn_sim, col_info_sim = st.columns([1, 3])
+    with col_btn_sim:
+        ativar_simulador = st.toggle("✨ CRIAR SIMULAÇÃO", value=False, key="toggle_simulador")
+
+    if ativar_simulador:
+        with st.container():
+            st.markdown(
+                """
+                <div style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; border: 1px solid #003366; margin-bottom: 15px;">
+                    <h4 style="color: #003366; margin-top: 0;">Mesa de Remanejamento Virtual</h4>
+                    <p style="font-size: 13px; color: #444;">Selecione a conta de origem para retirar recursos e a conta de destino para adicioná-los. O impacto global da operação padrão é zero.</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            with st.form("form_criar_simulacao"):
+                c_s1, c_s2, c_s3 = st.columns(3)
+                
+                with c_s1:
+                    origem_sel = st.selectbox("Origem do Recurso (-):", options=opcoes_contas_sim, key=f"sim_origem_{ano_selecionado}")
+                with c_s2:
+                    destino_sel = st.selectbox("Destino do Recurso (+):", options=opcoes_contas_sim, index=min(1, len(opcoes_contas_sim)-1), key=f"sim_destino_{ano_selecionado}")
+                with c_s3:
+                    valor_transferencia = st.number_input("Valor a Remanejar (R$):", min_value=0.0, value=100000.0, step=10000.0, format="%.2f")
+
+                nome_cenario_in = st.text_input("Identificação do Cenário:", value=f"Remanejamento {len(st.session_state.lista_cenarios) + 1}")
+
+                btn_executar_sim = st.form_submit_button("⚡ Aplicar Simulação no Modelo", type="primary")
+
+                if btn_executar_sim:
+                    if origem_sel == destino_sel:
+                        st.error("A conta de origem e de destino não podem ser as mesmas.")
+                    else:
+                        novo_cenario = {
+                            "id": len(st.session_state.lista_cenarios) + 1,
+                            "nome": nome_cenario_in,
+                            "origem": origem_sel,
+                            "destino": destino_sel,
+                            "valor": valor_transferencia,
+                            "impacto_global": 0.0 # Operação mantida em equilíbrio virtual
+                        }
+                        st.session_state.lista_cenarios.append(novo_cenario)
+                        st.success(f"Cenário '{nome_cenario_in} cadastrado com sucesso na sessão!")
+                        st.rerun()
+
+    # Exibição dos Cenários Simulados Ativos na Sessão
+    if st.session_state.lista_cenarios:
+        st.markdown("#### 📋 Cenários Simulados Ativos (Sessão Atual)")
+        
+        for idx, cen in enumerate(st.session_state.lista_cenarios):
+            col_sc1, col_sc2, col_sc3, col_sc4 = st.columns([2, 2, 2, 1])
+            
+            with col_sc1:
+                st.markdown(f"**{cen['nome']}**")
+            with col_sc2:
+                st.markdown(f"🔴 Retirada: `{cen['origem']}`<br>🟢 Adição: `{cen['destino']}`", unsafe_allow_html=True)
+            with col_sc3:
+                st.markdown(f"**Valor:** {fmt_moeda(cen['valor'])}")
+            with col_sc4:
+                if st.button("🗑️ Remover", key=f"del_cen_{idx}"):
+                    st.session_state.lista_cenarios.pop(idx)
+                    st.rerun()
+
+        # Simulação de Impacto Global e Verificação de Insuficiência
+        total_simulado_valor = sum([c['valor'] for c in st.session_state.lista_cenarios])
+        
+        # Testando insuficiência orçamentária hipotética se o saldo projetado for menor que a simulação ou se gerada criticidade
+        saldo_pos_simulacao = saldo_final_projetado # Mantém base ou aplica lógica de estresse se desejado
+        
+        st.markdown("---")
+        st.markdown("#### 🔍 Análise de Impacto do Cenário Simulado")
+        
+        c_imp1, c_imp2 = st.columns(2)
+        with c_imp1:
+            st.metric(label="Impacto Global Líquido", value="R$ 0,00", delta="Equilibrado (Origem = Destino)")
+        with c_imp2:
+            # Demonstra alerta se houver simulação de reforço superior ao colchão de segurança ou saldo negativo
+            if saldo_final_projetado - total_simulado_valor < 0:
+                st.warning(f"⚠️ **Atenção:** O cenário gera uma insuficiência projetada de {fmt_moeda(abs(saldo_final_projetado - total_simulado_valor))}. Situação classificada como de atenção.")
+            else:
+                st.success("✅ O saldo projetado permanece suficiente após os remanejamentos simulados.")
+    else:
+        st.info("Nenhum cenário simulado criado no momento. Ative o botão acima para experimentar remanejamentos.")
+
+    st.markdown("---")
+
   # -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
   # -----------------------------------------------------------------------------
