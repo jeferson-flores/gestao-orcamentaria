@@ -813,206 +813,206 @@ if verificar_senha():
           unsafe_allow_html=True,
       )
 
-  # -----------------------------------------------------------------------------
-  # 1. CARREGAMENTO DE OPÇÕES PARA OS FILTROS GLOBAIS
-  # -----------------------------------------------------------------------------
-  try:
-    df_anos_filtro = executar_consulta_sql(
-        "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS"
-        " NOT NULL ORDER BY exercicio DESC;"
-    )
-    anos_disponiveis = (
-        df_anos_filtro["exercicio"].tolist()
-        if not df_anos_filtro.empty
-        else [datetime.now().year, datetime.now().year - 1]
-    )
-  except Exception:
-    anos_disponiveis = [datetime.now().year]
-
-  try:
-    df_unidades_filtro = executar_consulta_sql(
-        "SELECT DISTINCT unidade FROM tb_ugs WHERE unidade IS NOT NULL ORDER BY"
-        " unidade;"
-    )
-    unidades_opcoes = (
-        df_unidades_filtro["unidade"].tolist()
-        if not df_unidades_filtro.empty
-        else []
-    )
-  except Exception:
-    unidades_opcoes = []
-
-  try:
-    df_grupos_filtro = executar_consulta_sql(
-        "SELECT DISTINCT grupo_despesa FROM tb_natureza_despesa_detalhada WHERE"
-        " grupo_despesa IS NOT NULL ORDER BY grupo_despesa;"
-    )
-    grupos_opcoes = (
-        df_grupos_filtro["grupo_despesa"].tolist()
-        if not df_grupos_filtro.empty
-        else []
-    )
-  except Exception:
-    grupos_opcoes = []
-
-  meses_nomes = {
-      1: "Janeiro",
-      2: "Fevereiro",
-      3: "Março",
-      4: "Abril",
-      5: "Maio",
-      6: "Junho",
-      7: "Julho",
-      8: "Agosto",
-      9: "Setembro",
-      10: "Outubro",
-      11: "Novembro",
-      12: "Dezembro",
-  }
-  lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
-
-  # -----------------------------------------------------------------------------
-  # 2. SELETORES DO TOPO (FILTROS GLOBAIS)
-  # -----------------------------------------------------------------------------
-  st.markdown("### 🎛️ Filtros de Gestão")
-  c_f1, c_f2, c_f3, c_f4 = st.columns(4)
-
-  with c_f1:
-    ano_selecionado = st.selectbox(
-        "Exercício:", options=anos_disponiveis, index=0, key="cgo_ano"
-    )
-  with c_f2:
-    mes_ano_sel_str = st.selectbox(
-        "Mês de Referência (Encerrado):",
-        options=lista_meses_ano,
-        index=min(datetime.now().month - 1, 11),
-        key="cgo_mes",
-    )
-    mes_encerrado = int(mes_ano_sel_str.split(" - ")[0])
-  with c_f3:
-    unidade_selecionada = st.selectbox(
-        "Unidade:", options=["Todas"] + unidades_opcoes, key="cgo_unidade"
-    )
-  with c_f4:
-    grupo_selecionado = st.selectbox(
-        "Grupo / Área (Opcional):",
-        options=["Todos"] + grupos_opcoes,
-        key="cgo_grupo",
-    )
-
-  st.markdown("---")
-
-  # -----------------------------------------------------------------------------
-  # 3. CONSULTA DE DADOS E CÁLCULO DOS KPIS GERENCIAIS
-  # -----------------------------------------------------------------------------
-  with st.spinner(
-      "Calculando indicadores de alto nível da Central de Gestão..."
-  ):
+    # -----------------------------------------------------------------------------
+    # 1. CARREGAMENTO DE OPÇÕES PARA OS FILTROS GLOBAIS
+    # -----------------------------------------------------------------------------
     try:
-      # Construção dinâmica da query de execução real até o mês encerrado
-      query_base = f"""
-                SELECT 
-                    SUM(CASE WHEN e.mes_competencia <= {mes_encerrado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS valor_executado,
-                    SUM(COALESCE(e.valor_liquidado, 0)) AS valor_total_lancado
-                FROM tb_execucao_despesa e
-                LEFT JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
-                LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
-                WHERE e.exercicio = {ano_selecionado}
-            """
-      params_query = {}
+      df_anos_filtro = executar_consulta_sql(
+          "SELECT DISTINCT exercicio FROM tb_execucao_despesa WHERE exercicio IS"
+          " NOT NULL ORDER BY exercicio DESC;"
+      )
+      anos_disponiveis = (
+          df_anos_filtro["exercicio"].tolist()
+          if not df_anos_filtro.empty
+          else [datetime.now().year, datetime.now().year - 1]
+      )
+    except Exception:
+      anos_disponiveis = [datetime.now().year]
 
-      if unidade_selecionada != "Todas":
-        query_base += " AND u.unidade = :unidade"
-        params_query["unidade"] = unidade_selecionada
+    try:
+      df_unidades_filtro = executar_consulta_sql(
+          "SELECT DISTINCT unidade FROM tb_ugs WHERE unidade IS NOT NULL ORDER BY"
+          " unidade;"
+      )
+      unidades_opcoes = (
+          df_unidades_filtro["unidade"].tolist()
+          if not df_unidades_filtro.empty
+          else []
+      )
+    except Exception:
+      unidades_opcoes = []
 
-      if grupo_selecionado != "Todos":
-        query_base += " AND ndd.grupo_despesa = :grupo"
-        params_query["grupo"] = grupo_selecionado
+    try:
+      df_grupos_filtro = executar_consulta_sql(
+          "SELECT DISTINCT grupo_despesa FROM tb_natureza_despesa_detalhada WHERE"
+          " grupo_despesa IS NOT NULL ORDER BY grupo_despesa;"
+      )
+      grupos_opcoes = (
+          df_grupos_filtro["grupo_despesa"].tolist()
+          if not df_grupos_filtro.empty
+          else []
+      )
+    except Exception:
+      grupos_opcoes = []
 
-      df_kpi = executar_consulta_sql(
-          query_base, params=params_query if params_query else None
+    meses_nomes = {
+        1: "Janeiro",
+        2: "Fevereiro",
+        3: "Março",
+        4: "Abril",
+        5: "Maio",
+        6: "Junho",
+        7: "Julho",
+        8: "Agosto",
+        9: "Setembro",
+        10: "Outubro",
+        11: "Novembro",
+        12: "Dezembro",
+    }
+    lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
+
+    # -----------------------------------------------------------------------------
+    # 2. SELETORES DO TOPO (FILTROS GLOBAIS)
+    # -----------------------------------------------------------------------------
+    st.markdown("### 🎛️ Filtros de Gestão")
+    c_f1, c_f2, c_f3, c_f4 = st.columns(4)
+
+    with c_f1:
+      ano_selecionado = st.selectbox(
+          "Exercício:", options=anos_disponiveis, index=0, key="cgo_ano"
+      )
+    with c_f2:
+      mes_ano_sel_str = st.selectbox(
+          "Mês de Referência (Encerrado):",
+          options=lista_meses_ano,
+          index=min(datetime.now().month - 1, 11),
+          key="cgo_mes",
+      )
+      mes_encerrado = int(mes_ano_sel_str.split(" - ")[0])
+    with c_f3:
+      unidade_selecionada = st.selectbox(
+          "Unidade:", options=["Todas"] + unidades_opcoes, key="cgo_unidade"
+      )
+    with c_f4:
+      grupo_selecionado = st.selectbox(
+          "Grupo / Área (Opcional):",
+          options=["Todos"] + grupos_opcoes,
+          key="cgo_grupo",
       )
 
-      valor_executado = (
-          float(df_kpi["valor_executado"].iloc[0])
-          if not df_kpi.empty and pd.notna(df_kpi["valor_executado"].iloc[0])
-          else 0.0
+    st.markdown("---")
+
+    # -----------------------------------------------------------------------------
+    # 3. CONSULTA DE DADOS E CÁLCULO DOS KPIS GERENCIAIS
+    # -----------------------------------------------------------------------------
+    with st.spinner(
+        "Calculando indicadores de alto nível da Central de Gestão..."
+    ):
+      try:
+        # Construção dinâmica da query de execução real até o mês encerrado
+        query_base = f"""
+                  SELECT 
+                      SUM(CASE WHEN e.mes_competencia <= {mes_encerrado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS valor_executado,
+                      SUM(COALESCE(e.valor_liquidado, 0)) AS valor_total_lancado
+                  FROM tb_execucao_despesa e
+                  LEFT JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
+                  LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                  WHERE e.exercicio = {ano_selecionado}
+              """
+        params_query = {}
+
+        if unidade_selecionada != "Todas":
+          query_base += " AND u.unidade = :unidade"
+          params_query["unidade"] = unidade_selecionada
+
+        if grupo_selecionado != "Todos":
+          query_base += " AND ndd.grupo_despesa = :grupo"
+          params_query["grupo"] = grupo_selecionado
+
+        df_kpi = executar_consulta_sql(
+            query_base, params=params_query if params_query else None
+        )
+
+        valor_executado = (
+            float(df_kpi["valor_executado"].iloc[0])
+            if not df_kpi.empty and pd.notna(df_kpi["valor_executado"].iloc[0])
+            else 0.0
+        )
+
+        # Nota conceitual: Orçamento Total e Comprometido/Planejado Futuro
+        # Para esta etapa base, simulamos uma referência de Orçamento Total (ex: 1.25x do executado ou valor parametrizado)
+        # Em etapas futuras, isso será integrado com o planejamento cadastrado.
+        orcamento_total = (
+            valor_executado * 1.35
+            if valor_executado > 0
+            else 1000000.00  # Referência gerencial inicial
+        )
+        comprometido = (
+            valor_executado * 0.15
+        )  # Estimativa inicial de compromissos/empenhos vigentes
+        saldo_projetado = orcamento_total - (
+            valor_executado + comprometido
+        )
+
+      except Exception as e:
+        st.error(
+            f"Erro ao calcular os indicadores financeiros no Supabase: {e}"
+        )
+        orcamento_total, valor_executado, comprometido, saldo_projetado = (
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
+
+    # -----------------------------------------------------------------------------
+    # 4. EXIBIÇÃO DOS QUATRO GRANDES INDICADORES (KPIs GERENCIAIS)
+    # -----------------------------------------------------------------------------
+    st.markdown("### 📈 Indicadores Chave de Desempenho (Visão Gerencial)")
+
+    def fmt_moeda(val):
+      return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    k1, k2, k3, k4 = st.columns(4)
+
+    with k1:
+      st.metric(
+          label="🏛️ Orçamento Total",
+          value=fmt_moeda(orcamento_total),
+          help="Volume total de recursos previstos para o exercício.",
+      )
+    with k2:
+      st.metric(
+          label="📊 Executado",
+          value=fmt_moeda(valor_executado),
+          help=(
+              f"Total efetivamente executado até o mês de {mes_ano_sel_str}."
+          ),
+      )
+    with k3:
+      st.metric(
+          label="📑 Comprometido",
+          value=fmt_moeda(comprometido),
+          help="Empenhos e compromissos vigentes a liquidar.",
+      )
+    with k4:
+      cor_delta = "normal" if saldo_projetado >= 0 else "inverse"
+      st.metric(
+          label="🎯 Saldo Projetado",
+          value=fmt_moeda(saldo_projetado),
+          delta=(
+              "Situação Normal" if saldo_projetado >= 0 else "Atenção: Negativo"
+          ),
+          delta_color=cor_delta,
+          help="Projeção do saldo remanescente ao final do exercício.",
       )
 
-      # Nota conceitual: Orçamento Total e Comprometido/Planejado Futuro
-      # Para esta etapa base, simulamos uma referência de Orçamento Total (ex: 1.25x do executado ou valor parametrizado)
-      # Em etapas futuras, isso será integrado com o planejamento cadastrado.
-      orcamento_total = (
-          valor_executado * 1.35
-          if valor_executado > 0
-          else 1000000.00  # Referência gerencial inicial
-      )
-      comprometido = (
-          valor_executado * 0.15
-      )  # Estimativa inicial de compromissos/empenhos vigentes
-      saldo_projetado = orcamento_total - (
-          valor_executado + comprometido
-      )
-
-    except Exception as e:
-      st.error(
-          f"Erro ao calcular os indicadores financeiros no Supabase: {e}"
-      )
-      orcamento_total, valor_executado, comprometido, saldo_projetado = (
-          0.0,
-          0.0,
-          0.0,
-          0.0,
-      )
-
-  # -----------------------------------------------------------------------------
-  # 4. EXIBIÇÃO DOS QUATRO GRANDES INDICADORES (KPIs GERENCIAIS)
-  # -----------------------------------------------------------------------------
-  st.markdown("### 📈 Indicadores Chave de Desempenho (Visão Gerencial)")
-
-  def fmt_moeda(val):
-    return f"R$ {val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-  k1, k2, k3, k4 = st.columns(4)
-
-  with k1:
-    st.metric(
-        label="🏛️ Orçamento Total",
-        value=fmt_moeda(orcamento_total),
-        help="Volume total de recursos previstos para o exercício.",
+    st.markdown("---")
+    st.info(
+        "💡 **Próximo Passo**: Na próxima etapa, implementaremos a **Linha do"
+        " Tempo Orçamentária** e o bloco detalhado de **Projeção de"
+        " Encerramento**."
     )
-  with k2:
-    st.metric(
-        label="📊 Executado",
-        value=fmt_moeda(valor_executado),
-        help=(
-            f"Total efetivamente executado até o mês de {mes_ano_sel_str}."
-        ),
-    )
-  with k3:
-    st.metric(
-        label="📑 Comprometido",
-        value=fmt_moeda(comprometido),
-        help="Empenhos e compromissos vigentes a liquidar.",
-    )
-  with k4:
-    cor_delta = "normal" if saldo_projetado >= 0 else "inverse"
-    st.metric(
-        label="🎯 Saldo Projetado",
-        value=fmt_moeda(saldo_projetado),
-        delta=(
-            "Situação Normal" if saldo_projetado >= 0 else "Atenção: Negativo"
-        ),
-        delta_color=cor_delta,
-        help="Projeção do saldo remanescente ao final do exercício.",
-    )
-
-  st.markdown("---")
-  st.info(
-      "💡 **Próximo Passo**: Na próxima etapa, implementaremos a **Linha do"
-      " Tempo Orçamentária** e o bloco detalhado de **Projeção de"
-      " Encerramento**."
-  )
 
   # -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
