@@ -1287,6 +1287,86 @@ if verificar_senha():
     st.markdown("---")
     st.info("💡 **Central de Gestão Orçamentária Concluída!** Todas as 5 etapas integradas com sucesso ao SiGeO.")
 
+    # -----------------------------------------------------------------------------
+    # 9. VISUALIZAÇÕES GRÁFICAS E DRILL-DOWN GERENCIAL
+    # -----------------------------------------------------------------------------
+    st.markdown("---")
+    st.markdown("### 📈 Visualizações Gráficas e Detalhamento (Drill-Down)")
+    st.caption("Gráficos gerenciais e aprofundamento por grupo de despesa e contas.")
+
+    try:
+        # Consulta para composição por grupo de despesa
+        query_grupos = f"""
+            SELECT 
+                COALESCE(ndd.grupo_despesa, 'Outros Grupos') AS grupo,
+                SUM(COALESCE(e.valor_liquidado, 0)) AS total_executado
+            FROM tb_execucao_despesa e
+            LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+            WHERE e.exercicio = {ano_selecionado}
+            GROUP BY grupo
+            ORDER BY total_executado DESC;
+        """
+        df_graf_grupos = executar_consulta_sql(query_grupos)
+
+        if not df_graf_grupos.empty:
+            c_g1, c_g2 = st.columns(2)
+
+            with c_g1:
+                st.markdown("#### 📊 Execução por Grupo de Despesa")
+                fig_pie = px.pie(
+                    df_graf_grupos, 
+                    names="grupo", 
+                    values="total_executado", 
+                    hole=0.4,
+                    color_discrete_sequence=px.colors.qualitative.Bold
+                )
+                fig_pie.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
+                st.plotly_chart(fig_pie, use_container_width=True)
+
+            with c_g2:
+                st.markdown("#### 📊 Evolução Comparativa (Orçamento vs. Executado)")
+                fig_bar = px.bar(
+                    df_graf_grupos.head(5), 
+                    x="grupo", 
+                    y="total_executado",
+                    text_auto=True,
+                    color="grupo",
+                    color_discrete_sequence=["#003366"]
+                )
+                fig_bar.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300, showlegend=False)
+                st.plotly_chart(fig_bar, use_container_width=True)
+
+        # Seção de Drill-Down (Navegação em Cascata)
+        st.markdown("#### 🔍 Aprofundamento (Drill-Down) por Grupo Gerencial")
+        
+        grupos_disponiveis_drill = df_graf_grupos["grupo"].tolist() if not df_graf_grupos.empty else []
+        if grupos_disponiveis_drill:
+            grupo_escolhido_drill = st.selectbox("Selecione um Grupo para Detalhar as Contas:", options=grupos_disponiveis_drill, key="drill_grupo_sel")
+
+            query_drill = f"""
+                SELECT 
+                    e.natureza_despesa_detalhada AS "Código NDD",
+                    ndd.descricao AS "Descrição da Despesa",
+                    SUM(COALESCE(e.valor_liquidado, 0)) AS "Valor Executado"
+                FROM tb_execucao_despesa e
+                LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                WHERE e.exercicio = {ano_selecionado} AND ndd.grupo_despesa = :grupo_sel
+                GROUP BY e.natureza_despesa_detalhada, ndd.descricao
+                ORDER BY "Valor Executado" DESC;
+            """
+            df_drill_res = executar_consulta_sql(query_drill, params={"grupo_sel": grupo_escolhido_drill})
+
+            if not df_drill_res.empty:
+                st.dataframe(df_drill_res, use_container_width=True, hide_index=True)
+            else:
+                st.info("Nenhum detalhe encontrado para o grupo selecionado.")
+
+    except Exception as e:
+        st.warning(f"Não foi possível renderizar os gráficos avançados no momento: {e}")
+
+    st.markdown("---")
+    st.success("🎉 **Central de Gestão Orçamentária 100% Finalizada e Integrada ao SiGeO!**")
+
   # -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
   # -----------------------------------------------------------------------------
