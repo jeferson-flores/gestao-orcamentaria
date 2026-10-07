@@ -706,6 +706,17 @@ if verificar_senha():
       st.rerun()
 
   st.sidebar.markdown("---")
+    if st.sidebar.button(
+        "🏛️ Central de Gestão Orçamentária",
+        use_container_width=True,
+        type=(
+            "primary"
+            if st.session_state.pagina_atual == "central_gestao"
+            else "secondary"
+        ),
+    ):
+      st.session_state.pagina_atual = "central_gestao"
+      st.rerun()
 
   # 6. Sair
   if st.sidebar.button("🚪 Sair", use_container_width=True):
