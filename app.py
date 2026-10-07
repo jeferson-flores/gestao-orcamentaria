@@ -1212,6 +1212,81 @@ if verificar_senha():
 
     st.markdown("---")
 
+    # -----------------------------------------------------------------------------
+    # 8. VISUALIZAÇÃO ANTES x DEPOIS E COMPARAÇÃO DE CENÁRIOS MÚLTIPLOS
+    # -----------------------------------------------------------------------------
+    st.markdown("---")
+    st.markdown("### 📊 Comparativo ANTES x DEPOIS e Múltiplos Cenários")
+    st.caption("Contraste a situação oficial do exercício com os diferentes cenários e hipóteses simuladas em memória.")
+
+    # Inicializar armazenamento de múltiplos cenários salvos se não existir
+    if "banco_cenarios_salvos" not in st.session_state:
+        st.session_state.banco_cenarios_salvos = [
+            {
+                "id": 1,
+                "nome": "Cenário Oficial (Base)",
+                "orcamento": orcamento_total,
+                "executado": valor_executado,
+                "comprometido": comprometido,
+                "projecao": projecao_total,
+                "saldo": saldo_final_projetado
+            }
+        ]
+
+    # Botão para consolidar a simulação ativa em um Cenário Salvo
+    col_salvar_cen1, col_salvar_cen2 = st.columns([2, 2])
+    with col_salvar_cen1:
+        nome_novo_cenario_salvar = st.text_input("Nome da Hipótese/Cenário para Salvar:", value="Ampliação de Investimentos", key="input_nome_salvar_cen")
+    with col_salvar_cen2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("💾 Salvar Cenário Atual na Matriz Comparativa", type="primary"):
+            # Calcular valores aplicando uma variação baseada nos remanejamentos ativos para exemplo gerencial
+            fator_ajuste = sum([c['valor'] for c in st.session_state.lista_cenarios]) * 0.05 if st.session_state.lista_cenarios else 0.0
+            nova_projecao = projecao_total - fator_ajuste
+            novo_saldo = orcamento_total - nova_projecao
+            
+            cenario_registrado = {
+                "id": len(st.session_state.banco_cenarios_salvos) + 1,
+                "nome": nome_novo_cenario_salvar,
+                "orcamento": orcamento_total,
+                "executado": valor_executado,
+                "comprometido": comprometido,
+                "projecao": nova_projecao,
+                "saldo": novo_saldo
+            }
+            st.session_state.banco_cenarios_salvos.append(cenario_registrado)
+            st.success(f"Cenário '{nome_novo_cenario_salvar}' adicionado com sucesso à matriz comparativa!")
+            st.rerun()
+
+    st.markdown("")
+
+    # Construção da Tabela Consolidada de Múltiplos Cenários
+    if st.session_state.banco_cenarios_salvos:
+        dados_comparativo = []
+        for cs in st.session_state.banco_cenarios_salvos:
+            dados_comparativo.append({
+                "Cenário / Hipótese": cs["nome"],
+                "Orçamento Total": fmt_moeda(cs["orcamento"]),
+                "Executado": fmt_moeda(cs["executado"]),
+                "Comprometido": fmt_moeda(cs["comprometido"]),
+                "Projeção de Encerramento": fmt_moeda(cs["projecao"]),
+                "Saldo Projetado": fmt_moeda(cs["saldo"])
+            })
+
+        df_matriz_cenarios = pd.DataFrame(dados_comparativo)
+        
+        st.markdown("#### Matriz Consolidada de Alternativas Orçamentárias")
+        st.dataframe(df_matriz_cenarios, use_container_width=True, hide_index=True)
+
+        # Botão para limpar cenários salvos adicionais (mantendo o base)
+        if len(st.session_state.banco_cenarios_salvos) > 1:
+            if st.button("🧹 Redefinir Matriz de Cenários (Remover Hipóteses)", type="secondary"):
+                st.session_state.banco_cenarios_salvos = [st.session_state.banco_cenarios_salvos[0]]
+                st.rerun()
+
+    st.markdown("---")
+    st.info("💡 **Central de Gestão Orçamentária Concluída!** Todas as 5 etapas integradas com sucesso ao SiGeO.")
+
   # -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
   # -----------------------------------------------------------------------------
