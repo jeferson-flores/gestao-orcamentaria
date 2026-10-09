@@ -2662,7 +2662,8 @@ if verificar_senha():
               cg_codigo_limpo = conta_gerencial_sel
               if "[" in conta_gerencial_sel and "]" in conta_gerencial_sel:
                 cg_codigo_limpo = conta_gerencial_sel.split("[")[1].split("]")[0].strip()
-	      inserir_ndd_banco(
+
+              inserir_ndd_banco(
                   codigo_ndd=cod_ndd_in.strip(),
                   descricao=desc_ndd_in.strip(),
                   grupo_despesa=(
@@ -2744,7 +2745,7 @@ if verificar_senha():
                   "💾 Salvar", key=f"save_ndd_btn_{n_cod}", type="primary"
               ):
                 try:
-		  # Extrai apenas o código de dentro dos colchetes
+                  # Extrai apenas o código de dentro dos colchetes
                   cg_codigo_limpo = e_ndd_cg_sel
                   if "[" in e_ndd_cg_sel and "]" in e_ndd_cg_sel:
                     cg_codigo_limpo = e_ndd_cg_sel.split("[")[1].split("]")[0].strip()
