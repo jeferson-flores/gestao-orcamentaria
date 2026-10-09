@@ -2658,13 +2658,17 @@ if verificar_senha():
             )
           else:
             try:
-              inserir_ndd_banco(
+              # Extrai apenas o código de dentro dos colchetes (ex: "3.2" de "[3.2] - Nome")
+              cg_codigo_limpo = conta_gerencial_sel
+              if "[" in conta_gerencial_sel and "]" in conta_gerencial_sel:
+                cg_codigo_limpo = conta_gerencial_sel.split("[")[1].split("]")[0].strip()
+	      inserir_ndd_banco(
                   codigo_ndd=cod_ndd_in.strip(),
                   descricao=desc_ndd_in.strip(),
                   grupo_despesa=(
                       grupo_despesa_in.strip() if grupo_despesa_in else None
                   ),
-                  conta_gerencial=conta_gerencial_sel,
+                  conta_gerencial=cg_codigo_limpo,
               )
               st.success(f"NDD '{cod_ndd_in}' salva com sucesso!")
               st.rerun()
@@ -2740,6 +2744,11 @@ if verificar_senha():
                   "💾 Salvar", key=f"save_ndd_btn_{n_cod}", type="primary"
               ):
                 try:
+		  # Extrai apenas o código de dentro dos colchetes
+                  cg_codigo_limpo = e_ndd_cg_sel
+                  if "[" in e_ndd_cg_sel and "]" in e_ndd_cg_sel:
+                    cg_codigo_limpo = e_ndd_cg_sel.split("[")[1].split("]")[0].strip()
+
                   atualizar_ndd_banco(
                       codigo_ndd_orig=n_cod,
                       codigo_ndd_novo=e_ndd_cod.strip(),
@@ -2747,7 +2756,7 @@ if verificar_senha():
                       grupo_despesa=(
                           e_ndd_grp.strip() if e_ndd_grp else None
                       ),
-                      conta_gerencial=e_ndd_cg_sel,
+                      conta_gerencial=cg_codigo_limpo,
                   )
                   st.session_state.editando_codigo_ndd = None
                   st.success("NDD alterada com sucesso!")
