@@ -775,11 +775,37 @@ if verificar_senha():
 
 
   # -----------------------------------------------------------------------------
-  # TELA: INÍCIO / DASHBOARD
+  # TELA: INÍCIO / DASHBOARD (DESIGN APRIMORADO)
   # -----------------------------------------------------------------------------
-  if st.session_state.pagina_atual == "inicio":
+  elif st.session_state.pagina_atual == "inicio":
     st.markdown(
         """
+            <style>
+            .card-apresentacao {
+                background-color: #ffffff;
+                border: 1px solid #e1e4e8;
+                border-radius: 10px;
+                padding: 25px 30px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                margin-bottom: 20px;
+            }
+            .card-apresentacao h3 {
+                color: #003366;
+                margin-top: 0;
+                font-size: 20px;
+                border-bottom: 2px solid #f0f2f6;
+                padding-bottom: 10px;
+            }
+            .card-logo {
+                background-color: #f8f9fa;
+                border: 1px solid #e1e4e8;
+                border-radius: 10px;
+                padding: 25px;
+                text-align: center;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            }
+            </style>
+
             <div class="faixa-superior-ufsm">
                 <h1>SiGeO - Sistema de Gestão Orçamentária</h1>
                 <p>Universidade Federal de Santa Maria (UFSM) | Pró-Reitoria de Administração</p>
@@ -788,19 +814,18 @@ if verificar_senha():
         unsafe_allow_html=True,
     )
 
-    st.subheader("Bem-vindo ao SiGeO")
-
-    col_logo_ini, col_texto_ini = st.columns([1, 2])
-
-    with col_logo_ini:
-      st.markdown("### 🖼️ Logotipo Institucional")
-      if st.session_state.logo_personalizada is not None:
-        st.image(st.session_state.logo_personalizada, width=180)
-      else:
-        st.info("Logo institucional padrão.")
+    # Layout assimétrico e moderno: Texto principal à esquerda (maior) e Logo à direita
+    col_texto_ini, col_logo_ini = st.columns([2, 1], gap="large")
 
     with col_texto_ini:
-      st.markdown("### 📝 Apresentação")
+      st.markdown(
+          """
+          <div class="card-apresentacao">
+              <h3>📝 Apresentação Institucional</h3>
+          """,
+          unsafe_allow_html=True,
+      )
+      
       texto_abertura_salvo = buscar_configuracao_banco("texto_abertura")
       if texto_abertura_salvo:
         st.markdown(texto_abertura_salvo)
@@ -809,10 +834,28 @@ if verificar_senha():
             "Nenhum texto de abertura cadastrado. Utilize o menu lateral em"
             " **Configurações > Texto de Abertura** para configurá-lo."
         )
+      
+      st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.info(
-        "💡 **Dica**: Utilize o menu lateral esquerdo para navegar entre os"
+    with col_logo_ini:
+      st.markdown(
+          """
+          <div class="card-logo">
+              <h4 style="color: #003366; margin-top: 0; font-size: 16px; margin-bottom: 15px;">🖼️ Identidade Visual</h4>
+          """,
+          unsafe_allow_html=True,
+      )
+      
+      if st.session_state.logo_personalizada is not None:
+        st.image(st.session_state.logo_personalizada, width=150)
+      else:
+        st.info("Logomarca padrão UFSM ativa.")
+
+      st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("")
+    st.success(
+        "💡 **Dica de Navegação**: Utilize o menu lateral esquerdo para navegar entre os"
         " módulos de Cadastros, Gestão de Dados e Relatórios."
     )
 
