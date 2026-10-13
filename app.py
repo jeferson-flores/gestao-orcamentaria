@@ -777,7 +777,7 @@ if verificar_senha():
   # -----------------------------------------------------------------------------
   # TELA: INÍCIO / DASHBOARD (DESIGN APRIMORADO)
   # -----------------------------------------------------------------------------
-  elif st.session_state.pagina_atual == "inicio":
+  if st.session_state.pagina_atual == "inicio":
     st.markdown(
         """
             <style>
@@ -814,7 +814,6 @@ if verificar_senha():
         unsafe_allow_html=True,
     )
 
-    # Layout assimétrico e moderno: Texto principal à esquerda (maior) e Logo à direita
     col_texto_ini, col_logo_ini = st.columns([2, 1], gap="large")
 
     with col_texto_ini:
