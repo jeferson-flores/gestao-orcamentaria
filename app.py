@@ -1406,9 +1406,9 @@ if verificar_senha():
     st.success("🎉 **Central de Gestão Orçamentária 100% Finalizada e Integrada ao SiGeO!**")
 
   # -----------------------------------------------------------------------------
-  # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL
+  # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL (ATUALIZADO COM PI)
   # -----------------------------------------------------------------------------
-  elif st.session_state.pagina_atual == "carga":
+  if st.session_state.pagina_atual == "carga":
     st.markdown(
         "<h2 style='color: #003366;'>📁 Carga do Relatório do Tesouro Gerencial"
         " e Gravação no Supabase</h2>",
@@ -1416,7 +1416,7 @@ if verificar_senha():
     )
     st.write(
         "Faça o upload da planilha líquida/executada do Tesouro Gerencial (.xlsx"
-        " ou .csv) e mapeie as colunas para carregar no Supabase."
+        " ou .csv) contendo o Plano Interno (PI) e mapeie as colunas para carregar no Supabase."
     )
 
     arquivo = st.file_uploader(
@@ -1440,11 +1440,7 @@ if verificar_senha():
         )
 
         st.markdown("---")
-        st.subheader("⚙ Mapeamento Dinâmico de Colunas")
-        st.info(
-            "Selecione abaixo a correspondência correta das colunas do seu"
-            " arquivo para padronização:"
-        )
+        st.subheader("⚙ Mapeamento Dinâmico de Colunas (Incluindo PI)")
 
         c_m1, c_m2, c_m3 = st.columns(3)
         with c_m1:
@@ -1464,20 +1460,22 @@ if verificar_senha():
               colunas,
               index=min(1, len(colunas) - 1),
           )
-          col_desc = st.selectbox(
-              "Coluna de Descrição / Histórico:",
-              colunas,
-              index=min(2, len(colunas) - 1),
-          )
-        with c_m3:
           col_nd = st.selectbox(
               "Coluna de Natureza de Despesa (NDD):",
               colunas,
               index=min(11, len(colunas) - 1),
           )
+        with c_m3:
+          col_pi = st.selectbox(
+              "Coluna de Plano Interno (PI):",
+              colunas,
+              index=min(3, len(colunas) - 1),
+          )
           col_val = st.selectbox(
               "Coluna de Valor Liquidado:", colunas, index=len(colunas) - 1
           )
+
+        col_desc = colunas[2] if len(colunas) > 2 else colunas[0]
 
         if st.button("🔄 Processar e Visualizar Dados Tratados", type="primary"):
           df_tratado = pd.DataFrame()
@@ -1495,11 +1493,12 @@ if verificar_senha():
           df_tratado["natureza_despesa_detalhada"] = (
               df[col_nd].astype(str).str.strip()
           )
+          df_tratado["pi"] = df[col_pi].astype(str).str.strip()
           df_tratado["descricao"] = df[col_desc].astype(str).str.strip()
           df_tratado["valor_liquidado"] = df[col_val].apply(converter_valor)
 
           st.session_state.dados_tg_raw = df_tratado
-          st.success("Dados tratados com sucesso!")
+          st.success("Dados tratados com sucesso (com suporte a PI)!")
           st.dataframe(df_tratado.head(5), use_container_width=True)
 
         if st.session_state.dados_tg_raw is not None:
@@ -1523,8 +1522,8 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-  # -----------------------------------------------------------------------------
-  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COMPARATIVO)
+# -----------------------------------------------------------------------------
+  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM SUPORTE A DRILL-DOWN DE PI)
   # -----------------------------------------------------------------------------
   if st.session_state.pagina_atual == "relatorio":
       c_head1, c_head2 = st.columns([1, 4])
@@ -1577,7 +1576,7 @@ if verificar_senha():
             else [datetime.now().year, datetime.now().year - 1]
         )
       except Exception:
-        anos_disponiveis = [datetime.now().year, datetime.now().year - 1, datetime.now().year - 2]
+        anos_disponiveis = [datetime.now().year]
 
       meses_nomes = {
           1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
@@ -1586,7 +1585,7 @@ if verificar_senha():
       }
       lista_meses_ano = [f"{m:02d} - {meses_nomes[m]}" for m in range(1, 13)]
 
-      c_f1, c_f2, c_f3 = st.columns(3)
+      c_f1, c_f2, c_f3, c_f4 = st.columns(4)
       with c_f1:
         ano_selecionado = st.selectbox("Ano de Referência:", options=anos_disponiveis, index=0, key="comp_ano")
       with c_f2:
@@ -1598,20 +1597,23 @@ if verificar_senha():
         unidade_selecionada = st.selectbox(
             "Unidade:", options=["Todas"] + unidades_opcoes, key="comp_unidade"
         )
+      with c_f4:
+        expandir_pi = st.checkbox("🔍 Abrir Detalhamento por PI", value=False, help="Abre Contas Gerenciais marcadas com quebras por Plano Interno.")
 
       if st.button("🔍 Executar Consulta SQL no Supabase", type="primary", key="btn_comp"):
         with st.spinner("Buscando e processando dados diretamente do Supabase..."):
           try:
             meses_esquerda = list(range(1, mes_encerrado + 1))
             meses_direita = list(range(mes_encerrado + 1, 13))
-
             ano_ant_1 = ano_selecionado - 1
-            ano_ant_2 = ano_selecionado - 2
-            ano_ant_3 = ano_selecionado - 3
 
-            df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais;")
+            df_nomes_contas = executar_consulta_sql("SELECT codigo_conta, nome_conta, permite_detalhamento_pi FROM tb_contas_gerenciais;")
             dict_nomes_contas = (
                 dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["nome_conta"]))
+                if not df_nomes_contas.empty else {}
+            )
+            dict_permite_pi = (
+                dict(zip(df_nomes_contas["codigo_conta"], df_nomes_contas["permite_detalhamento_pi"]))
                 if not df_nomes_contas.empty else {}
             )
 
@@ -1619,15 +1621,18 @@ if verificar_senha():
             for m in range(1, 13):
               case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
 
+            # Se expandir_pi estiver ativo, inclui o PI no agrupamento[cite: 8]
+            group_pi_select = ", COALESCE(e.pi, 'SEM PI') AS \"PI\"" if expandir_pi else ""
+            group_pi_clause = ", \"PI\"" if expandir_pi else ""
+
             query_relatorio = f"""
                       SELECT 
                           COALESCE(cg.nivel, '1') AS "Nível",
                           COALESCE(cg.codigo_conta, 'S/C') AS "Código",
-                          COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
+                          COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial"
+                          {group_pi_select},
                           {case_meses_sql}
-                          SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1",
-                          SUM(CASE WHEN e.exercicio = {ano_ant_2} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_2",
-                          SUM(CASE WHEN e.exercicio = {ano_ant_3} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_3"
+                          SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1"
                       FROM tb_execucao_despesa e
                       LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                       LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
@@ -1637,14 +1642,14 @@ if verificar_senha():
             if unidade_selecionada != "Todas":
               query_relatorio += """
                       INNER JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug
-                      WHERE u.unidade = :unidade AND e.exercicio IN ({}, {}, {}, {})
-                      """.format(ano_selecionado, ano_ant_1, ano_ant_2, ano_ant_3)
+                      WHERE u.unidade = :unidade AND e.exercicio IN ({}, {})
+                      """.format(ano_selecionado, ano_ant_1)
               params["unidade"] = unidade_selecionada
             else:
-              query_relatorio += f" WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1}, {ano_ant_2}, {ano_ant_3})"
+              query_relatorio += f" WHERE e.exercicio IN ({ano_selecionado}, {ano_ant_1})"
 
-            query_relatorio += """
-                      GROUP BY "Nível", "Código", "Conta Gerencial"
+            query_relatorio += f"""
+                      GROUP BY "Nível", "Código", "Conta Gerencial"{group_pi_clause}
                       ORDER BY "Código" ASC, "Conta Gerencial" ASC;
                       """
 
@@ -1660,17 +1665,18 @@ if verificar_senha():
               for grupo in sorted(grupos_unicos):
                 df_grupo = df_sql[df_sql["grupo_principal"] == grupo]
                 for _, row in df_grupo.iterrows():
+                  conta_cod = row["Código"]
+                  pi_val = row["PI"] if expandir_pi and "PI" in row and dict_permite_pi.get(conta_cod, False) else None
+                  
                   item = {
                       "Nível": row["Nível"],
-                      "Código": row["Código"],
-                      "Conta Gerencial": row["Conta Gerencial"],
+                      "Código": f"{conta_cod} [{pi_val}]" if pi_val else conta_cod,
+                      "Conta Gerencial": f"   ↳ PI: {pi_val} - {row['Conta Gerencial']}" if pi_val else row["Conta Gerencial"],
                       "tipo_linha": "detalhe"
                   }
                   for m in range(1, 13):
                     item[f"mes_{m}"] = row[f"mes_{m}"]
                   item["ano_ant_1"] = row["ano_ant_1"]
-                  item["ano_ant_2"] = row["ano_ant_2"]
-                  item["ano_ant_3"] = row["ano_ant_3"]
                   registros_processados.append(item)
 
                 codigo_total = f"{grupo}.0" if grupo.isdigit() else f"Total {grupo}"
@@ -1685,22 +1691,7 @@ if verificar_senha():
                 for m in range(1, 13):
                   subtotal[f"mes_{m}"] = df_grupo[f"mes_{m}"].sum()
                 subtotal["ano_ant_1"] = df_grupo["ano_ant_1"].sum()
-                subtotal["ano_ant_2"] = df_grupo["ano_ant_2"].sum()
-                subtotal["ano_ant_3"] = df_grupo["ano_ant_3"].sum()
                 registros_processados.append(subtotal)
-
-              total_geral_row = {
-                  "Nível": "",
-                  "Código": "",
-                  "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
-                  "tipo_linha": "grand_total"
-              }
-              for m in range(1, 13):
-                total_geral_row[f"mes_{m}"] = df_sql[f"mes_{m}"].sum()
-              total_geral_row["ano_ant_1"] = df_sql["ano_ant_1"].sum()
-              total_geral_row["ano_ant_2"] = df_sql["ano_ant_2"].sum()
-              total_geral_row["ano_ant_3"] = df_sql["ano_ant_3"].sum()
-              registros_processados.append(total_geral_row)
 
               df_processado = pd.DataFrame(registros_processados)
               df_final = pd.DataFrame()
@@ -1717,13 +1708,6 @@ if verificar_senha():
 
               df_final[("Totais", "Total Geral")] = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
               df_final[("Totais", str(ano_ant_1))] = df_processado["ano_ant_1"]
-              df_final[("Totais", str(ano_ant_2))] = df_processado["ano_ant_2"]
-              df_final[("Totais", str(ano_ant_3))] = df_processado["ano_ant_3"]
-
-              df_final[("Análise", "Variação (%)")] = (
-                  (df_final[("Totais", "Total Geral")] - df_final[("Totais", str(ano_ant_1))])
-                  / df_final[("Totais", str(ano_ant_1))].replace(0, float("nan"))
-              ) * 100.0
 
               df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
@@ -1734,12 +1718,10 @@ if verificar_senha():
 
               format_dict = {}
               for col in df_final.columns:
-                if col[1] == "Variação (%)":
-                  format_dict[col] = lambda x: f"{x:+.2f}%".replace(".", ",") if not pd.isna(x) else ""
-                elif col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
+                if col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
                   format_dict[col] = lambda x: fmt_br(x)
 
-              st.markdown(f"### Demonstrativo Orçamentário Comparativo (Mês Encerrado: **{mes_ano_selecionado_str}**)")
+              st.markdown(f"### Demonstrativo Orçamentário com Suporte a PI (Mês Encerrado: **{mes_ano_selecionado_str}**)")
 
               def destacar_linhas_totais(row):
                 texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
@@ -1768,7 +1750,6 @@ if verificar_senha():
 
           except Exception as e:
             st.error(f"Erro ao consultar o Supabase: {e}")
-
 
   # -----------------------------------------------------------------------------
   # PÁGINA: EVOLUÇÃO ANUAL
@@ -2506,14 +2487,13 @@ if verificar_senha():
   # -----------------------------------------------------------------------------
   # CADASTRO: CONTAS GERENCIAIS
   # -----------------------------------------------------------------------------
-  elif st.session_state.pagina_atual == "contas":
+  if st.session_state.pagina_atual == "contas":
     st.markdown(
         "<h2 style='color: #003366;'>🏷️ Gestão de Contas Gerenciais</h2>",
         unsafe_allow_html=True,
     )
     st.write(
-        "Gerencie o cadastro de Contas Gerenciais"
-        " (`public.tb_contas_gerenciais`)."
+        "Gerencie o cadastro de Contas Gerenciais e defina quais contas permitem detalhamento por Plano Interno (PI)."
     )
 
     df_cg = buscar_contas_gerenciais_banco()
@@ -2532,6 +2512,7 @@ if verificar_senha():
             "Nível (Ex: 1, 2, 3 ou Nível 1):", value="1"
         )
         ativo_in = st.checkbox("Conta Ativa", value=True)
+        permite_pi_in = st.checkbox("Permite Detalhamento por PI", value=False, help="Habilita a quebra por Plano Interno nos relatórios para esta conta.")
 
         btn_save_cg = st.form_submit_button(
             "Salvar Conta Gerencial", use_container_width=True, type="primary"
@@ -2550,6 +2531,7 @@ if verificar_senha():
                   nome_conta=nome_conta_in.strip(),
                   nivel=nivel_in.strip() if nivel_in else "1",
                   ativo=ativo_in,
+                  permite_detalhamento_pi=permite_pi_in,
               )
               st.success(f"Conta '{codigo_conta_in}' inserida com sucesso!")
               st.rerun()
@@ -2570,9 +2552,11 @@ if verificar_senha():
           c_nome = row["nome_conta"] if pd.notna(row["nome_conta"]) else ""
           c_niv = row["nivel"] if pd.notna(row["nivel"]) else "1"
           c_ativo = bool(row["ativo"]) if pd.notna(row["ativo"]) else True
+          c_permite_pi = bool(row["permite_detalhamento_pi"]) if "permite_detalhamento_pi" in row and pd.notna(row["permite_detalhamento_pi"]) else False
 
           status_icon = "🟢" if c_ativo else "🔴"
-          disp_str = f"{status_icon} **[{c_cod}]** {c_nome} *(Nível: {c_niv})*"
+          badge_pi = " 🔍[PI]" if c_permite_pi else ""
+          disp_str = f"{status_icon} **[{c_cod}]** {c_nome}{badge_pi} *(Nível: {c_niv})*"
 
           c_txt, c_btn_edit, c_btn_del = st.columns([5, 1, 1])
           c_txt.markdown(disp_str, unsafe_allow_html=True)
@@ -2610,6 +2594,9 @@ if verificar_senha():
               e_ativo = st.checkbox(
                   "Ativo", value=c_ativo, key=f"edit_cg_ativo_{c_cod}"
               )
+              e_permite_pi = st.checkbox(
+                  "Permite Detalhamento por PI", value=c_permite_pi, key=f"edit_cg_pi_{c_cod}"
+              )
 
               c_save, c_canc = st.columns(2)
               if c_save.button(
@@ -2622,6 +2609,7 @@ if verificar_senha():
                       nome_conta=e_nome.strip(),
                       nivel=e_niv.strip() if e_niv else "1",
                       ativo=e_ativo,
+                      permite_detalhamento_pi=e_permite_pi,
                   )
                   st.session_state.editando_codigo_conta = None
                   st.success("Conta Gerencial atualizada com sucesso!")
