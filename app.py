@@ -295,17 +295,42 @@ def excluir_conta_gerencial_banco(codigo_conta: str):
 
 
 # -----------------------------------------------------------------------------
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_CONFIGURACOES
+# -----------------------------------------------------------------------------
+def buscar_configuracao_banco(chave: str):
+  try:
+    query = "SELECT valor FROM public.tb_configuracoes WHERE chave = :chave;"
+    df = executar_consulta_sql(query, params={"chave": chave})
+    if not df.empty and pd.notna(df["valor"].iloc[0]):
+      return df["valor"].iloc[0]
+    return None
+  except Exception as e:
+    # Se a tabela ainda não existir, retorna None silenciosamente na primeira execução
+    return None
+
+def salvar_configuracao_banco(chave: str, valor: str):
+  query = """
+    INSERT INTO public.tb_configuracoes (chave, valor, criado_em)
+    VALUES (:chave, :valor, CURRENT_TIMESTAMP)
+    ON CONFLICT (chave) 
+    DO UPDATE SET valor = EXCLUDED.valor, criado_em = CURRENT_TIMESTAMP;
+    """
+  executar_comando_sql(query, {"chave": chave, "valor": valor})
+
+
+# -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO E CONFIGURAÇÃO DA PÁGINA
 # -----------------------------------------------------------------------------
 if "logo_personalizada" not in st.session_state:
-  st.session_state.logo_personalizada = None
-
-icone_aba = (
-    st.session_state.logo_personalizada
-    if st.session_state.logo_personalizada is not None
-    else "🏛️"
-)
-
+  logo_salva = buscar_configuracao_banco("logo_sistema")
+  if logo_salva:
+    import base64
+    try:
+      st.session_state.logo_personalizada = base64.b64decode(logo_salva.encode("utf-8"))
+    except:
+      st.session_state.logo_personalizada = None
+  else:
+    st.session_state.logo_personalizada = None
 st.set_page_config(
     page_title="SiGeO - Sistema de Gestão Orçamentária | UFSM",
     page_icon=icone_aba,
@@ -745,7 +770,7 @@ if verificar_senha():
   # -----------------------------------------------------------------------------
   # TELA: INÍCIO / DASHBOARD
   # -----------------------------------------------------------------------------
-  if st.session_state.pagina_atual == "inicio":
+  elif st.session_state.pagina_atual == "inicio":
     st.markdown(
         """
             <div class="faixa-superior-ufsm">
@@ -761,18 +786,22 @@ if verificar_senha():
     col_logo_ini, col_texto_ini = st.columns([1, 2])
 
     with col_logo_ini:
-      st.markdown("### 🖼️ Campo para Logo")
+      st.markdown("### 🖼️ Logotipo Institucional")
       if st.session_state.logo_personalizada is not None:
         st.image(st.session_state.logo_personalizada, width=180)
       else:
-        st.info("Logo institucional padrão ou a ser configurada.")
+        st.info("Logo institucional padrão.")
 
     with col_texto_ini:
-      st.markdown("### 📝 Campo para Texto Inicial")
-      st.info(
-          "Este espaço exibirá o texto inicial cadastrado no sistema (a ser"
-          " integrado com tabela dedicada no banco de dados em breve)."
-      )
+      st.markdown("### 📝 Apresentação")
+      texto_abertura_salvo = buscar_configuracao_banco("texto_abertura")
+      if texto_abertura_salvo:
+        st.markdown(texto_abertura_salvo)
+      else:
+        st.info(
+            "Nenhum texto de abertura cadastrado. Utilize o menu lateral em"
+            " **Configurações > Texto de Abertura** para configurá-lo."
+        )
 
     st.markdown("---")
     st.info(
@@ -2906,7 +2935,7 @@ if verificar_senha():
         "Módulo de relatório de simulações orçamentárias em desenvolvimento."
     )
 
-  # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
   # CONFIGURAÇÕES: TEXTO DE ABERTURA
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "texto_abertura":
@@ -2915,10 +2944,30 @@ if verificar_senha():
         " Abertura</h2>",
         unsafe_allow_html=True,
     )
-    st.info(
-        "Módulo para gerenciar o texto de abertura exibido na página inicial (a"
-        " ser criado com tabela dedicada)."
+    st.write(
+        "Defina o texto de apresentação que será exibido na página inicial do"
+        " sistema."
     )
+
+    texto_atual = buscar_configuracao_banco("texto_abertura") or ""
+
+    with st.form("form_texto_abertura"):
+      novo_texto = st.text_area(
+          "Texto de Abertura (Suporta formatação Markdown):",
+          value=texto_atual,
+          height=250,
+      )
+      btn_salvar_texto = st.form_submit_button(
+          "💾 Salvar Texto de Abertura", type="primary"
+      )
+
+      if btn_salvar_texto:
+        try:
+          salvar_configuracao_banco("texto_abertura", novo_texto)
+          st.success("Texto de abertura atualizado com sucesso no Supabase!")
+          st.rerun()
+        except Exception as e:
+          st.error(f"Erro ao salvar texto de abertura: {e}")
 
   # -----------------------------------------------------------------------------
   # CONFIGURAÇÕES: IDENTIDADE VISUAL
@@ -2930,8 +2979,8 @@ if verificar_senha():
         unsafe_allow_html=True,
     )
     st.write(
-        "Carregue a imagem da logomarca oficial. Ela será exibida no menu à"
-        " esquerda, no cabeçalho do relatório e como ícone na aba do navegador."
+        "Carregue a imagem da logomarca oficial. Ela será salva no banco de dados"
+        " e exibida em todo o sistema."
     )
 
     c_up, c_prev = st.columns([2, 1])
@@ -2944,16 +2993,28 @@ if verificar_senha():
       )
 
       if arquivo_logo is not None:
-        st.session_state.logo_personalizada = arquivo_logo.getvalue()
-        st.success("Logomarca carregada com sucesso!")
-        st.rerun()
+        import base64
+        bytes_logo = arquivo_logo.getvalue()
+        base64_logo = base64.b64encode(bytes_logo).decode("utf-8")
+        
+        try:
+          salvar_configuracao_banco("logo_sistema", base64_logo)
+          st.session_state.logo_personalizada = bytes_logo
+          st.success("Logomarca salva com sucesso no Supabase!")
+          st.rerun()
+        except Exception as e:
+          st.error(f"Erro ao salvar logo no banco: {e}")
 
       if st.session_state.logo_personalizada is not None:
         st.markdown("---")
         if st.button("🗑️ Remover Logomarca Atual", type="secondary"):
-          st.session_state.logo_personalizada = None
-          st.success("Logomarca removida com sucesso!")
-          st.rerun()
+          try:
+            salvar_configuracao_banco("logo_sistema", "")
+            st.session_state.logo_personalizada = None
+            st.success("Logomarca removida com sucesso!")
+            st.rerun()
+          except Exception as e:
+            st.error(f"Erro ao remover logo: {e}")
 
     with c_prev:
       st.subheader("Pré-visualização")
@@ -2965,6 +3026,6 @@ if verificar_senha():
         )
       else:
         st.info(
-            "Nenhuma imagem carregada até o momento. O sistema está exibindo"
-            " o brasão padrão."
+            "Nenhuma imagem carregada no banco. O sistema está exibindo o"
+            " brasão padrão."
         )
