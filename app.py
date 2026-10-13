@@ -330,6 +330,14 @@ if "logo_personalizada" not in st.session_state:
       st.session_state.logo_personalizada = None
   else:
     st.session_state.logo_personalizada = None
+
+# Definindo o ícone da aba antes do set_page_config para evitar NameError
+icone_aba = (
+    st.session_state.logo_personalizada
+    if st.session_state.logo_personalizada is not None
+    else "🏛️"
+)
+
 st.set_page_config(
     page_title="SiGeO - Sistema de Gestão Orçamentária | UFSM",
     page_icon=icone_aba,
