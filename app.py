@@ -774,7 +774,7 @@ if verificar_senha():
       return 0.0
 
   # -----------------------------------------------------------------------------
-  # TELA: INÍCIO / DASHBOARD (LIMPO E FLUIDO)
+  # TELA: INÍCIO / DASHBOARD (PROPORÇÃO AJUSTADA)
   # -----------------------------------------------------------------------------
   if st.session_state.pagina_atual == "inicio":
     st.markdown(
@@ -789,19 +789,18 @@ if verificar_senha():
 
     st.markdown("")
 
-    # Layout limpo: Logo à esquerda (coluna menor) e Texto à direita (coluna maior)
-    col_logo_ini, col_texto_ini = st.columns([1, 2.5], gap="large")
+    # Proporção otimizada: Logo compacto à esquerda e Texto ocupando o restante da tela
+    col_logo_ini, col_texto_ini = st.columns([0.7, 4.3], gap="large")
 
     with col_logo_ini:
       st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
       if st.session_state.logo_personalizada is not None:
-        st.image(st.session_state.logo_personalizada, width=180)
+        st.image(st.session_state.logo_personalizada, width=140)
       else:
         st.info("Logo padrão UFSM.")
       st.markdown("</div>", unsafe_allow_html=True)
 
     with col_texto_ini:
-      # Busca o título customizado ou assume o padrão
       titulo_pagina = buscar_configuracao_banco("titulo_abertura") or "Bem-vindo ao SiGeO"
       st.markdown(f"<h2 style='color: #003366; margin-top: 0;'>{titulo_pagina}</h2>", unsafe_allow_html=True)
       
@@ -811,7 +810,7 @@ if verificar_senha():
       else:
         st.info(
             "Nenhum texto cadastrado. Utilize o menu lateral em"
-            " **Configurações > Texto de Abertura** para personalizar esta área (apresentação do sistema, créditos de desenvolvimento, etc.)."
+            " **Configurações > Texto de Abertura** para personalizar esta área."
         )
 
     st.markdown("---")
