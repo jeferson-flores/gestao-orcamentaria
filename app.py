@@ -770,7 +770,7 @@ if verificar_senha():
   # -----------------------------------------------------------------------------
   # TELA: INÍCIO / DASHBOARD
   # -----------------------------------------------------------------------------
-  elif st.session_state.pagina_atual == "inicio":
+  if st.session_state.pagina_atual == "inicio":
     st.markdown(
         """
             <div class="faixa-superior-ufsm">
