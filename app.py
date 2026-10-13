@@ -773,39 +773,12 @@ if verificar_senha():
     except:
       return 0.0
 
-
   # -----------------------------------------------------------------------------
-  # TELA: INÍCIO / DASHBOARD (DESIGN APRIMORADO)
+  # TELA: INÍCIO / DASHBOARD (LIMPO E FLUIDO)
   # -----------------------------------------------------------------------------
   if st.session_state.pagina_atual == "inicio":
     st.markdown(
         """
-            <style>
-            .card-apresentacao {
-                background-color: #ffffff;
-                border: 1px solid #e1e4e8;
-                border-radius: 10px;
-                padding: 25px 30px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-                margin-bottom: 20px;
-            }
-            .card-apresentacao h3 {
-                color: #003366;
-                margin-top: 0;
-                font-size: 20px;
-                border-bottom: 2px solid #f0f2f6;
-                padding-bottom: 10px;
-            }
-            .card-logo {
-                background-color: #f8f9fa;
-                border: 1px solid #e1e4e8;
-                border-radius: 10px;
-                padding: 25px;
-                text-align: center;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            }
-            </style>
-
             <div class="faixa-superior-ufsm">
                 <h1>SiGeO - Sistema de Gestão Orçamentária</h1>
                 <p>Universidade Federal de Santa Maria (UFSM) | Pró-Reitoria de Administração</p>
@@ -814,45 +787,34 @@ if verificar_senha():
         unsafe_allow_html=True,
     )
 
-    col_texto_ini, col_logo_ini = st.columns([2, 1], gap="large")
+    st.markdown("")
+
+    # Layout limpo: Logo à esquerda (coluna menor) e Texto à direita (coluna maior)
+    col_logo_ini, col_texto_ini = st.columns([1, 2.5], gap="large")
+
+    with col_logo_ini:
+      st.markdown("<div style='text-align: center;'>", unsafe_allow_html=True)
+      if st.session_state.logo_personalizada is not None:
+        st.image(st.session_state.logo_personalizada, width=180)
+      else:
+        st.info("Logo padrão UFSM.")
+      st.markdown("</div>", unsafe_allow_html=True)
 
     with col_texto_ini:
-      st.markdown(
-          """
-          <div class="card-apresentacao">
-              <h3>📝 Apresentação Institucional</h3>
-          """,
-          unsafe_allow_html=True,
-      )
+      # Busca o título customizado ou assume o padrão
+      titulo_pagina = buscar_configuracao_banco("titulo_abertura") or "Bem-vindo ao SiGeO"
+      st.markdown(f"<h2 style='color: #003366; margin-top: 0;'>{titulo_pagina}</h2>", unsafe_allow_html=True)
       
       texto_abertura_salvo = buscar_configuracao_banco("texto_abertura")
       if texto_abertura_salvo:
         st.markdown(texto_abertura_salvo)
       else:
         st.info(
-            "Nenhum texto de abertura cadastrado. Utilize o menu lateral em"
-            " **Configurações > Texto de Abertura** para configurá-lo."
+            "Nenhum texto cadastrado. Utilize o menu lateral em"
+            " **Configurações > Texto de Abertura** para personalizar esta área (apresentação do sistema, créditos de desenvolvimento, etc.)."
         )
-      
-      st.markdown("</div>", unsafe_allow_html=True)
 
-    with col_logo_ini:
-      st.markdown(
-          """
-          <div class="card-logo">
-              <h4 style="color: #003366; margin-top: 0; font-size: 16px; margin-bottom: 15px;">🖼️ Identidade Visual</h4>
-          """,
-          unsafe_allow_html=True,
-      )
-      
-      if st.session_state.logo_personalizada is not None:
-        st.image(st.session_state.logo_personalizada, width=150)
-      else:
-        st.info("Logomarca padrão UFSM ativa.")
-
-      st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("")
+    st.markdown("---")
     st.success(
         "💡 **Dica de Navegação**: Utilize o menu lateral esquerdo para navegar entre os"
         " módulos de Cadastros, Gestão de Dados e Relatórios."
@@ -2983,39 +2945,40 @@ if verificar_senha():
         "Módulo de relatório de simulações orçamentárias em desenvolvimento."
     )
 
-# -----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
   # CONFIGURAÇÕES: TEXTO DE ABERTURA
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "texto_abertura":
     st.markdown(
-        "<h2 style='color: #003366;'>📝 Configuração do Texto de"
-        " Abertura</h2>",
+        "<h2 style='color: #003366;'>📝 Configuração da Página Inicial</h2>",
         unsafe_allow_html=True,
     )
     st.write(
-        "Defina o texto de apresentação que será exibido na página inicial do"
-        " sistema."
+        "Personalize o título e o texto de apresentação exibidos na página inicial do sistema."
     )
 
+    titulo_atual = buscar_configuracao_banco("titulo_abertura") or "Bem-vindo ao SiGeO"
     texto_atual = buscar_configuracao_banco("texto_abertura") or ""
 
     with st.form("form_texto_abertura"):
+      novo_titulo = st.text_input("Título Principal da Página:", value=titulo_atual)
       novo_texto = st.text_area(
-          "Texto de Abertura (Suporta formatação Markdown):",
+          "Texto / Descrição (Suporta formatação Markdown):",
           value=texto_atual,
           height=250,
       )
       btn_salvar_texto = st.form_submit_button(
-          "💾 Salvar Texto de Abertura", type="primary"
+          "💾 Salvar Configurações da Página", type="primary"
       )
 
       if btn_salvar_texto:
         try:
+          salvar_configuracao_banco("titulo_abertura", novo_titulo)
           salvar_configuracao_banco("texto_abertura", novo_texto)
-          st.success("Texto de abertura atualizado com sucesso no Supabase!")
+          st.success("Configurações atualizadas com sucesso no Supabase!")
           st.rerun()
         except Exception as e:
-          st.error(f"Erro ao salvar texto de abertura: {e}")
+          st.error(f"Erro ao salvar configurações: {e}")
 
   # -----------------------------------------------------------------------------
   # CONFIGURAÇÕES: IDENTIDADE VISUAL
