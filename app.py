@@ -305,18 +305,17 @@ def buscar_configuracao_banco(chave: str):
       return df["valor"].iloc[0]
     return None
   except Exception as e:
-    # Se a tabela ainda não existir, retorna None silenciosamente na primeira execução
     return None
+
 
 def salvar_configuracao_banco(chave: str, valor: str):
   query = """
     INSERT INTO public.tb_configuracoes (chave, valor, criado_em)
     VALUES (:chave, :valor, CURRENT_TIMESTAMP)
     ON CONFLICT (chave) 
-    DO UPDATE SET valor = EXCLUDED.valor, criado_em = CURRENT_TIMESTAMP;
+    DO UPDATE SET valor = EXCLUDED.valor;
     """
   executar_comando_sql(query, {"chave": chave, "valor": valor})
-
 
 # -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO E CONFIGURAÇÃO DA PÁGINA
@@ -766,7 +765,6 @@ if verificar_senha():
     except:
       return 0.0
 
-
   # -----------------------------------------------------------------------------
   # TELA: INÍCIO / DASHBOARD
   # -----------------------------------------------------------------------------
@@ -808,7 +806,6 @@ if verificar_senha():
         "💡 **Dica**: Utilize o menu lateral esquerdo para navegar entre os"
         " módulos de Cadastros, Gestão de Dados e Relatórios."
     )
-
 
   # -----------------------------------------------------------------------------
   # TELA: CENTRAL DE GESTÃO ORÇAMENTÁRIA (ETAPA 2)
