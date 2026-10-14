@@ -219,7 +219,6 @@ def atualizar_ndd_banco(
       },
   )
 
-
 def excluir_ndd_banco(codigo_ndd: str):
   query = (
       "DELETE FROM public.tb_natureza_despesa_detalhada WHERE codigo_ndd ="
@@ -227,6 +226,20 @@ def excluir_ndd_banco(codigo_ndd: str):
   )
   executar_comando_sql(query, {"codigo_ndd": codigo_ndd})
 
+def carregar_orcamento_para_supabase(
+    df: pd.DataFrame, nome_tabela: str = "tb_orcamento_despesa"
+):
+  engine = get_db_engine()
+  df.to_sql(
+      nome_tabela, con=engine, if_exists="append", index=False, chunksize=2000
+  )
+
+def buscar_orcamento_banco():
+  try:
+    query = "SELECT id, exercicio, unidade, ug_responsavel, natureza_despesa_detalhada, pi, mes_competencia, valor_orcado FROM public.tb_orcamento_despesa ORDER BY exercicio DESC, unidade ASC;"
+    return executar_consulta_sql(query)
+  except Exception as e:
+    return pd.DataFrame()
 
 # -----------------------------------------------------------------------------
 # FUNÇÕES DE CRUD PARA PUBLIC.TB_CONTAS_GERENCIAIS
@@ -667,6 +680,19 @@ if verificar_senha():
     ):
       st.session_state.pagina_atual = "carga"
       st.rerun()
+
+    if st.button(
+        "📁 Carga de Orçamento / LOA",
+        use_container_width=True,
+        type=(
+            "primary"
+            if st.session_state.pagina_atual == "carga_orcamento"
+            else "secondary"
+        ),
+    ):
+      st.session_state.pagina_atual = "carga_orcamento"
+      st.rerun()
+
     if st.button(
         "📥 Lançamentos",
         use_container_width=True,
@@ -1522,7 +1548,84 @@ if verificar_senha():
         st.session_state.dados_tg_raw = None
         st.rerun()
 
-# -----------------------------------------------------------------------------
+  # -----------------------------------------------------------------------------
+  # PÁGINA: CARGA DE ORÇAMENTO / LOA
+  # -----------------------------------------------------------------------------
+  if st.session_state.pagina_atual == "carga_orcamento":
+    st.markdown(
+        "<h2 style='color: #003366;'>📁 Carga de Orçamento / LOA e Gravação no Supabase</h2>",
+        unsafe_allow_html=True,
+    )
+    st.write(
+        "Faça o upload da planilha de orçamento/LOA (.xlsx ou .csv) contendo os valores previstos por Unidade, UG, NDD e Plano Interno (PI)."
+    )
+
+    if "dados_orcamento_raw" not in st.session_state:
+      st.session_state.dados_orcamento_raw = None
+
+    arquivo_orc = st.file_uploader(
+        "Selecione o arquivo de Orçamento / LOA", type=["csv", "xlsx"], key="up_orc"
+    )
+
+    if arquivo_orc is not None:
+      try:
+        if arquivo_orc.name.endswith(".csv"):
+          try:
+            df_orc = pd.read_csv(arquivo_orc, sep=";", encoding="latin1")
+          except:
+            df_orc = pd.read_csv(arquivo_orc)
+        else:
+          df_orc = pd.read_excel(arquivo_orc)
+
+        colunas_orc = list(df_orc.columns)
+        st.success(f"Arquivo de orçamento carregado com sucesso! Total de {len(df_orc):,} linhas encontradas.")
+
+        st.markdown("---")
+        st.subheader("⚙ Mapeamento Dinâmico de Colunas de Orçamento")
+
+        c_o1, c_o2, c_o3 = st.columns(3)
+        with c_o1:
+          orc_ex = st.selectbox("Coluna de Exercício / Ano:", colunas_orc, index=0, key="orc_ex")
+          orc_un = st.selectbox("Coluna de Unidade:", colunas_orc, index=min(1, len(colunas_orc)-1), key="orc_un")
+        with c_o2:
+          orc_ug = st.selectbox("Coluna de UG Responsável:", colunas_orc, index=min(2, len(colunas_orc)-1), key="orc_ug")
+          orc_nd = st.selectbox("Coluna de Natureza de Despesa (NDD):", colunas_orc, index=min(3, len(colunas_orc)-1), key="orc_nd")
+        with c_o3:
+          orc_pi = st.selectbox("Coluna de Plano Interno (PI):", colunas_orc, index=min(4, len(colunas_orc)-1), key="orc_pi")
+          orc_val = st.selectbox("Coluna de Valor Orçado:", colunas_orc, index=len(colunas_orc)-1, key="orc_val")
+
+        if st.button("🔄 Processar e Validar Dados de Orçamento", type="primary", key="btn_proc_orc"):
+          df_orc_tratado = pd.DataFrame()
+          df_orc_tratado["exercicio"] = pd.to_numeric(df_orc[orc_ex], errors="coerce").fillna(datetime.now().year).astype(int)
+          df_orc_tratado["unidade"] = df_orc[orc_un].astype(str).str.strip()
+          df_orc_tratado["ug_responsavel"] = df_orc[orc_ug].astype(str).str.strip()
+          df_orc_tratado["natureza_despesa_detalhada"] = df_orc[orc_nd].astype(str).str.strip()
+          df_orc_tratado["pi"] = df_orc[orc_pi].astype(str).str.strip()
+          df_orc_tratado["mes_competencia"] = 1  
+          df_orc_tratado["valor_orcado"] = df_orc[orc_val].apply(converter_valor)
+
+          st.session_state.dados_orcamento_raw = df_orc_tratado
+          st.success("Dados orçamentários tratados com sucesso!")
+          st.dataframe(df_orc_tratado.head(5), use_container_width=True)
+
+        if st.session_state.dados_orcamento_raw is not None:
+          st.markdown("---")
+          st.subheader("🚀 Exportação e Carga para a Tabela tb_orcamento_despesa")
+          if st.button("🚀 Gravar Orçamento no Supabase", type="primary", key="btn_grav_orc"):
+            with st.spinner("Enviando lotes de orçamento para o Supabase..."):
+              carregar_orcamento_para_supabase(st.session_state.dados_orcamento_raw, "tb_orcamento_despesa")
+              st.success("🎉 Carga de orçamento concluída com sucesso no Supabase!")
+
+      except Exception as e:
+        st.error(f"Erro ao processar arquivo de orçamento: {e}")
+
+    elif st.session_state.dados_orcamento_raw is not None:
+      st.info("Planilha de orçamento tratada armazenada na memória local.")
+      if st.button("Remover e Enviar Novo Arquivo de Orçamento", type="secondary", key="btn_limpar_orc"):
+        st.session_state.dados_orcamento_raw = None
+        st.rerun()
+
+  # -----------------------------------------------------------------------------
   # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM SUPORTE A DRILL-DOWN DE PI)
   # -----------------------------------------------------------------------------
   if st.session_state.pagina_atual == "relatorio":
