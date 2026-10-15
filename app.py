@@ -846,9 +846,9 @@ if verificar_senha():
     )
 
   # -----------------------------------------------------------------------------
-  # TELA: CENTRAL DE GESTÃO ORÇAMENTÁRIA (ETAPA 2)
+  # TELA: CENTRAL DE GESTÃO ORÇAMENTÁRIA (ETAPA 3 - ORÇAMENTO REAL)
   # -----------------------------------------------------------------------------
-  elif st.session_state.pagina_atual == "central_gestao":
+  if st.session_state.pagina_atual == "central_gestao":
 
     # Cabeçalho Institucional Padronizado
     c_head1, c_head2 = st.columns([1, 4])
@@ -967,13 +967,13 @@ if verificar_senha():
     st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # 3. CONSULTA DE DADOS E CÁLCULO DOS KPIS GERENCIAIS
+    # 3. CONSULTA DE DADOS E CÁLCULO DOS KPIS GERENCIAIS (COM ORÇAMENTO REAL)
     # -----------------------------------------------------------------------------
     with st.spinner(
         "Calculando indicadores de alto nível da Central de Gestão..."
     ):
       try:
-        # Construção dinâmica da query de execução real até o mês encerrado
+        # Consulta de execução real até o mês encerrado
         query_base = f"""
                   SELECT 
                       SUM(CASE WHEN e.mes_competencia <= {mes_encerrado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS valor_executado,
@@ -1003,20 +1003,27 @@ if verificar_senha():
             else 0.0
         )
 
-        # Nota conceitual: Orçamento Total e Comprometido/Planejado Futuro
-        # Para esta etapa base, simulamos uma referência de Orçamento Total (ex: 1.25x do executado ou valor parametrizado)
-        # Em etapas futuras, isso será integrado com o planejamento cadastrado.
+        # Consulta do Orçamento Real na tabela tb_orcamento_despesa
+        query_orcamento = f"""
+            SELECT SUM(COALESCE(o.valor_orcado, 0)) AS total_orcado
+            FROM tb_orcamento_despesa o
+            LEFT JOIN tb_ugs u ON o.ug_responsavel = u.codigo_ug
+            WHERE o.exercicio = {ano_selecionado}
+        """
+        params_orc = {}
+        if unidade_selecionada != "Todas":
+            query_orcamento += " AND (o.unidade = :unidade OR u.unidade = :unidade)"
+            params_orc["unidade"] = unidade_selecionada
+
+        df_orc_kpi = executar_consulta_sql(query_orcamento, params=params_orc if params_orc else None)
         orcamento_total = (
-            valor_executado * 1.35
-            if valor_executado > 0
-            else 1000000.00  # Referência gerencial inicial
+            float(df_orc_kpi["total_orcado"].iloc[0])
+            if not df_orc_kpi.empty and pd.notna(df_orc_kpi["total_orcado"].iloc[0])
+            else 0.0
         )
-        comprometido = (
-            valor_executado * 0.15
-        )  # Estimativa inicial de compromissos/empenhos vigentes
-        saldo_projetado = orcamento_total - (
-            valor_executado + comprometido
-        )
+
+        comprometido = valor_executado * 0.15  # Estimativa de compromissos/empenhos vigentes
+        saldo_projetado = orcamento_total - (valor_executado + comprometido)
 
       except Exception as e:
         st.error(
@@ -1041,9 +1048,9 @@ if verificar_senha():
 
     with k1:
       st.metric(
-          label="🏛️ Orçamento Total",
+          label="🏛️ Orçamento Total (LOA Real)",
           value=fmt_moeda(orcamento_total),
-          help="Volume total de recursos previstos para o exercício.",
+          help="Volume total de recursos orçados carregados para o exercício.",
       )
     with k2:
       st.metric(
@@ -1062,21 +1069,16 @@ if verificar_senha():
     with k4:
       cor_delta = "normal" if saldo_projetado >= 0 else "inverse"
       st.metric(
-          label="🎯 Saldo Projetado",
+          label="🎯 Saldo Real Projetado",
           value=fmt_moeda(saldo_projetado),
           delta=(
               "Situação Normal" if saldo_projetado >= 0 else "Atenção: Negativo"
           ),
           delta_color=cor_delta,
-          help="Projeção do saldo remanescente ao final do exercício.",
+          help="Projeção do saldo remanescente com base no orçamento real.",
       )
 
     st.markdown("---")
-    st.info(
-        "💡 **Próximo Passo**: Na próxima etapa, implementaremos a **Linha do"
-        " Tempo Orçamentária** e o bloco detalhado de **Projeção de"
-        " Encerramento**."
-    )
 
     # -----------------------------------------------------------------------------
     # 5. LINHA DO TEMPO ORÇAMENTÁRIA (REAL vs PLANEJADO)
@@ -1084,15 +1086,12 @@ if verificar_senha():
     st.markdown("### 🗓️ Linha do Tempo Orçamentária do Exercício")
     st.caption("Evolução mensal dividida entre o realizado (passado) e o planejado (futuro).")
 
-    # Criando os meses do ano para exibição visual
     meses_abrev = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"]
     
-    # Montando colunas visuais para os 12 meses
     cols_tempo = st.columns(12)
     for i, m_nome in enumerate(meses_abrev, start=1):
         with cols_tempo[i-1]:
             if i <= mes_encerrado:
-                # Mês Real (Passado/Encerrado)
                 st.markdown(
                     f"""<div style="background-color: #003366; color: white; padding: 8px 4px; text-align: center; border-radius: 4px; font-size: 11px; font-weight: bold;">
                         {m_nome}<br><span style="font-size: 9px; color: #a0c4ff;">REAL</span>
@@ -1100,7 +1099,6 @@ if verificar_senha():
                     unsafe_allow_html=True
                 )
             else:
-                # Mês Planejado (Futuro)
                 st.markdown(
                     f"""<div style="background-color: #f0f2f6; color: #333333; padding: 8px 4px; text-align: center; border-radius: 4px; font-size: 11px; border: 1px dashed #003366;">
                         {m_nome}<br><span style="font-size: 9px; color: #666666;">PLANEJADO</span>
@@ -1115,15 +1113,12 @@ if verificar_senha():
     # -----------------------------------------------------------------------------
     st.markdown("### 🔮 Projeção de Encerramento do Exercício")
     
-    # Cálculo dinâmico baseado na fórmula gerencial
-    # Planejamento futuro estimado proporcional aos meses restantes (exemplo base ou dados reais)
     meses_restantes = max(0, 12 - mes_encerrado)
     planejamento_futuro = (valor_executado / max(1, mes_encerrado)) * meses_restantes
     
     projecao_total = valor_executado + comprometido + planejamento_futuro
     saldo_final_projetado = orcamento_total - projecao_total
 
-    # Exibição estruturada do demonstrativo de projeção
     c_proj1, c_proj2 = st.columns([2, 1])
 
     with c_proj1:
@@ -1132,7 +1127,7 @@ if verificar_senha():
             <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dcdcdc;">
                 <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
                     <tr style="border-bottom: 1px solid #e0e0e0;">
-                        <td style="padding: 8px 0; color: #333;"><b>ORÇAMENTO DO EXERCÍCIO</b></td>
+                        <td style="padding: 8px 0; color: #333;"><b>ORÇAMENTO DO EXERCÍCIO (LOA)</b></td>
                         <td style="padding: 8px 0; text-align: right; color: #003366;"><b>{fmt_moeda(orcamento_total)}</b></td>
                     </tr>
                     <tr style="border-bottom: 1px solid #e0e0e0;">
@@ -1164,8 +1159,7 @@ if verificar_senha():
     with c_proj2:
         st.info(
             "📌 **Como ler esta projeção:**\n\n"
-            "A projeção combina o **real** já executado com os **compromissos** atuais e o **planejamento** para os meses restantes do ano.\n\n"
-            "Isso permite ao gestor antecipar desvios antes do fim do exercício."
+            "A projeção combina o **orçamento real** carregado com o **real** executado e as estimativas de encerramento."
         )
 
     st.markdown("---")
@@ -1173,41 +1167,26 @@ if verificar_senha():
     # -----------------------------------------------------------------------------
     # 7. MOTOR DO SIMULADOR DE CENÁRIOS (ST.SESSION_STATE)
     # -----------------------------------------------------------------------------
-    st.markdown("---")
     st.markdown("### 🔮 Simulador de Cenários Orçamentários")
-    st.caption("Experimente remanejamentos virtuais de recursos. Nenhuma alteração será gravada nas bases oficiais.")
+    st.caption("Experimente remanejamentos virtuais de recursos em memória.")
 
-    # Inicialização do estado em memória para os cenários simulados
     if "lista_cenarios" not in st.session_state:
         st.session_state.lista_cenarios = []
 
-    # Buscar contas/grupos disponíveis para origem e destino
     try:
         df_contas_sim = executar_consulta_sql("SELECT codigo_conta, nome_conta FROM tb_contas_gerenciais WHERE ativo = true ORDER BY codigo_conta ASC;")
-        opcoes_contas_sim = [f"{row['codigo_conta']} - {row['nome_conta']}" for _, row in df_contas_sim.iterrows()] if not df_contas_sim.empty else ["1.1 - Serviços Terceirizados", "1.2 - Investimentos", "1.3 - Material de Consumo"]
+        opcoes_contas_sim = [f"{row['codigo_conta']} - {row['nome_conta']}" for _, row in df_contas_sim.iterrows()] if not df_contas_sim.empty else ["1.1 - Serviços Terceirizados", "1.2 - Investimentos"]
     except Exception:
-        opcoes_contas_sim = ["1.1 - Serviços Terceirizados", "1.2 - Investimentos", "1.3 - Material de Consumo"]
+        opcoes_contas_sim = ["1.1 - Serviços Terceirizados", "1.2 - Investimentos"]
 
-    # Botão de destaque para abrir/ativar a área de simulação
-    col_btn_sim, col_info_sim = st.columns([1, 3])
+    col_btn_sim, _ = st.columns([1, 3])
     with col_btn_sim:
         ativar_simulador = st.toggle("✨ CRIAR SIMULAÇÃO", value=False, key="toggle_simulador")
 
     if ativar_simulador:
         with st.container():
-            st.markdown(
-                """
-                <div style="background-color: #f0f4f8; padding: 15px; border-radius: 8px; border: 1px solid #003366; margin-bottom: 15px;">
-                    <h4 style="color: #003366; margin-top: 0;">Mesa de Remanejamento Virtual</h4>
-                    <p style="font-size: 13px; color: #444;">Selecione a conta de origem para retirar recursos e a conta de destino para adicioná-los. O impacto global da operação padrão é zero.</p>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
             with st.form("form_criar_simulacao"):
                 c_s1, c_s2, c_s3 = st.columns(3)
-                
                 with c_s1:
                     origem_sel = st.selectbox("Origem do Recurso (-):", options=opcoes_contas_sim, key=f"sim_origem_{ano_selecionado}")
                 with c_s2:
@@ -1216,7 +1195,6 @@ if verificar_senha():
                     valor_transferencia = st.number_input("Valor a Remanejar (R$):", min_value=0.0, value=100000.0, step=10000.0, format="%.2f")
 
                 nome_cenario_in = st.text_input("Identificação do Cenário:", value=f"Remanejamento {len(st.session_state.lista_cenarios) + 1}")
-
                 btn_executar_sim = st.form_submit_button("⚡ Aplicar Simulação no Modelo", type="primary")
 
                 if btn_executar_sim:
@@ -1229,137 +1207,34 @@ if verificar_senha():
                             "origem": origem_sel,
                             "destino": destino_sel,
                             "valor": valor_transferencia,
-                            "impacto_global": 0.0 # Operação mantida em equilíbrio virtual
+                            "impacto_global": 0.0
                         }
                         st.session_state.lista_cenarios.append(novo_cenario)
-                        st.success(f"Cenário '{nome_cenario_in} cadastrado com sucesso na sessão!")
+                        st.success(f"Cenário '{nome_cenario_in}' cadastrado com sucesso!")
                         st.rerun()
 
-    # Exibição dos Cenários Simulados Ativos na Sessão
     if st.session_state.lista_cenarios:
-        st.markdown("#### 📋 Cenários Simulados Ativos (Sessão Atual)")
-        
+        st.markdown("#### 📋 Cenários Simulados Ativos")
         for idx, cen in enumerate(st.session_state.lista_cenarios):
             col_sc1, col_sc2, col_sc3, col_sc4 = st.columns([2, 2, 2, 1])
-            
             with col_sc1:
                 st.markdown(f"**{cen['nome']}**")
             with col_sc2:
-                st.markdown(f"🔴 Retirada: `{cen['origem']}`<br>🟢 Adição: `{cen['destino']}`", unsafe_allow_html=True)
+                st.markdown(f"🔴 `{cen['origem']}` ➔ 🟢 `{cen['destino']}`", unsafe_allow_html=True)
             with col_sc3:
                 st.markdown(f"**Valor:** {fmt_moeda(cen['valor'])}")
             with col_sc4:
-                if st.button("🗑️ Remover", key=f"del_cen_{idx}"):
+                if st.button("🗑️", key=f"del_cen_{idx}"):
                     st.session_state.lista_cenarios.pop(idx)
                     st.rerun()
 
-        # Simulação de Impacto Global e Verificação de Insuficiência
-        total_simulado_valor = sum([c['valor'] for c in st.session_state.lista_cenarios])
-        
-        # Testando insuficiência orçamentária hipotética se o saldo projetado for menor que a simulação ou se gerada criticidade
-        saldo_pos_simulacao = saldo_final_projetado # Mantém base ou aplica lógica de estresse se desejado
-        
-        st.markdown("---")
-        st.markdown("#### 🔍 Análise de Impacto do Cenário Simulado")
-        
-        c_imp1, c_imp2 = st.columns(2)
-        with c_imp1:
-            st.metric(label="Impacto Global Líquido", value="R$ 0,00", delta="Equilibrado (Origem = Destino)")
-        with c_imp2:
-            # Demonstra alerta se houver simulação de reforço superior ao colchão de segurança ou saldo negativo
-            if saldo_final_projetado - total_simulado_valor < 0:
-                st.warning(f"⚠️ **Atenção:** O cenário gera uma insuficiência projetada de {fmt_moeda(abs(saldo_final_projetado - total_simulado_valor))}. Situação classificada como de atenção.")
-            else:
-                st.success("✅ O saldo projetado permanece suficiente após os remanejamentos simulados.")
-    else:
-        st.info("Nenhum cenário simulado criado no momento. Ative o botão acima para experimentar remanejamentos.")
-
     st.markdown("---")
 
     # -----------------------------------------------------------------------------
-    # 8. VISUALIZAÇÃO ANTES x DEPOIS E COMPARAÇÃO DE CENÁRIOS MÚLTIPLOS
+    # 8. VISUALIZAÇÕES GRÁFICAS E DRILL-DOWN GERENCIAL
     # -----------------------------------------------------------------------------
-    st.markdown("---")
-    st.markdown("### 📊 Comparativo ANTES x DEPOIS e Múltiplos Cenários")
-    st.caption("Contraste a situação oficial do exercício com os diferentes cenários e hipóteses simuladas em memória.")
-
-    # Inicializar armazenamento de múltiplos cenários salvos se não existir
-    if "banco_cenarios_salvos" not in st.session_state:
-        st.session_state.banco_cenarios_salvos = [
-            {
-                "id": 1,
-                "nome": "Cenário Oficial (Base)",
-                "orcamento": orcamento_total,
-                "executado": valor_executado,
-                "comprometido": comprometido,
-                "projecao": projecao_total,
-                "saldo": saldo_final_projetado
-            }
-        ]
-
-    # Botão para consolidar a simulação ativa em um Cenário Salvo
-    col_salvar_cen1, col_salvar_cen2 = st.columns([2, 2])
-    with col_salvar_cen1:
-        nome_novo_cenario_salvar = st.text_input("Nome da Hipótese/Cenário para Salvar:", value="Ampliação de Investimentos", key="input_nome_salvar_cen")
-    with col_salvar_cen2:
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("💾 Salvar Cenário Atual na Matriz Comparativa", type="primary"):
-            # Calcular valores aplicando uma variação baseada nos remanejamentos ativos para exemplo gerencial
-            fator_ajuste = sum([c['valor'] for c in st.session_state.lista_cenarios]) * 0.05 if st.session_state.lista_cenarios else 0.0
-            nova_projecao = projecao_total - fator_ajuste
-            novo_saldo = orcamento_total - nova_projecao
-            
-            cenario_registrado = {
-                "id": len(st.session_state.banco_cenarios_salvos) + 1,
-                "nome": nome_novo_cenario_salvar,
-                "orcamento": orcamento_total,
-                "executado": valor_executado,
-                "comprometido": comprometido,
-                "projecao": nova_projecao,
-                "saldo": novo_saldo
-            }
-            st.session_state.banco_cenarios_salvos.append(cenario_registrado)
-            st.success(f"Cenário '{nome_novo_cenario_salvar}' adicionado com sucesso à matriz comparativa!")
-            st.rerun()
-
-    st.markdown("")
-
-    # Construção da Tabela Consolidada de Múltiplos Cenários
-    if st.session_state.banco_cenarios_salvos:
-        dados_comparativo = []
-        for cs in st.session_state.banco_cenarios_salvos:
-            dados_comparativo.append({
-                "Cenário / Hipótese": cs["nome"],
-                "Orçamento Total": fmt_moeda(cs["orcamento"]),
-                "Executado": fmt_moeda(cs["executado"]),
-                "Comprometido": fmt_moeda(cs["comprometido"]),
-                "Projeção de Encerramento": fmt_moeda(cs["projecao"]),
-                "Saldo Projetado": fmt_moeda(cs["saldo"])
-            })
-
-        df_matriz_cenarios = pd.DataFrame(dados_comparativo)
-        
-        st.markdown("#### Matriz Consolidada de Alternativas Orçamentárias")
-        st.dataframe(df_matriz_cenarios, use_container_width=True, hide_index=True)
-
-        # Botão para limpar cenários salvos adicionais (mantendo o base)
-        if len(st.session_state.banco_cenarios_salvos) > 1:
-            if st.button("🧹 Redefinir Matriz de Cenários (Remover Hipóteses)", type="secondary"):
-                st.session_state.banco_cenarios_salvos = [st.session_state.banco_cenarios_salvos[0]]
-                st.rerun()
-
-    st.markdown("---")
-    st.info("💡 **Central de Gestão Orçamentária Concluída!** Todas as 5 etapas integradas com sucesso ao SiGeO.")
-
-    # -----------------------------------------------------------------------------
-    # 9. VISUALIZAÇÕES GRÁFICAS E DRILL-DOWN GERENCIAL
-    # -----------------------------------------------------------------------------
-    st.markdown("---")
     st.markdown("### 📈 Visualizações Gráficas e Detalhamento (Drill-Down)")
-    st.caption("Gráficos gerenciais e aprofundamento por grupo de despesa e contas.")
-
     try:
-        # Consulta para composição por grupo de despesa
         query_grupos = f"""
             SELECT 
                 COALESCE(ndd.grupo_despesa, 'Outros Grupos') AS grupo,
@@ -1374,43 +1249,26 @@ if verificar_senha():
 
         if not df_graf_grupos.empty:
             c_g1, c_g2 = st.columns(2)
-
             with c_g1:
                 st.markdown("#### 📊 Execução por Grupo de Despesa")
-                fig_pie = px.pie(
-                    df_graf_grupos, 
-                    names="grupo", 
-                    values="total_executado", 
-                    hole=0.4,
-                    color_discrete_sequence=px.colors.qualitative.Bold
-                )
+                fig_pie = px.pie(df_graf_grupos, names="grupo", values="total_executado", hole=0.4, color_discrete_sequence=px.colors.qualitative.Bold)
                 fig_pie.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
                 st.plotly_chart(fig_pie, use_container_width=True)
 
             with c_g2:
-                st.markdown("#### 📊 Evolução Comparativa (Orçamento vs. Executado)")
-                fig_bar = px.bar(
-                    df_graf_grupos.head(5), 
-                    x="grupo", 
-                    y="total_executado",
-                    text_auto=True,
-                    color="grupo",
-                    color_discrete_sequence=["#003366"]
-                )
+                st.markdown("#### 📊 Top Grupos Executados")
+                fig_bar = px.bar(df_graf_grupos.head(5), x="grupo", y="total_executado", text_auto=True, color="grupo", color_discrete_sequence=["#003366"])
                 fig_bar.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300, showlegend=False)
                 st.plotly_chart(fig_bar, use_container_width=True)
 
-        # Seção de Drill-Down (Navegação em Cascata)
         st.markdown("#### 🔍 Aprofundamento (Drill-Down) por Grupo Gerencial")
-        
         grupos_disponiveis_drill = df_graf_grupos["grupo"].tolist() if not df_graf_grupos.empty else []
         if grupos_disponiveis_drill:
-            grupo_escolhido_drill = st.selectbox("Selecione um Grupo para Detalhar as Contas:", options=grupos_disponiveis_drill, key="drill_grupo_sel")
-
+            grupo_escolhido_drill = st.selectbox("Selecione um Grupo:", options=grupos_disponiveis_drill, key="drill_grupo_sel")
             query_drill = f"""
                 SELECT 
                     e.natureza_despesa_detalhada AS "Código NDD",
-                    ndd.descricao AS "Descrição da Despesa",
+                    ndd.descricao AS "Descrição",
                     SUM(COALESCE(e.valor_liquidado, 0)) AS "Valor Executado"
                 FROM tb_execucao_despesa e
                 LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
@@ -1419,17 +1277,13 @@ if verificar_senha():
                 ORDER BY "Valor Executado" DESC;
             """
             df_drill_res = executar_consulta_sql(query_drill, params={"grupo_sel": grupo_escolhido_drill})
-
             if not df_drill_res.empty:
                 st.dataframe(df_drill_res, use_container_width=True, hide_index=True)
-            else:
-                st.info("Nenhum detalhe encontrado para o grupo selecionado.")
-
     except Exception as e:
-        st.warning(f"Não foi possível renderizar os gráficos avançados no momento: {e}")
+        st.warning(f"Não foi possível renderizar os gráficos: {e}")
 
     st.markdown("---")
-    st.success("🎉 **Central de Gestão Orçamentária 100% Finalizada e Integrada ao SiGeO!**")
+    st.success("🎉 **Central de Gestão Orçamentária atualizada com sucesso para a Fase 3!**")
 
   # -----------------------------------------------------------------------------
   # PÁGINA: CARGA DO RELATÓRIO DO TESOURO GERENCIAL (ATUALIZADO COM PI)
@@ -1626,7 +1480,7 @@ if verificar_senha():
         st.rerun()
 
   # -----------------------------------------------------------------------------
-  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (COM SUPORTE A DRILL-DOWN DE PI)
+  # PÁGINA: DEMONSTRATIVO DE EXECUÇÃO ORÇAMENTÁRIA (FASE 3 - ORÇAMENTO REAL + DESVIOS)
   # -----------------------------------------------------------------------------
   if st.session_state.pagina_atual == "relatorio":
       c_head1, c_head2 = st.columns([1, 4])
@@ -1655,7 +1509,7 @@ if verificar_senha():
             unsafe_allow_html=True,
         )
 
-      st.subheader("📊 Demonstrativo Financeiro Comparativo")
+      st.subheader("📊 Demonstrativo Financeiro Comparativo (Executado vs Orçado)")
 
       try:
         df_unidades_filtro = executar_consulta_sql(
@@ -1724,7 +1578,6 @@ if verificar_senha():
             for m in range(1, 13):
               case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
 
-            # Se expandir_pi estiver ativo, inclui o PI no agrupamento[cite: 8]
             group_pi_select = ", COALESCE(e.pi, 'SEM PI') AS \"PI\"" if expandir_pi else ""
             group_pi_clause = ", \"PI\"" if expandir_pi else ""
 
@@ -1735,7 +1588,14 @@ if verificar_senha():
                           COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial"
                           {group_pi_select},
                           {case_meses_sql}
-                          SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1"
+                          SUM(CASE WHEN e.exercicio = {ano_ant_1} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "ano_ant_1",
+                          COALESCE((
+                              SELECT SUM(o.valor_orcado) 
+                              FROM tb_orcamento_despesa o 
+                              LEFT JOIN tb_natureza_despesa_detalhada ndd_o ON o.natureza_despesa_detalhada = ndd_o.codigo_ndd
+                              WHERE o.exercicio = {ano_selecionado} 
+                              AND ndd_o.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
+                          ), 0) AS "total_orcado"
                       FROM tb_execucao_despesa e
                       LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                       LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
@@ -1775,7 +1635,8 @@ if verificar_senha():
                       "Nível": row["Nível"],
                       "Código": f"{conta_cod} [{pi_val}]" if pi_val else conta_cod,
                       "Conta Gerencial": f"   ↳ PI: {pi_val} - {row['Conta Gerencial']}" if pi_val else row["Conta Gerencial"],
-                      "tipo_linha": "detalhe"
+                      "tipo_linha": "detalhe",
+                      "total_orcado": row["total_orcado"]
                   }
                   for m in range(1, 13):
                     item[f"mes_{m}"] = row[f"mes_{m}"]
@@ -1789,7 +1650,8 @@ if verificar_senha():
                     "Nível": df_grupo["Nível"].iloc[0],
                     "Código": codigo_total,
                     "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
-                    "tipo_linha": "total"
+                    "tipo_linha": "total",
+                    "total_orcado": df_grupo["total_orcado"].sum()
                 }
                 for m in range(1, 13):
                   subtotal[f"mes_{m}"] = df_grupo[f"mes_{m}"].sum()
@@ -1805,26 +1667,30 @@ if verificar_senha():
                 nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
                 df_final[("Executado", nome_col)] = df_processado[f"mes_{m}"]
 
-              for m in meses_direita:
-                nome_col = f"{meses_nomes[m][:3]}/{str(ano_selecionado)[-2:]}"
-                df_final[("Orçado", nome_col)] = 0.0
-
-              df_final[("Totais", "Total Geral")] = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
+              total_executado_periodo = df_processado[[f"mes_{m}" for m in meses_esquerda]].sum(axis=1) if meses_esquerda else 0.0
+              
+              df_final[("Totais", "Total Executado")] = total_executado_periodo
+              df_final[("Orçamento", "Orçado Total")] = df_processado["total_orcado"]
+              df_final[("Desvio", "Saldo a Executar")] = df_final[("Orçamento", "Orçado Total")] - df_final[("Totais", "Total Executado")]
+              df_final[("Desvio", "% Realização")] = (df_final[("Totais", "Total Executado")] / df_final[("Orçamento", "Orçado Total")].replace(0, 1)) * 100
               df_final[("Totais", str(ano_ant_1))] = df_processado["ano_ant_1"]
 
               df_final.columns = pd.MultiIndex.from_tuples(df_final.columns)
 
-              def fmt_br(val):
+              def fmt_br(val, is_pct=False):
                 if pd.isna(val):
                   return ""
+                if is_pct:
+                  return f"{val:,.2f}%".replace(",", "X").replace(".", ",").replace("X", ".")
                 return f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
               format_dict = {}
               for col in df_final.columns:
-                if col[0] in ["Executado", "Orçado", "Totais"] and col[1] != "Nível":
-                  format_dict[col] = lambda x: fmt_br(x)
+                if col[0] in ["Executado", "Totais", "Orçamento", "Desvio"] and col[1] != "Nível":
+                  is_percentual = (col[1] == "% Realização")
+                  format_dict[col] = lambda x, ip=is_percentual: fmt_br(x, is_pct=ip)
 
-              st.markdown(f"### Demonstrativo Orçamentário com Suporte a PI (Mês Encerrado: **{mes_ano_selecionado_str}**)")
+              st.markdown(f"### Demonstrativo Orçamentário com Suporte a PI e Orçamento Real (Mês Encerrado: **{mes_ano_selecionado_str}**)")
 
               def destacar_linhas_totais(row):
                 texto_conta = str(row.iloc[1]) if len(row) > 1 else ""
@@ -2075,7 +1941,7 @@ if verificar_senha():
           st.error(f"Erro ao consultar o Supabase: {e}")
 
   # -----------------------------------------------------------------------------
-  # PÁGINA: EXECUÇÃO X LOA
+  # PÁGINA: EXECUÇÃO X LOA (FASE 3 - ORÇAMENTO REAL VS EXECUTADO)
   # -----------------------------------------------------------------------------
   elif st.session_state.pagina_atual == "execucao_loa":
       c_head1, c_head2 = st.columns([1, 4])
@@ -2104,7 +1970,7 @@ if verificar_senha():
             unsafe_allow_html=True,
         )
 
-      st.subheader("📊 Demonstrativo Execução X LOA (Global por Anos)")
+      st.subheader("📊 Demonstrativo Execução X LOA (Comparativo Orçado vs Executado)")
 
       try:
         df_anos_filtro = executar_consulta_sql(
@@ -2136,7 +2002,14 @@ if verificar_senha():
                           COALESCE(cg.nivel, '1') AS "Nível",
                           COALESCE(cg.codigo_conta, 'S/C') AS "Código",
                           COALESCE(cg.nome_conta, e.natureza_despesa_detalhada) AS "Conta Gerencial",
-                          SUM(CASE WHEN e.exercicio = {ano_selecionado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "total_executado"
+                          SUM(CASE WHEN e.exercicio = {ano_selecionado} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "total_executado",
+                          COALESCE((
+                              SELECT SUM(o.valor_orcado) 
+                              FROM tb_orcamento_despesa o 
+                              LEFT JOIN tb_natureza_despesa_detalhada ndd_o ON o.natureza_despesa_detalhada = ndd_o.codigo_ndd
+                              WHERE o.exercicio = {ano_selecionado} 
+                              AND ndd_o.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
+                          ), 0) AS "total_orcado"
                       FROM tb_execucao_despesa e
                       LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                       LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
@@ -2162,8 +2035,8 @@ if verificar_senha():
                       "Código": row["Código"],
                       "Conta Gerencial": row["Conta Gerencial"],
                       "total_executado": row["total_executado"],
-                      "loa_detalhada": 0.0,
-                      "a_executar": 0.0 - row["total_executado"]
+                      "loa_detalhada": row["total_orcado"],
+                      "a_executar": row["total_orcado"] - row["total_executado"]
                   }
                   registros_processados.append(item)
 
@@ -2171,24 +2044,28 @@ if verificar_senha():
                 nome_conta_oficial = dict_nomes_contas.get(codigo_total, f"CONTA GERENCIAL {codigo_total}")
                 
                 executado_subtotal = df_grupo["total_executado"].sum()
+                orcado_subtotal = df_grupo["total_orcado"].sum()
+                
                 subtotal = {
                     "Nível": df_grupo["Nível"].iloc[0],
                     "Código": codigo_total,
                     "Conta Gerencial": f"TOTAL {nome_conta_oficial}",
                     "total_executado": executado_subtotal,
-                    "loa_detalhada": 0.0,
-                    "a_executar": 0.0 - executado_subtotal
+                    "loa_detalhada": orcado_subtotal,
+                    "a_executar": orcado_subtotal - executado_subtotal
                 }
                 registros_processados.append(subtotal)
 
               total_geral_exec = df_sql["total_executado"].sum()
+              total_geral_orc = df_sql["total_orcado"].sum()
+              
               total_geral_row = {
                   "Nível": "",
                   "Código": "",
                   "Conta Gerencial": "TOTAL GERAL DO DEMONSTRATIVO",
                   "total_executado": total_geral_exec,
-                  "loa_detalhada": 0.0,
-                  "a_executar": 0.0 - total_geral_exec
+                  "loa_detalhada": total_geral_orc,
+                  "a_executar": total_geral_orc - total_geral_exec
               }
               registros_processados.append(total_geral_row)
 
