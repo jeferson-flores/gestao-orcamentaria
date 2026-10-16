@@ -703,7 +703,14 @@ if verificar_senha():
             "primary" if st.session_state.pagina_atual == "ndd" else "secondary"
         ),
     ):
-      st.session_state.pagina_atual = "ndd"
+    if st.button(
+        "📑 Planos Internos (PI)",
+        use_container_width=True,
+        type=(
+            "primary" if st.session_state.pagina_atual == "planos_internos" else "secondary"
+        ),
+    ):
+      st.session_state.pagina_atual = "planos_internos"
       st.rerun()
 
   # 4. Gestão de Dados
@@ -1612,7 +1619,7 @@ if verificar_senha():
             "Unidade:", options=["Todas"] + unidades_opcoes, key="comp_unidade"
         )
       with c_f4:
-        expandir_pi = st.checkbox("🔍 Abrir Detalhamento por PI", value=False, help="Abre Contas Gerenciais marcadas com quebras por Plano Interno.")
+        expandir_pi = st.checkbox("🔍 Abrir Detalhamento por PI", value=False, help="Abre Contas Gerenciais baseando-se nos Planos Internos (PIs) cadastrados na tabela de apoio.")
 
       if st.button("🔍 Executar Consulta SQL no Supabase", type="primary", key="btn_comp"):
         with st.spinner("Buscando e processando dados diretamente do Supabase..."):
@@ -1635,8 +1642,15 @@ if verificar_senha():
             for m in range(1, 13):
               case_meses_sql += f'SUM(CASE WHEN e.exercicio = {ano_selecionado} AND CAST(e.mes_competencia AS INTEGER) = {m} THEN COALESCE(e.valor_liquidado, 0) ELSE 0 END) AS "mes_{m}",\n'
 
-            group_pi_select = ", COALESCE(e.pi, 'SEM PI') AS \"PI\"" if expandir_pi else ""
-            group_pi_clause = ", \"PI\"" if expandir_pi else ""
+            # Integração com a tabela tb_planos_internos quando expandir_pi estiver ativo
+            if expandir_pi:
+              group_pi_select = ', COALESCE(pi_tab.codigo_pi, \'SEM PI CADASTRADO\') AS "PI", COALESCE(pi_tab.nome_pi, \'Outros Lançamentos\') AS "Nome_PI"'
+              group_pi_clause = ', "PI", "Nome_PI"'
+              join_pi_sql = 'LEFT JOIN tb_planos_internos pi_tab ON e.pi = pi_tab.codigo_pi AND ndd.conta_gerencial LIKE \'%%\' || pi_tab.codigo_conta || \'%%\''
+            else:
+              group_pi_select = ''
+              group_pi_clause = ''
+              join_pi_sql = ''
 
             query_relatorio = f"""
                       SELECT 
@@ -1656,6 +1670,7 @@ if verificar_senha():
                       FROM tb_execucao_despesa e
                       LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
                       LEFT JOIN tb_contas_gerenciais cg ON ndd.conta_gerencial LIKE '%%' || cg.codigo_conta || '%%'
+                      {join_pi_sql}
                       """
 
             params = {}
@@ -1687,11 +1702,15 @@ if verificar_senha():
                 for _, row in df_grupo.iterrows():
                   conta_cod = row["Código"]
                   pi_val = row["PI"] if expandir_pi and "PI" in row and dict_permite_pi.get(conta_cod, False) else None
+                  nome_pi_val = row["Nome_PI"] if expandir_pi and "Nome_PI" in row else ""
+                  
+                  # Exibe apenas PIs válidos que pertencem ao cadastro formalizado
+                  exibir_pi = pi_val and pi_val != 'SEM PI CADASTRADO'
                   
                   item = {
                       "Nível": row["Nível"],
-                      "Código": f"{conta_cod} [{pi_val}]" if pi_val else conta_cod,
-                      "Conta Gerencial": f"   ↳ PI: {pi_val} - {row['Conta Gerencial']}" if pi_val else row["Conta Gerencial"],
+                      "Código": f"{conta_cod} [{pi_val}]" if exibir_pi else conta_cod,
+                      "Conta Gerencial": f"   ↳ PI: {pi_val} - {nome_pi_val}" if exibir_pi else row["Conta Gerencial"],
                       "tipo_linha": "detalhe",
                       "total_orcado": row["total_orcado"]
                   }
@@ -2834,6 +2853,79 @@ if verificar_senha():
                 st.session_state.editando_codigo_ndd = None
                 st.rerun()
               st.markdown("---")
+
+  # -----------------------------------------------------------------------------
+  # CADASTRO: PLANOS INTERNOS (PI)
+  # -----------------------------------------------------------------------------
+  elif st.session_state.pagina_atual == "planos_internos":
+    st.markdown(
+        "<h2 style='color: #003366;'>📑 Gestão de Planos Internos (PI)</h2>",
+        unsafe_allow_html=True,
+    )
+    st.write(
+        "Cadastre os PIs e vincule-os às Contas Gerenciais para formar a união e abertura analítica desejada pela gestão."
+    )
+
+    df_cg_opcoes = buscar_contas_gerenciais_banco()
+    opcoes_cg = ["Nenhum (Sem vínculo)"]
+    if not df_cg_opcoes.empty:
+      for _, r_cg in df_cg_opcoes.iterrows():
+        opcoes_cg.append(f"[{r_cg['codigo_conta']}] - {r_cg['nome_conta']}")
+
+    df_pis = buscar_planos_internos_banco()
+    col_add_pi, col_list_pi = st.columns([1, 2])
+
+    with col_add_pi:
+      st.subheader("➕ Novo Plano Interno")
+      with st.form("form_add_pi", clear_on_submit=True):
+        cod_pi_in = st.text_input("Código do PI * (Ex: 2026PRAD):", placeholder="Ex: 2026PRAD")
+        nome_pi_in = st.text_input("Nome / Descrição Curta *:", placeholder="Ex: Manutenção de Redes")
+        desc_det_in = st.text_area("Descrição Detalhada (Opcional):", placeholder="Detalhes do escopo do PI...")
+        conta_gerencial_pi_sel = st.selectbox("Conta Gerencial Vinculada *:", opcoes_cg)
+        ativo_pi_in = st.checkbox("PI Ativo", value=True)
+
+        btn_save_pi = st.form_submit_button("Salvar Plano Interno", use_container_width=True, type="primary")
+
+        if btn_save_pi:
+          if not cod_pi_in.strip() or not nome_pi_in.strip() or conta_gerencial_pi_sel == "Nenhum (Sem vínculo)":
+            st.error("Preencha todos os campos obrigatórios e selecione a Conta Gerencial.")
+          else:
+            try:
+              cg_limpa = conta_gerencial_pi_sel.split("[")[1].split("]")[0].strip()
+              inserir_plano_interno_banco(
+                  codigo_pi=cod_pi_in.strip(),
+                  nome_pi=nome_pi_in.strip(),
+                  descricao_detalhada=desc_det_in.strip() if desc_det_in else None,
+                  codigo_conta=cg_limpa,
+                  ativo=ativo_pi_in,
+              )
+              st.success(f"Plano Interno '{cod_pi_in}' cadastrado com sucesso!")
+              st.rerun()
+            except Exception as e:
+              st.error(f"Erro ao salvar PI: {e}")
+
+    with col_list_pi:
+      st.subheader(f"Planos Internos Cadastrados ({len(df_pis)})")
+      if df_pis.empty:
+        st.info("Nenhum Plano Interno cadastrado na tabela `public.tb_planos_internos`.")
+      else:
+        for _, row in df_pis.iterrows():
+          p_cod = row["codigo_pi"]
+          p_nome = row["nome_pi"]
+          p_cg = row["codigo_conta"]
+          p_ativo = bool(row["ativo"])
+          
+          status_str = "🟢" if p_ativo else "🔴"
+          
+          c_t, c_b = st.columns([5, 1])
+          c_t.markdown(f"{status_str} **[{p_cod}]** {p_nome} *(Conta Gerencial: `{p_cg}`)*")
+          if c_b.button("🗑️", key=f"del_pi_{p_cod}", help="Excluir PI"):
+            try:
+              excluir_plano_interno_banco(p_cod)
+              st.success(f"PI [{p_cod}] excluído com sucesso!")
+              st.rerun()
+            except Exception as e:
+              st.error(f"Erro ao excluir PI: {e}")
 
   # -----------------------------------------------------------------------------
   # CADASTRO: USUÁRIOS
