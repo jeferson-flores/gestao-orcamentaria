@@ -330,6 +330,45 @@ def salvar_configuracao_banco(chave: str, valor: str):
     """
   executar_comando_sql(query, {"chave": chave, "valor": valor})
 
+
+# -----------------------------------------------------------------------------
+# FUNÇÕES DE CRUD PARA PUBLIC.TB_PLANOS_INTERNOS
+# -----------------------------------------------------------------------------
+def buscar_planos_internos_banco():
+  try:
+    query = """
+        SELECT codigo_pi, nome_pi, descricao_detalhada, codigo_conta, ativo, criado_em 
+        FROM public.tb_planos_internos 
+        ORDER BY codigo_pi ASC;
+    """
+    return executar_consulta_sql(query)
+  except Exception as e:
+    st.error(f"Erro ao consultar tb_planos_internos: {e}")
+    return pd.DataFrame()
+
+
+def inserir_plano_interno_banco(codigo_pi: str, nome_pi: str, descricao_detalhada: str, codigo_conta: str, ativo: bool):
+  query = """
+    INSERT INTO public.tb_planos_internos (codigo_pi, nome_pi, descricao_detalhada, codigo_conta, ativo)
+    VALUES (:codigo_pi, :nome_pi, :descricao_detalhada, :codigo_conta, :ativo);
+  """
+  executar_comando_sql(
+      query,
+      {
+          "codigo_pi": codigo_pi,
+          "nome_pi": nome_pi,
+          "descricao_detalhada": descricao_detalhada if descricao_detalhada else None,
+          "codigo_conta": codigo_conta,
+          "ativo": ativo,
+      },
+  )
+
+
+def excluir_plano_interno_banco(codigo_pi: str):
+  query = "DELETE FROM public.tb_planos_internos WHERE codigo_pi = :codigo_pi;"
+  executar_comando_sql(query, {"codigo_pi": codigo_pi})
+
+
 # -----------------------------------------------------------------------------
 # 1. INICIALIZAÇÃO DA SESSÃO E CONFIGURAÇÃO DA PÁGINA
 # -----------------------------------------------------------------------------
