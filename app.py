@@ -1798,6 +1798,69 @@ if verificar_senha():
           except Exception as e:
             st.error(f"Erro ao consultar o Supabase: {e}")
 
+      # -----------------------------------------------------------------------------
+      # PAINEL DE DRILL-DOWN / AUDITORIA ANALÍTICA (RESOLVE O "O QUE FAZ PARTE DESSE VALOR?")
+      # -----------------------------------------------------------------------------
+      st.markdown("---")
+      with st.expander("🔍 Painel de Auditoria e Drill-Down Analítico (Ver Lançamentos de Origem)", expanded=False):
+        st.write("Selecione os filtros abaixo para inspecionar os lançamentos detalhados da tabela `tb_execucao_despesa` que compõem os valores do demonstrativo.")
+        
+        c_dr1, c_dr2, c_dr3 = st.columns(3)
+        with c_dr1:
+          pi_filtro_input = st.text_input("Filtrar por Código de PI (Opcional):", placeholder="Ex: 2026PRAD")
+        with c_dr2:
+          mes_auditoria_sel = st.selectbox("Mês de Referência para Auditoria:", options=list(range(1, 13)), index=min(mes_encerrado-1, 11), key="aud_mes")
+        with c_dr3:
+          st.markdown("<br>", unsafe_allow_html=True)
+          btn_exec_drill = st.button("🔎 Buscar Lançamentos Brutos", type="primary", use_container_width=True)
+
+        if btn_exec_drill or pi_filtro_input:
+          with st.spinner("Buscando lançamentos no Supabase..."):
+            try:
+              query_drill = f"""
+                  SELECT 
+                      e.exercicio AS "Exercício",
+                      e.mes_competencia AS "Mês",
+                      e.ug_responsavel AS "UG",
+                      e.natureza_despesa_detalhada AS "NDD",
+                      ndd.descricao AS "Descrição NDD",
+                      e.pi AS "PI",
+                      e.descricao AS "Histórico / Descrição do Lançamento",
+                      e.valor_liquidado AS "Valor Liquidado (R$)"
+                  FROM tb_execucao_despesa e
+                  LEFT JOIN tb_natureza_despesa_detalhada ndd ON e.natureza_despesa_detalhada = ndd.codigo_ndd
+                  WHERE e.exercicio = {ano_selecionado} AND e.mes_competencia = {mes_auditoria_sel}
+              """
+              params_drill = {}
+              if pi_filtro_input.strip():
+                query_drill += " AND e.pi ILIKE :pi_val"
+                params_drill["pi_val"] = f"%{pi_filtro_input.strip()}%"
+
+              if unidade_selecionada != "Todas":
+                query_drill += " INNER JOIN tb_ugs u ON e.ug_responsavel = u.codigo_ug WHERE u.unidade = :unidade_val"
+                params_drill["unidade_val"] = unidade_selecionada
+
+              query_drill += ' ORDER BY e.valor_liquidado DESC LIMIT 500;'
+
+              df_drill = executar_consulta_sql(query_drill, params=params_drill if params_drill else None)
+
+              if not df_drill.empty:
+                st.success(f"Exibindo até 500 registros correspondentes (Total encontrado: {len(df_drill)} linhas).")
+                st.dataframe(df_drill, use_container_width=True, hide_index=True)
+
+                # Botão de exportação para CSV (auditoria PRA)
+                csv_data = df_drill.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="📥 Exportar Lançamentos Filtrados para CSV",
+                    data=csv_data,
+                    file_name=f"drilldown_execucao_ano_{ano_selecionado}_mes_{mes_auditoria_sel}.csv",
+                    mime="text/csv",
+                )
+              else:
+                st.info("Nenhum lançamento encontrado para os filtros de auditoria informados.")
+            except Exception as e:
+              st.error(f"Erro ao executar consulta de drill-down: {e}")
+
   # -----------------------------------------------------------------------------
   # PÁGINA: EVOLUÇÃO ANUAL
   # -----------------------------------------------------------------------------
