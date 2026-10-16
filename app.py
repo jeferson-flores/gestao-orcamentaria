@@ -703,6 +703,8 @@ if verificar_senha():
             "primary" if st.session_state.pagina_atual == "ndd" else "secondary"
         ),
     ):
+      st.session_state.pagina_atual = "ndd"
+      st.rerun()
     if st.button(
         "📑 Planos Internos (PI)",
         use_container_width=True,
